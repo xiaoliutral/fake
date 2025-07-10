@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../../common.props"/>
+    <Import Project="../../configureawait.props"/>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Fake.Core\Fake.Core.csproj"/>
+        <ProjectReference Include="..\Fake.EventBus\Fake.EventBus.csproj"/>
+        <ProjectReference Include="..\Fake.RabbitMQ\Fake.RabbitMQ.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="OpenTelemetry" Version="1.10.0"/>
+        <PackageReference Include="Polly.Core" Version="8.5.0"/>
+    </ItemGroup>
+
+</Project>

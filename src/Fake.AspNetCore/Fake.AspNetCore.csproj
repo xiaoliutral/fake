@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <Import Project="../../common.props"/>
+    <Import Project="../../configureawait.props"/>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Fake.Auditing\Fake.Auditing.csproj"/>
+        <ProjectReference Include="..\Fake.Authorization\Fake.Authorization.csproj"/>
+        <ProjectReference Include="..\Fake.DomainDrivenDesign\Fake.DomainDrivenDesign.csproj"/>
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0"/>
+    </ItemGroup>
+    <ItemGroup>
+        <EmbeddedResource Include="Fake\AspNetCore\Localization\*.json"/>
+        <EmbeddedResource Include="Fake\AspNetCore\Localization\Error\en.json"/>
+        <EmbeddedResource Include="Fake\AspNetCore\Localization\Error\zh.json"/>
+    </ItemGroup>
+</Project>

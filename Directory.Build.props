@@ -1,0 +1,28 @@
+<Project>
+
+    <ItemGroup>
+        <PackageReference Condition="'$(IsTestProject)' == 'true'" Include="coverlet.collector" Version="6.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+
+    <PropertyGroup>
+
+        <!-- All Microsoft AspNetCore packages -->
+        <MicrosoftAspNetCorePackageVersion>8.0.0</MicrosoftAspNetCorePackageVersion>
+
+        <!-- All Microsoft EntityFrameworkCore packages -->
+        <MicrosoftEntityFrameworkCorePackageVersion>8.0.0</MicrosoftEntityFrameworkCorePackageVersion>
+
+        <!-- All Microsoft packages -->
+        <MicrosoftPackageVersion>8.0.0</MicrosoftPackageVersion>
+
+        <IsTestProject Condition="$(MSBuildProjectFullPath.Contains('test')) and ($(MSBuildProjectName.EndsWith('.Tests')) or $(MSBuildProjectName.EndsWith('.TestBase')))">true</IsTestProject>
+
+        <!-- Microsoft.NET.Test.Sdk https://www.nuget.org/packages/Microsoft.NET.Test.Sdk -->
+        <MicrosoftNETTestSdkPackageVersion>17.8.0</MicrosoftNETTestSdkPackageVersion>
+    </PropertyGroup>
+
+</Project>

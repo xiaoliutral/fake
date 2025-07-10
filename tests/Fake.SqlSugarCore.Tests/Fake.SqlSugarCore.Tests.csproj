@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="..\..\common.test.props"/>
+
+    <PropertyGroup>
+        <RootNamespace>/</RootNamespace>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkPackageVersion)"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Fake.SqlSugarCore\Fake.SqlSugarCore.csproj"/>
+
+        <!--        Sqlsugar无法适配传统领域驱动-->
+        <!--        <ProjectReference Include="..\Fake.AppTests\Fake.AppTests.csproj"/>-->
+        <ProjectReference Include="..\AFakeTestEntry\AFakeTestEntry.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="appsettings.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+</Project>

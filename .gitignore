@@ -1,0 +1,11 @@
+bin/
+obj/
+/nupkg/packages/
+riderModule.iml
+/_ReSharper.Caches/
+
+.idea/
+/.vs
+/Fake.sln.DotSettings.user
+
+Logs/

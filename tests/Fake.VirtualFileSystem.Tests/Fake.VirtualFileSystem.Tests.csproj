@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="..\..\common.test.props"/>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Fake.VirtualFileSystem\Fake.VirtualFileSystem.csproj"/>
+        <ProjectReference Include="..\AFakeTestEntry\AFakeTestEntry.csproj"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkPackageVersion)"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Assets\**\*"/>
+    </ItemGroup>
+</Project>

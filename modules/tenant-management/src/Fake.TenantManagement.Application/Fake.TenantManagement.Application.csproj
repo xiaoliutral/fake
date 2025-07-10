@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\..\src\Fake.AspNetCore\Fake.AspNetCore.csproj"/>
+        <ProjectReference Include="..\..\..\..\src\Fake.Autofac\Fake.Autofac.csproj"/>
+        <ProjectReference Include="..\..\..\..\src\Fake.ObjectMapping.AutoMapper\Fake.ObjectMapping.AutoMapper.csproj"/>
+        <ProjectReference Include="..\Fake.TenantManagement.Application.Contracts\Fake.TenantManagement.Application.Contracts.csproj"/>
+        <ProjectReference Include="..\Fake.TenantManagement.Domain\Fake.TenantManagement.Domain.csproj"/>
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,5 @@
+<Project>
+    <ItemGroup>
+        <PackageReference Include="ConfigureAwait.Fody" Version="3.3.2" PrivateAssets="All"/>
+    </ItemGroup>
+</Project>
