@@ -28,6 +28,7 @@ public class RabbitMqConnectionPool(IOptions<FakeRabbitMqOptions> options, ILogg
                 connectionName, v => new Lazy<IConnection>(() =>
                 {
                     var connectionFactory = _options.GetOrDefault(v);
+                    connectionFactory.DispatchConsumersAsync = true;
                     // 处理集群
                     var hostnames = connectionFactory.HostName.TrimEnd(';').Split(';');
                     return hostnames.Length == 1
