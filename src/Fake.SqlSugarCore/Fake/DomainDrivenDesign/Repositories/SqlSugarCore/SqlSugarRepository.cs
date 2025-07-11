@@ -1,16 +1,22 @@
 using System.Linq.Expressions;
+using Fake.DependencyInjection;
 using Fake.Domain.Entities.Auditing;
-using Fake.Domain.Repositories;
+using Fake.Domain.Exceptions;
 using Fake.SqlSugarCore;
 using Fake.Timing;
 using Fake.Users;
 
 namespace Fake.DomainDrivenDesign.Repositories.SqlSugarCore;
 
-public class SqlSugarRepository<TDbContext, TEntity> : RepositoryBase<TEntity>, ISqlSugarRepository<TDbContext, TEntity>
+public class SqlSugarRepository<TDbContext, TEntity> : ISqlSugarRepository<TDbContext, TEntity>
     where TDbContext : SugarDbContext<TDbContext>
     where TEntity : class, IAggregateRoot, new()
 {
+    public ILazyServiceProvider LazyServiceProvider { get; set; } = null!; // 属性注入必须public
+    
+    protected CancellationToken GetCancellationToken(CancellationToken cancellationToken = default) =>
+        LazyServiceProvider.GetRequiredService<ICancellationTokenProvider>().FallbackToProvider(cancellationToken);
+    
     protected IAuditPropertySetter AuditPropertySetter =>
         LazyServiceProvider.GetRequiredService<IAuditPropertySetter>();
 
@@ -22,13 +28,20 @@ public class SqlSugarRepository<TDbContext, TEntity> : RepositoryBase<TEntity>, 
         return context.SqlSugarClient;
     }
 
-    public async Task<ISugarQueryable<TEntity>> GetQueryableAsync(CancellationToken cancellationToken = default)
+    public virtual async Task<ISugarQueryable<TEntity>> GetQueryableAsync(CancellationToken cancellationToken = default)
     {
         var ctx = await GetDbContextAsync(cancellationToken);
         return ctx.Queryable<TEntity>();
     }
 
-    public override async Task<TEntity?> FirstOrDefaultAsync(Expression<Func<TEntity, bool>>? predicate = null,
+    public virtual async Task<TEntity> FirstAsync(Expression<Func<TEntity, bool>>? predicate = null, CancellationToken cancellationToken = default)
+    {
+        var res = await FirstOrDefaultAsync(predicate, cancellationToken);
+        if (res == null) throw new EntityNotFoundException(typeof(TEntity));
+        return res;
+    }
+
+    public virtual async Task<TEntity?> FirstOrDefaultAsync(Expression<Func<TEntity, bool>>? predicate = null,
         CancellationToken cancellationToken = default)
     {
         cancellationToken = GetCancellationToken(cancellationToken);
@@ -38,7 +51,7 @@ public class SqlSugarRepository<TDbContext, TEntity> : RepositoryBase<TEntity>, 
         return await ctx.Queryable<TEntity>().FirstAsync(predicate, cancellationToken);
     }
 
-    public override async Task<List<TEntity>> GetListAsync(Expression<Func<TEntity, bool>>? predicate = null,
+    public virtual async Task<List<TEntity>> GetListAsync(Expression<Func<TEntity, bool>>? predicate = null,
         Dictionary<string, bool>? sorting = null, CancellationToken cancellationToken = default)
     {
         cancellationToken = GetCancellationToken(cancellationToken);
@@ -46,7 +59,7 @@ public class SqlSugarRepository<TDbContext, TEntity> : RepositoryBase<TEntity>, 
         return await ctx.Queryable<TEntity>().WhereIF(predicate != null, predicate).ToListAsync(cancellationToken);
     }
 
-    public override async Task<List<TEntity>> GetPagedListAsync(Expression<Func<TEntity, bool>>? predicate,
+    public virtual async Task<List<TEntity>> GetPagedListAsync(Expression<Func<TEntity, bool>>? predicate,
         int pageIndex = 1, int pageSize = 20, Dictionary<string, bool>? sorting = null,
         CancellationToken cancellationToken = default)
     {
@@ -68,7 +81,7 @@ public class SqlSugarRepository<TDbContext, TEntity> : RepositoryBase<TEntity>, 
         return await query.ToPageListAsync(pageIndex, pageSize, GetCancellationToken(cancellationToken));
     }
 
-    public override async Task<long> CountAsync(Expression<Func<TEntity, bool>>? predicate = null,
+    public virtual async Task<long> CountAsync(Expression<Func<TEntity, bool>>? predicate = null,
         CancellationToken cancellationToken = default)
     {
         cancellationToken = GetCancellationToken(cancellationToken);
@@ -78,29 +91,59 @@ public class SqlSugarRepository<TDbContext, TEntity> : RepositoryBase<TEntity>, 
             .CountAsync(GetCancellationToken(cancellationToken));
     }
 
-    public override async Task<bool> AnyAsync(Expression<Func<TEntity, bool>>? predicate = null,
+    public virtual async Task<bool> AnyAsync(Expression<Func<TEntity, bool>>? predicate = null,
         CancellationToken cancellationToken = default)
     {
         cancellationToken = GetCancellationToken(cancellationToken);
         var ctx = await GetDbContextAsync(cancellationToken);
-        return await ctx.Queryable<TEntity>().AnyAsync(predicate, GetCancellationToken(cancellationToken));
+        return await ctx.Queryable<TEntity>()
+            .AnyAsync(predicate, GetCancellationToken(cancellationToken));
     }
 
-    public override async Task<TEntity> InsertAsync(TEntity entity, CancellationToken cancellationToken = default)
+    public virtual async Task<TEntity> InsertAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
         cancellationToken = GetCancellationToken(cancellationToken);
         var ctx = await GetDbContextAsync(cancellationToken);
         return await ctx.Insertable(entity).ExecuteReturnEntityAsync();
     }
 
-    public override async Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
+    public virtual async Task InsertRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default)
     {
         cancellationToken = GetCancellationToken(cancellationToken);
         var ctx = await GetDbContextAsync(cancellationToken);
-        await ctx.Updateable(entity).ExecuteCommandAsync(cancellationToken);
+        await ctx.Insertable(entities.ToArray()).ExecuteCommandAsync(cancellationToken);
     }
 
-    public override async Task DeleteAsync(TEntity entity, CancellationToken cancellationToken = default)
+    public virtual async Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
+    {
+        cancellationToken = GetCancellationToken(cancellationToken);
+        var ctx = await GetDbContextAsync(cancellationToken);
+        try
+        {
+            await ctx.Updateable(entity).ExecuteCommandWithOptLockAsync(true);
+        }
+        catch (VersionExceptions ex)
+        {
+            throw new FakeDbConcurrencyException(ex);
+        }
+    }
+
+    public virtual async Task UpdateRangeAsync(IEnumerable<TEntity> entities,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken = GetCancellationToken(cancellationToken);
+        var ctx = await GetDbContextAsync(cancellationToken);
+        try
+        {
+            await ctx.Updateable(entities.ToArray()).ExecuteCommandWithOptLockAsync(true);
+        }
+        catch (VersionExceptions ex)
+        {
+            throw new FakeDbConcurrencyException(ex);
+        }
+    }
+
+    public virtual async Task DeleteAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
         cancellationToken = GetCancellationToken(cancellationToken);
         var ctx = await GetDbContextAsync(cancellationToken);
@@ -132,7 +175,12 @@ public class SqlSugarRepository<TDbContext, TEntity> : RepositoryBase<TEntity>, 
         }
     }
 
-    public override async Task DeleteAsync(Expression<Func<TEntity, bool>> predicate,
+    public virtual Task DeleteRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public virtual async Task DeleteAsync(Expression<Func<TEntity, bool>> predicate,
         CancellationToken cancellationToken = default)
     {
         cancellationToken = GetCancellationToken(cancellationToken);

@@ -23,15 +23,20 @@ public class RabbitMqChannelPool(
         }
 
         var key = $"{connectionName}_{channelName}";
+        bool isNew = false;
         var wrapper = Channels.GetOrAdd(
             key,
-            _ => new ChannelWrapper(rabbitMqConnectionPool.Get(connectionName).CreateModel())
+            _ =>
+            {
+                isNew = true;
+                return new ChannelWrapper(rabbitMqConnectionPool.Get(connectionName).CreateModel());
+            }
         );
 
-        // 与 Connection 不同，Channel 对象在 RabbitMQ 中是非线程安全的，因此需要加锁
+        // 与 Connection 不同，Channel 对象在 RabbitMQ 中不是线程安全的，因此需要加锁
         wrapper.Acquire();
 
-        return new ChannelAccessor(channelName, wrapper);
+        return new ChannelAccessor(channelName, wrapper, isNew);
     }
 
     public virtual bool Release(string channelName = "", string? connectionName = null)
@@ -84,10 +89,12 @@ public class RabbitMqChannelPool(
         }
     }
 
-    protected class ChannelAccessor(string name, ChannelWrapper channelWrapper) : IChannelAccessor
+    protected class ChannelAccessor(string name, ChannelWrapper channelWrapper, bool isNew) : IChannelAccessor
     {
         public string Name { get; } = name;
         public IModel Channel { get; } = channelWrapper.Channel;
+
+        public bool IsNew { get; set; } = isNew;
 
         public void Dispose()
         {

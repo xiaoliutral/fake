@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Net;
 using Fake.Application;
 using Fake.Authorization;
+using Fake.Data;
 using Fake.Domain.Exceptions;
 
 namespace Fake.AspNetCore.ExceptionHandling;
@@ -20,6 +21,8 @@ public class DefaultHttpExceptionStatusCodeFinder : IHttpExceptionStatusCodeFind
                 ? HttpStatusCode.Forbidden
                 : HttpStatusCode.Unauthorized;
         }
+
+        if (exception is FakeDbConcurrencyException) return HttpStatusCode.Conflict;
 
         if (exception is DomainException or ValidationException or BusinessException) return HttpStatusCode.BadRequest;
 

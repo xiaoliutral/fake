@@ -1,12 +1,13 @@
 ﻿using Domain.Aggregates.OrderAggregate;
 using Fake.Domain.Repositories;
 using Fake.Modularity;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using Xunit;
 
 namespace Tests;
 
-public abstract class RepositoryTests<TStartupModule> : AppTestBase<TStartupModule> where TStartupModule : IFakeModule
+public abstract class RepositoryTests<TStartupModule> : ApplicationTestBase<TStartupModule> where TStartupModule : IFakeModule
 {
     protected readonly IRepository<Order> OrderRepository;
 
@@ -18,7 +19,7 @@ public abstract class RepositoryTests<TStartupModule> : AppTestBase<TStartupModu
     [Fact]
     public async Task GetAsync()
     {
-        var order = await OrderRepository.FirstOrDefaultAsync(x => x.Id == AppTestDataBuilder.OrderId);
+        var order = await OrderRepository.FirstOrDefaultAsync(x => x.Id == TestDataBuilder.OrderId);
         order.ShouldNotBeNull();
     }
 

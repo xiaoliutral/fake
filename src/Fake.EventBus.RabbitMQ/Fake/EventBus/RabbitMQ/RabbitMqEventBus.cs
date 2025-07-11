@@ -20,8 +20,7 @@ public class RabbitMqEventBus(
     IServiceScopeFactory serviceScopeFactory,
     IOptions<EventBusSubscriptionOptions> subscriptionOptions,
     IOptions<RabbitMqEventBusOptions> eventBusOptions,
-    IApplicationInfo applicationInfo,
-    RabbitMqEventBusTelemetryService telemetryService
+    IApplicationInfo applicationInfo
 ) : IDistributedEventBus, IDisposable, IHostedService
 {
     private readonly RabbitMqEventBusOptions _eventBusOptions = eventBusOptions.Value;

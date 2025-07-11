@@ -2,12 +2,13 @@
 using Domain.Aggregates.BuyerAggregate;
 using Domain.Aggregates.OrderAggregate;
 using Fake.Modularity;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using Xunit;
 
 namespace Tests;
 
-public abstract class RootlessRepositoryTests<TStartupModule> : AppTestBase<TStartupModule>
+public abstract class RootlessRepositoryTests<TStartupModule> : ApplicationTestBase<TStartupModule>
     where TStartupModule : IFakeModule
 {
     private readonly IOrderQueries _orderQueries;
@@ -22,7 +23,7 @@ public abstract class RootlessRepositoryTests<TStartupModule> : AppTestBase<TSta
     [Fact]
     public async Task GetOrderSummaryAsync()
     {
-        var orders = await _orderQueries.GetOrderSummaryAsync(AppTestDataBuilder.OrderId);
+        var orders = await _orderQueries.GetOrderSummaryAsync(TestDataBuilder.OrderId);
         orders.Count.ShouldBe(1);
         orders.First().date.ShouldBeLessThanOrEqualTo(FakeClock.Now);
         orders[0].status.ShouldBe(OrderStatus.Submitted);
@@ -46,7 +47,7 @@ public abstract class RootlessRepositoryTests<TStartupModule> : AppTestBase<TSta
         var cardHolderName = "FakeName";
         var cardExpiration = DateTime.Now.AddYears(1);
         var address = new Address(street, city, state, country, zipcode);
-        var order = new Order(AppTestDataBuilder.UserId, "fakeName", address,
+        var order = new Order(TestDataBuilder.UserId, "fakeName", address,
             cardType, cardNumber, cardSecurityNumber, cardHolderName, cardExpiration);
 
         order.SetId(Guid.NewGuid());
@@ -62,7 +63,7 @@ public abstract class RootlessRepositoryTests<TStartupModule> : AppTestBase<TSta
     [Fact]
     public async Task 无根仓储中用sql写入会绕过检查()
     {
-        var order = await _orderRepository.GetAsync(AppTestDataBuilder.OrderId);
+        var order = await _orderRepository.GetAsync(TestDataBuilder.OrderId);
         await _orderQueries.AddBySqlAsync(order);
     }
 }

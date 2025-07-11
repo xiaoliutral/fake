@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 using Fake.Data.Filtering;
@@ -41,8 +42,8 @@ public abstract class SugarDbContext<TDbContext> where TDbContext : SugarDbConte
             IsAutoCloseConnection = Options.IsAutoCloseConnection,
             AopEvents = new AopEvents
             {
-                OnDiffLogEvent = null,
-                OnError = null,
+                OnDiffLogEvent = OnDiffLogEvent,
+                OnError = OnError,
                 OnLogExecuting = OnLogExecuting,
                 OnLogExecuted = OnLogExecuted,
                 OnExecutingChangeSql = null,
@@ -76,11 +77,8 @@ public abstract class SugarDbContext<TDbContext> where TDbContext : SugarDbConte
     protected virtual void ConfigureGlobalFilters()
     {
         //需自定义扩展
-        if (DataFilter.IsEnabled<ISoftDelete>())
-        {
-            SqlSugarClient.QueryFilter.AddTableFilter<ISoftDelete>(u =>
-                !DataFilter.IsEnabled<ISoftDelete>() || !u.IsDeleted);
-        }
+        SqlSugarClient.QueryFilter.AddTableFilter<ISoftDelete>(u =>
+            !DataFilter.IsEnabled<ISoftDelete>() || !u.IsDeleted);
     }
 
     protected void ConfigureConnection(ConnectionConfig action)
@@ -199,13 +197,48 @@ public abstract class SugarDbContext<TDbContext> where TDbContext : SugarDbConte
 
     #region 日志
 
+    /// <summary>
+    /// 差异日志功能（审计）
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <exception cref="NotImplementedException"></exception>
+    protected virtual void OnDiffLogEvent(DiffLogModel obj)
+    {
+    }
+
+    /// <summary>
+    /// SQL报错
+    /// </summary>
+    /// <param name="exception"></param>
+    protected virtual void OnError(SqlSugarException exception)
+    {
+    }
+
+    /// <summary>
+    /// SQL执行前
+    /// </summary>
+    /// <param name="sql"></param>
+    /// <param name="pars"></param>
     protected virtual void OnLogExecuting(string sql, SugarParameter[] pars)
+    {
+        LogSql(sql, pars);
+    }
+
+    private void LogSql(string sql, SugarParameter[] pars)
     {
         if (Options.EnabledSqlLog)
         {
             var sb = new StringBuilder();
             sb.AppendLine($"SQL Sugar log [hash:{sql.GetHashCode()}]:");
-            sb.AppendLine(UtilMethods.GetSqlString(Options.DbType, sql, pars));
+            if (Debugger.IsAttached)
+            {
+                sb.AppendLine(UtilMethods.GetSqlString(Options.DbType, sql, pars));
+            }
+            else
+            {
+                sb.AppendLine(UtilMethods.GetNativeSql(sql, pars));
+            }
+
             Logger.LogDebug(sb.ToString());
         }
     }

@@ -3,6 +3,7 @@ using Fake.Data;
 using Fake.Data.Filtering;
 using Fake.Domain.Entities.Auditing;
 using Fake.Domain.Repositories;
+using Fake.UnitOfWork;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -46,7 +47,7 @@ public class VersionTests : AppTestBase
 
         await Assert.ThrowsAsync<FakeDbConcurrencyException>(() =>
         {
-            order2.SetDescription("hello");
+            order.SetDescription("hello");
             return OrderRepository.UpdateAsync(order);
         });
     }

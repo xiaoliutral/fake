@@ -5,6 +5,7 @@ using Fake.Domain.Repositories;
 using Fake.DomainDrivenDesign.Repositories.SqlSugarCore;
 using Fake.Modularity;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using SqlSugar;
 
 namespace Fake.SqlSugarCore.Tests;
@@ -13,14 +14,11 @@ namespace Fake.SqlSugarCore.Tests;
 [DependsOn(typeof(FakeSqlSugarCoreModule))]
 public class FakeSqlSugarCoreTestModule : FakeModule
 {
-    private readonly string _filePath = $"./{Guid.NewGuid()}.sqlite";
-
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         context.Services.AddSugarDbContext<OrderingContext>(options =>
         {
-            // tips：内存模式和sugarclient会打架，得改成单例的，单例又有线程安全问题，很麻烦，用文件模式方便
-            // options.ConnectionString = $"Filename={_filePath}";
+            // tips：sugar client 仅在内存测试场景下使用单例,生产环境勿用
             options.ConnectionString = $"Filename=:memory:";
             options.DbType = DbType.Sqlite;
             options.IsAutoCloseConnection = false;

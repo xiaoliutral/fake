@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Fake.EntityFrameworkCore.Tests;
 
-public class EfCoreRepositoryTests : AppTestBase<FakeEntityFrameworkCoreTestModule>
+public class EfCoreRepositoryTests : ApplicationTestBase<FakeEntityFrameworkCoreTestModule>
 {
     protected readonly IEfCoreRepository<OrderingContext, Order> OrderRepository;
 
@@ -18,7 +18,7 @@ public class EfCoreRepositoryTests : AppTestBase<FakeEntityFrameworkCoreTestModu
     [Fact]
     public async Task GetWithNavAsync()
     {
-        var order = await OrderRepository.FirstOrDefaultAsync(x => x.Id == AppTestDataBuilder.OrderId);
+        var order = await OrderRepository.FirstOrDefaultAsync(x => x.Id == TestDataBuilder.OrderId);
         order.ShouldNotBeNull();
         order.OrderItems.Count.ShouldBeGreaterThan(0);
     }

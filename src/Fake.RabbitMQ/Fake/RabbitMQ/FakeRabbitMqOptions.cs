@@ -14,19 +14,9 @@ public class FakeRabbitMqOptions
     /// </summary>
     public TimeSpan ChannelPoolDisposeDuration { get; set; } = TimeSpan.FromSeconds(10);
 
-    public Dictionary<string, ConnectionFactory> Connections { get; set; }
+    public Dictionary<string, ConnectionFactory> Connections { get; set; } = new();
 
-    public ConnectionFactory Default
-    {
-        get => Connections[DefaultConnectionName];
-        private set => Connections[DefaultConnectionName] = value;
-    }
-
-    public FakeRabbitMqOptions()
-    {
-        Default = new ConnectionFactory();
-        Connections = new();
-    }
+    public ConnectionFactory Default => Connections[DefaultConnectionName];
 
     public ConnectionFactory GetOrDefault(string connectionName)
     {

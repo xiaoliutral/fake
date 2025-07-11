@@ -3,7 +3,7 @@ using Domain.Aggregates.OrderAggregate;
 using Fake.Auditing;
 using Fake.Domain.Repositories;
 
-public class AppTestDataBuilder
+public class TestDataBuilder
 {
     private readonly IRepository<Order> _orderRepository;
     private readonly IRepository<Buyer> _buyerRepository;
@@ -12,7 +12,7 @@ public class AppTestDataBuilder
     public static Guid OrderId = new("4d734a0e-3e6b-4bad-bb43-ef8cf1b09633");
 
 
-    public AppTestDataBuilder(IRepository<Order> orderRepository, IRepository<Buyer> buyerRepository)
+    public TestDataBuilder(IRepository<Order> orderRepository, IRepository<Buyer> buyerRepository)
     {
         _orderRepository = orderRepository;
         _buyerRepository = buyerRepository;

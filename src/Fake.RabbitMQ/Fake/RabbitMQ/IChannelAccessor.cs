@@ -13,4 +13,9 @@ public interface IChannelAccessor : IDisposable
     /// 永远不要手动释放该 <see cref="Channel"/> 对象，而应该在使用后释放 <see cref="IChannelAccessor"/> 实例。
     /// </summary>
     IModel Channel { get; }
+
+    /// <summary>
+    /// 是否是第一次创建的channel
+    /// </summary>
+    public bool IsNew { get; set; }
 }

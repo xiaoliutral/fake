@@ -1,17 +1,20 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <Import Project="..\..\common.test.props"/>
     <PropertyGroup>
         <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
         <RootNamespace>/</RootNamespace>
+        <UserSecretsId>7b7d01c9-fd52-4fed-a6aa-782428555b40</UserSecretsId>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="..\..\src\Fake.Autofac\Fake.Autofac.csproj"/>
-        <ProjectReference Include="..\..\src\Fake.Core\Fake.Core.csproj"/>
-        <ProjectReference Include="..\..\src\Fake.DomainDrivenDesign\Fake.DomainDrivenDesign.csproj"/>
+        <ProjectReference Include="..\..\src\Fake.RabbitMQ\Fake.RabbitMQ.csproj" />
         <ProjectReference Include="..\..\src\Fake.Testing\Fake.Testing.csproj"/>
-        <ProjectReference Include="..\AFakeTestEntry\AFakeTestEntry.csproj"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkPackageVersion)"/>
+    </ItemGroup>
+    <ItemGroup>
+      <None Update="appsettings.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>

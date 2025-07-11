@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Fake.EntityFrameworkCore.Tests;
 
-[DependsOn(typeof(FakeAppTestModule))]
+[DependsOn(typeof(FakeOrmTestModule))]
 [DependsOn(typeof(FakeEntityFrameworkCoreModule))]
 public class FakeEntityFrameworkCoreTestModule : FakeModule
 {

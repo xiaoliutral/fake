@@ -2,6 +2,6 @@
 
 namespace Fake.EntityFrameworkCore.Tests.AppTests;
 
-public class AuditingTests : AppAuditingTests<FakeEntityFrameworkCoreTestModule>
+public class AuditingTests : ApplicationAuditingTests<FakeEntityFrameworkCoreTestModule>
 {
 }

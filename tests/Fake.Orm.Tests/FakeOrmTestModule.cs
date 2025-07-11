@@ -6,10 +6,11 @@ using Fake.DomainDrivenDesign;
 using Fake.EventBus;
 using Fake.Modularity;
 using Fake.SyncEx;
+using Microsoft.Extensions.DependencyInjection;
 
 [DependsOn(typeof(FakeAutofacModule))]
 [DependsOn(typeof(FakeDomainDrivenDesignModule))]
-public class FakeAppTestModule : FakeModule
+public class FakeOrmTestModule : FakeModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
@@ -19,11 +20,11 @@ public class FakeAppTestModule : FakeModule
         context.Services.AddSingleton(typeof(IEventHandler<BuyerAndPaymentMethodVerifiedDomainEvent>),
             typeof(UpdateOrderWhenBuyerAndPaymentMethodVerifiedDomainEventHandler));
 
-        context.Services.AddTransient<AppTestDataBuilder>();
+        context.Services.AddTransient<TestDataBuilder>();
     }
 
     public override void ConfigureApplication(ApplicationConfigureContext context)
     {
-        SyncContext.Run(() => context.ServiceProvider.GetRequiredService<AppTestDataBuilder>().BuildAsync());
+        SyncContext.Run(() => context.ServiceProvider.GetRequiredService<TestDataBuilder>().BuildAsync());
     }
 }

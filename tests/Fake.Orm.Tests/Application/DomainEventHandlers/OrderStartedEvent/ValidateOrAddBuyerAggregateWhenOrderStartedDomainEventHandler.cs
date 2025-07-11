@@ -2,6 +2,7 @@
 using Domain.Events;
 using Fake.Auditing;
 using Fake.EventBus;
+using Microsoft.Extensions.Logging;
 
 namespace Application.DomainEventHandlers.OrderStartedEvent;
 

@@ -3,18 +3,19 @@ using Domain.Aggregates.OrderAggregate;
 using Fake.Domain.Repositories;
 using Fake.Modularity;
 using Fake.Users;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Shouldly;
 using Xunit;
 
 namespace Tests;
 
-public abstract class AppAuditingTests<TStartupModule> : AppTestBase<TStartupModule> where TStartupModule : IFakeModule
+public abstract class ApplicationAuditingTests<TStartupModule> : ApplicationTestBase<TStartupModule> where TStartupModule : IFakeModule
 {
     protected Guid CurrentUserId;
     protected readonly IRepository<Order> OrderRepository;
 
-    public AppAuditingTests()
+    public ApplicationAuditingTests()
     {
         OrderRepository = ServiceProvider.GetRequiredService<IRepository<Order>>();
     }
@@ -40,7 +41,7 @@ public abstract class AppAuditingTests<TStartupModule> : AppTestBase<TStartupMod
         var cardSecurityNumber = "123";
         var cardHolderName = "FakeName";
         var cardExpiration = FakeClock.Now.AddYears(1);
-        var fakeOrder = new Order(AppTestDataBuilder.UserId, "fakeName",
+        var fakeOrder = new Order(TestDataBuilder.UserId, "fakeName",
             new Address(street, city, state, country, zipcode),
             cardType, cardNumber, cardSecurityNumber, cardHolderName, cardExpiration);
 
@@ -58,7 +59,7 @@ public abstract class AppAuditingTests<TStartupModule> : AppTestBase<TStartupMod
     [Fact]
     public async Task 修改审计()
     {
-        var order = await OrderRepository.FirstOrDefaultAsync(x => x.Id == AppTestDataBuilder.OrderId);
+        var order = await OrderRepository.FirstOrDefaultAsync(x => x.Id == TestDataBuilder.OrderId);
         order!.UpdateUserId.ShouldBe(Guid.Empty);
 
         order.SetCancelledStatus();
@@ -71,7 +72,7 @@ public abstract class AppAuditingTests<TStartupModule> : AppTestBase<TStartupMod
     [Fact]
     public async Task 软删审计()
     {
-        var order = await OrderRepository.FirstOrDefaultAsync(x => x.Id == AppTestDataBuilder.OrderId);
+        var order = await OrderRepository.FirstOrDefaultAsync(x => x.Id == TestDataBuilder.OrderId);
         order.ShouldNotBeNull();
         order.CreateTime.ShouldBeLessThanOrEqualTo(FakeClock.Now);
         order.UpdateUserId.ShouldBe(Guid.Empty);
@@ -80,7 +81,7 @@ public abstract class AppAuditingTests<TStartupModule> : AppTestBase<TStartupMod
         order.UpdateUserId.ShouldBe(CurrentUserId);
         order.UpdateTime.ShouldBeLessThanOrEqualTo(FakeClock.Now);
 
-        order = await OrderRepository.FirstOrDefaultAsync(x => x.Id == AppTestDataBuilder.OrderId);
+        order = await OrderRepository.FirstOrDefaultAsync(x => x.Id == TestDataBuilder.OrderId);
         order.ShouldBeNull();
     }
 }

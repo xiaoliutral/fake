@@ -2,15 +2,15 @@
 using Fake.Modularity;
 using Fake.Testing;
 using Fake.UnitOfWork;
+using Microsoft.Extensions.DependencyInjection;
 
-public abstract class AppTestBase<TStartupModule> : ApplicationTestWithTools<TStartupModule>
+public abstract class ApplicationTestBase<TStartupModule> : ApplicationTestWithTools<TStartupModule>
     where TStartupModule : IFakeModule
 {
     protected override void SetApplicationCreationOptions(FakeApplicationCreationOptions options)
     {
         options.UseAutofac();
     }
-
 
     protected virtual Task WithUnitOfWorkAsync(Func<Task> func)
     {

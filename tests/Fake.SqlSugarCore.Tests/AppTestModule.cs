@@ -25,6 +25,8 @@ public class FakeAppTestModule : FakeModule
     public override void ConfigureApplication(ApplicationConfigureContext context)
     {
         context.ServiceProvider.GetRequiredService<AppTestDataBuilder>().BuildAsync().GetAwaiter().GetResult();
+        
+        // 犹豫client是单例的,这里跨异步上下文了所以不能用
         //SyncContext.Run(() => context.ServiceProvider.GetRequiredService<AppTestDataBuilder>().BuildAsync());
     }
 }

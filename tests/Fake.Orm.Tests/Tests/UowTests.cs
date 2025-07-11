@@ -2,11 +2,12 @@ using Domain.Aggregates.OrderAggregate;
 using Fake.Domain.Repositories;
 using Fake.Modularity;
 using Fake.UnitOfWork;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Tests;
 
-public abstract class UowTests<TStartupModule> : AppTestBase<TStartupModule>
+public abstract class UowTests<TStartupModule> : ApplicationTestBase<TStartupModule>
     where TStartupModule : IFakeModule
 {
     protected readonly IRepository<Order> OrderRepository;
@@ -24,7 +25,7 @@ public abstract class UowTests<TStartupModule> : AppTestBase<TStartupModule>
     public async Task ChildUow共享CurrentUow的上下文()
     {
         using var uow = UowManager.Begin();
-        await OrderRepository.FirstAsync(x => x.Id == AppTestDataBuilder.OrderId);
-        await OrderRepository.FirstAsync(x => x.Id == AppTestDataBuilder.OrderId);
+        await OrderRepository.FirstAsync(x => x.Id == TestDataBuilder.OrderId);
+        await OrderRepository.FirstAsync(x => x.Id == TestDataBuilder.OrderId);
     }
 }

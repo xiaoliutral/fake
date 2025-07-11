@@ -5,7 +5,6 @@ using Fake.SqlSugarCore.Tests;
 
 namespace Repositories;
 
-[ExposeServices(exposedServiceTypes: typeof(IOrderRepository))]
 public class OrderRepository : SqlSugarRepository<OrderingContext, Order>, IOrderRepository, IScopedDependency
 {
     public async Task<Order?> GetAsync(Guid orderId)

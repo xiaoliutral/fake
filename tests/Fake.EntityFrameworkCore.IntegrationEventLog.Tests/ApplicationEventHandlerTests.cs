@@ -22,7 +22,7 @@ public class ApplicationEventHandlerTests
     [Fact]
     void 发布集成日志()
     {
-        var orderStartedIntegrationEvent = new OrderStartedIntegrationEvent(AppTestDataBuilder.UserId);
+        var orderStartedIntegrationEvent = new OrderStartedIntegrationEvent(TestDataBuilder.UserId);
         _integrationEventLogService.SaveEventAsync(orderStartedIntegrationEvent);
     }
 }

@@ -4,11 +4,12 @@ using Fake.Data.Filtering;
 using Fake.Domain.Entities.Auditing;
 using Fake.Domain.Repositories;
 using Fake.Modularity;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Tests;
 
-public abstract class VersionTests<TStartupModule> : AppTestBase<TStartupModule>
+public abstract class VersionTests<TStartupModule> : ApplicationTestBase<TStartupModule>
     where TStartupModule : IFakeModule
 {
     protected readonly IRepository<Order> OrderRepository;
@@ -23,10 +24,10 @@ public abstract class VersionTests<TStartupModule> : AppTestBase<TStartupModule>
     [Fact]
     public async Task 脏读不会被更新()
     {
-        var order = await OrderRepository.FirstAsync(x => x.Id == AppTestDataBuilder.OrderId);
+        var order = await OrderRepository.FirstAsync(x => x.Id == TestDataBuilder.OrderId);
         order.SetDescription("hello");
 
-        var order2 = await OrderRepository.FirstAsync(x => x.Id == AppTestDataBuilder.OrderId);
+        var order2 = await OrderRepository.FirstAsync(x => x.Id == TestDataBuilder.OrderId);
         order2.SetDescription("ok");
         await OrderRepository.UpdateAsync(order);
         //And updating my old entity throws exception!
@@ -39,9 +40,9 @@ public abstract class VersionTests<TStartupModule> : AppTestBase<TStartupModule>
     [Fact]
     public async Task 脏读更新会抛异常()
     {
-        var order = await OrderRepository.FirstAsync(x => x.Id == AppTestDataBuilder.OrderId);
+        var order = await OrderRepository.FirstAsync(x => x.Id == TestDataBuilder.OrderId);
 
-        var order2 = await OrderRepository.FirstAsync(x => x.Id == AppTestDataBuilder.OrderId);
+        var order2 = await OrderRepository.FirstAsync(x => x.Id == TestDataBuilder.OrderId);
         order2.SetDescription("hello2");
         await OrderRepository.UpdateAsync(order2);
 
@@ -55,9 +56,9 @@ public abstract class VersionTests<TStartupModule> : AppTestBase<TStartupModule>
     [Fact]
     public async Task 脏读软删除不会被并发更新限制()
     {
-        var order = await OrderRepository.FirstAsync(x => x.Id == AppTestDataBuilder.OrderId);
+        var order = await OrderRepository.FirstAsync(x => x.Id == TestDataBuilder.OrderId);
 
-        var order2 = await OrderRepository.FirstAsync(x => x.Id == AppTestDataBuilder.OrderId);
+        var order2 = await OrderRepository.FirstAsync(x => x.Id == TestDataBuilder.OrderId);
         order2.SetDescription("hello2");
         await OrderRepository.UpdateAsync(order2);
 
