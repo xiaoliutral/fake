@@ -74,11 +74,13 @@ public abstract class SugarDbContext<TDbContext> where TDbContext : SugarDbConte
         ConfigureGlobalFilters();
     }
 
+    /// <summary>
+    /// 查询过滤器
+    /// </summary>
     protected virtual void ConfigureGlobalFilters()
     {
-        //需自定义扩展
         SqlSugarClient.QueryFilter.AddTableFilter<ISoftDelete>(u =>
-            !DataFilter.IsEnabled<ISoftDelete>() || !u.IsDeleted);
+            DataFilter.IsEnabled<ISoftDelete>() == false || !u.IsDeleted);
     }
 
     protected void ConfigureConnection(ConnectionConfig action)
