@@ -6,7 +6,7 @@
 /// <param name="totalCount"></param>
 /// <param name="items"></param>
 /// <typeparam name="T"></typeparam>
-public class PagedResult<T>(long totalCount, IReadOnlyList<T> items) : ListResult<T>(items)
+public class PagedResult<T>(long totalCount, List<T> items) : ListResult<T>(items)
 {
     /*
      * 为什么total count是long，而不是int？
