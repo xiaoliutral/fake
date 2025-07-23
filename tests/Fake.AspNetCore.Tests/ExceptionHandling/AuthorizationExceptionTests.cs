@@ -29,6 +29,6 @@ public class AuthorizationExceptionTests : AspNetCoreTestBase
     public async Task 测试服务()
     {
         var res = await GetResponseAsStringAsync("auth-exception", HttpStatusCode.InternalServerError);
-        _testOutputHelper.WriteLine(res.ToString());
+        _testOutputHelper.WriteLine(res);
     }
 }

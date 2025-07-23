@@ -12,8 +12,8 @@ public class ExposeServicesAttribute(params Type[] exposedServiceTypes) : Attrib
     /// <remarks>
     /// <para>
     /// 命名约定：接口名去掉I匹配目标类型结尾的接口
-    /// 例如A:IA2,IA，那么暴露IA
-    /// 例如CustomA:ICustomA,IA，那么暴露ICustomA和IA
+    /// 例如 A:IA2,IA，那么暴露IA
+    /// 例如 CustomA:ICustomA,IA，那么暴露ICustomA和IA
     /// </para>
     /// </remarks>
     public bool ExposeInterface { get; set; } = true;

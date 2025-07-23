@@ -1,10 +1,10 @@
-﻿namespace Fake.Application;
+﻿namespace Fake.Application.Dtos;
 
 /// <summary>
-/// 应用服务异常模型
+/// 应用服务异常响应模型
 /// </summary>
 [Serializable]
-public class ApplicationServiceErrorInfo
+public class ApplicationExceptionResult
 {
     /// <summary>
     /// 异常信息
@@ -16,11 +16,11 @@ public class ApplicationServiceErrorInfo
     /// </summary>
     public string? Details { get; set; }
 
-    public ApplicationServiceErrorInfo()
+    public ApplicationExceptionResult()
     {
     }
 
-    public ApplicationServiceErrorInfo(string? message = null)
+    public ApplicationExceptionResult(string? message = null)
     {
         Message = message;
     }

@@ -6,7 +6,7 @@ public class FakeException : Exception
     {
     }
 
-    public FakeException(string message)
+    public FakeException(string? message)
         : base(message)
     {
     }

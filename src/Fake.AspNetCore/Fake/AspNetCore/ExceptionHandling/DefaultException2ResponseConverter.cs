@@ -1,26 +1,28 @@
 using System.Text;
 using Fake.Application;
+using Fake.Application.Dtos;
+using Fake.DependencyInjection;
 using Fake.ExceptionHandling;
 using Fake.Localization;
 using Microsoft.Extensions.Localization;
 
 namespace Fake.AspNetCore.ExceptionHandling;
 
-public class DefaultException2ErrorInfoConverter : IException2ErrorInfoConverter
+public class DefaultException2ResponseConverter : IException2ResponseConverter, ITransientDependency
 {
     private readonly IStringLocalizerFactory _stringLocalizerFactory;
     private readonly IOptions<FakeLocalizationOptions> _localizationOptions;
 
-    public DefaultException2ErrorInfoConverter(IStringLocalizerFactory stringLocalizerFactory,
+    public DefaultException2ResponseConverter(IStringLocalizerFactory stringLocalizerFactory,
         IOptions<FakeLocalizationOptions> localizationOptions)
     {
         _stringLocalizerFactory = stringLocalizerFactory;
         _localizationOptions = localizationOptions;
     }
 
-    public virtual ApplicationServiceErrorInfo Convert(Exception exception, FakeExceptionHandlingOptions options)
+    public virtual ApplicationExceptionResult Convert(Exception exception, FakeExceptionHandlingOptions options)
     {
-        var errorInfo = new ApplicationServiceErrorInfo(exception.Message);
+        var errorInfo = new ApplicationExceptionResult(exception.Message);
 
         LocalizeErrorMessage(exception, errorInfo);
 
@@ -34,15 +36,17 @@ public class DefaultException2ErrorInfoConverter : IException2ErrorInfoConverter
         return errorInfo;
     }
 
-    private void LocalizeErrorMessage(Exception exception, ApplicationServiceErrorInfo errorInfo)
+    private void LocalizeErrorMessage(Exception exception, ApplicationExceptionResult errorInfo)
     {
-        if (exception is not ILocalizeErrorMessage) return;
+        if (exception is not ILocalizeErrorMessage localizeErrorMessage) return;
 
         var errorResourceType = _localizationOptions.Value.DefaultErrorResourceType;
         if (errorResourceType == null) return;
 
         var stringLocalizer = _stringLocalizerFactory.Create(errorResourceType);
-        errorInfo.Message = stringLocalizer[exception.Message];
+        errorInfo.Message = localizeErrorMessage.Arguments.IsNullOrEmpty()
+            ? stringLocalizer[exception.Message]
+            : stringLocalizer[exception.Message, localizeErrorMessage.Arguments!];
     }
 
     protected virtual void AddExceptionToDetails(Exception exception, StringBuilder stackTrace)

@@ -114,4 +114,19 @@ public static class FakeEnumerableExtensions
         // 此时item的出度为0
         sorted.Add(item);
     }
+    
+    /// <summary>
+    /// 如果<paramref name="condition"/> is true，按照<paramref name="predicate"/>过滤 <see cref="IEnumerable{T}"/>
+    /// </summary>
+    /// <param name="source">被过滤的enumerable</param>
+    /// <param name="condition">过滤条件</param>
+    /// <param name="predicate">过滤表达式</param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    public static IEnumerable<T> WhereIf<T>(this IEnumerable<T> source, bool condition, Func<T, bool> predicate)
+    {
+        return condition
+            ? source.Where(predicate)
+            : source;
+    }
 }

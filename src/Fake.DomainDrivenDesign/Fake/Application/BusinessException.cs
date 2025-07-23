@@ -4,8 +4,17 @@ using Microsoft.Extensions.Logging;
 
 namespace Fake.Application;
 
-public class BusinessException(string? message = null, Exception? innerException = null)
-    : FakeException(message, innerException), IHasLogLevel, ILocalizeErrorMessage
+public class BusinessException : FakeException, IHasLogLevel, ILocalizeErrorMessage
 {
-    public LogLevel LogLevel { get; set; } = LogLevel.Warning;
+    public BusinessException(string? message = null, Exception? innerException = null): base(message, innerException)
+    {
+        
+    }
+    public BusinessException(string? message = null, params object[] arguments) : base(message)
+    {
+        Arguments = arguments;
+    }
+    
+    public LogLevel LogLevel { get; set; } = LogLevel.Information;
+    public object[]? Arguments { get; set; }
 }

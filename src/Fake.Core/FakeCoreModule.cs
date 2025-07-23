@@ -21,8 +21,6 @@ using Fake.Timing;
 /// </summary>
 public class FakeCoreModule : FakeModule
 {
-    public override bool SkipServiceRegistration => true;
-
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         context.Services.AddTransient(typeof(IAmbientScopeProvider<>), typeof(AmbientScopeProvider<>));

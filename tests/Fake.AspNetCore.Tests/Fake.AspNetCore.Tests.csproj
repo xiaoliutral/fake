@@ -10,7 +10,10 @@
 
     <ItemGroup>
         <EmbeddedResource Include="wwwroot\asset\*"/>
-        <None Remove="wwwroot\asset\*"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Localization\Resources\**\*.json"/>
     </ItemGroup>
 
 </Project>

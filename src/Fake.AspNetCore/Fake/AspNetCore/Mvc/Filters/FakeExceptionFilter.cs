@@ -49,7 +49,7 @@ public class FakeExceptionFilter(ILogger<FakeExceptionFilter> logger) : IAsyncEx
                 .GetRequiredService<IOptions<FakeExceptionHandlingOptions>>()
                 .Value;
             var exceptionToErrorInfoConverter = httpContext.RequestServices
-                .GetRequiredService<IException2ErrorInfoConverter>();
+                .GetRequiredService<IException2ResponseConverter>();
             var remoteServiceErrorInfo =
                 exceptionToErrorInfoConverter.Convert(context.Exception, exceptionHandlingOptions);
 

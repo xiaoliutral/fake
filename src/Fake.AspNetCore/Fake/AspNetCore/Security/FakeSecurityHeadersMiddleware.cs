@@ -2,16 +2,11 @@
 
 namespace Fake.AspNetCore.Security;
 
-public class FakeSecurityHeadersMiddleware : IMiddleware
+public class FakeSecurityHeadersMiddleware(IOptions<FakeSecurityHeadersOptions> options) : FakeMiddleware
 {
-    private readonly FakeSecurityHeadersOptions _options;
+    private readonly FakeSecurityHeadersOptions _options = options.Value;
 
-    public FakeSecurityHeadersMiddleware(IOptions<FakeSecurityHeadersOptions> options)
-    {
-        _options = options.Value;
-    }
-
-    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+    public override async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
         // XSS保护
         AddHeaderIfNotExists(context, "X-XSS-Protection", "1; mode=block");

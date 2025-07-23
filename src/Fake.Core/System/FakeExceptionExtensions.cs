@@ -1,4 +1,6 @@
-﻿using Fake.Logging;
+﻿using System.Runtime.ExceptionServices;
+using System.Text.RegularExpressions;
+using Fake.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace System;
@@ -15,5 +17,14 @@ public static class FakeExceptionExtensions
     public static LogLevel GetLogLevel(this Exception exception, LogLevel defaultLevel = LogLevel.Error)
     {
         return (exception as IHasLogLevel)?.LogLevel ?? defaultLevel;
+    }
+    
+    /// <summary>
+    /// 【最佳实践】内部使用 <see cref="Capture"/> 重新抛出异常，可以保留原异常堆栈
+    /// </summary>
+    /// <param name="exception">Exception to be re-thrown</param>
+    public static void ReThrow(this Exception exception)
+    {
+        ExceptionDispatchInfo.Capture(exception).Throw();
     }
 }

@@ -7,7 +7,7 @@ namespace Fake.Localization.Contributors;
 public class JsonVirtualLocalizationResourceContributorBase(string virtualPath)
     : VirtualFileLocalizationResourceContributorBase(virtualPath)
 {
-    private static readonly JsonSerializerOptions? DeserializeOptions = new JsonSerializerOptions
+    private static readonly JsonSerializerOptions? DeserializeOptions = new()
     {
         PropertyNameCaseInsensitive = true, // 属性名称不区分大小写
         DictionaryKeyPolicy = JsonNamingPolicy.CamelCase, // 字典key使用驼峰命名

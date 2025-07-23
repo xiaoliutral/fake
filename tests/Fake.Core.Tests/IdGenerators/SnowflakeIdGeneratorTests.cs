@@ -60,7 +60,7 @@ public class SnowflakeIdGeneratorTests : ApplicationTestWithTools<FakeCoreTestMo
             if (ids[i] <= ids[i - 1])
             {
                 sorted = false;
-                _testOutputHelper.WriteLine($"ids[{i}] {ids[i]} <= ids[{i - 1}] {ids[i - 1]}");
+                //_testOutputHelper.WriteLine($"ids[{i}] {ids[i]} <= ids[{i - 1}] {ids[i - 1]}");
             }
         }
 
@@ -71,7 +71,7 @@ public class SnowflakeIdGeneratorTests : ApplicationTestWithTools<FakeCoreTestMo
     [InlineData(6, 10000)]
     void 雪花Id在并发下无法保证全局单调性(int threadNum, int iteratorNum)
     {
-        var ids = new List<long>(threadNum * iteratorNum);
+        var ids = new ConcurrentBag<long>();
 
         Parallel.ForEach(Enumerable.Range(1, threadNum), t =>
         {
@@ -83,12 +83,13 @@ public class SnowflakeIdGeneratorTests : ApplicationTestWithTools<FakeCoreTestMo
         });
 
         var sorted = true;
+        var ids2 = new List<long>(ids);
         for (int i = 1; i < ids.Count; i++)
         {
-            if (ids[i] <= ids[i - 1])
+            if (ids2[i] <= ids2[i - 1])
             {
                 sorted = false;
-                _testOutputHelper.WriteLine($"ids[{i}] {ids[i]} <= ids[{i - 1}] {ids[i - 1]}");
+                //_testOutputHelper.WriteLine($"ids[{i}] {ids2[i]} <= ids[{i - 1}] {ids2[i - 1]}");
             }
         }
 

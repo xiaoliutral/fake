@@ -1,4 +1,5 @@
 ﻿using Fake.Authorization;
+using Fake.DependencyInjection;
 using Fake.ExceptionHandling;
 using Fake.Json;
 using Microsoft.Net.Http.Headers;
@@ -8,9 +9,9 @@ namespace Fake.AspNetCore.ExceptionHandling;
 /// <summary>
 /// 异常处理中间件
 /// </summary>
-public class FakeExceptionHandlingMiddleware(ILogger<FakeExceptionHandlingMiddleware> logger) : IMiddleware
+public class FakeExceptionHandlingMiddleware(ILogger<FakeExceptionHandlingMiddleware> logger) : FakeMiddleware, ITransientDependency
 {
-    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+    public override async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
         try
         {
@@ -44,7 +45,7 @@ public class FakeExceptionHandlingMiddleware(ILogger<FakeExceptionHandlingMiddle
         else
         {
             var statusCodeFinder = httpContext.RequestServices.GetRequiredService<IHttpExceptionStatusCodeFinder>();
-            var errorInfoConverter = httpContext.RequestServices.GetRequiredService<IException2ErrorInfoConverter>();
+            var errorInfoConverter = httpContext.RequestServices.GetRequiredService<IException2ResponseConverter>();
             var exceptionHandlingOptions = httpContext.RequestServices
                 .GetRequiredService<IOptions<FakeExceptionHandlingOptions>>().Value;
             var jsonSerializer = httpContext.RequestServices.GetRequiredService<IFakeJsonSerializer>();

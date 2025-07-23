@@ -3,6 +3,7 @@ using System.Net;
 using Fake.Application;
 using Fake.Authorization;
 using Fake.Data;
+using Fake.DependencyInjection;
 using Fake.Domain.Exceptions;
 
 namespace Fake.AspNetCore.ExceptionHandling;
@@ -10,7 +11,7 @@ namespace Fake.AspNetCore.ExceptionHandling;
 /// <summary>
 /// default exception http codes: 400 401 403 500
 /// </summary>
-public class DefaultHttpExceptionStatusCodeFinder : IHttpExceptionStatusCodeFinder
+public class DefaultHttpExceptionStatusCodeFinder : IHttpExceptionStatusCodeFinder, ITransientDependency
 {
     public virtual HttpStatusCode Find(HttpContext httpContext, Exception exception)
     {

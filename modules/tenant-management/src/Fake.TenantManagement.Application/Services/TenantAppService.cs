@@ -29,7 +29,7 @@ public class TenantAppService(ITenantRepository tenantRepository, TenantManager 
 
         return new PagedResult<TenantPagedItem>(
             totalCount,
-            ObjectMapper.Map<IReadOnlyList<Tenant>, IReadOnlyList<TenantPagedItem>>(pagedList)
+            ObjectMapper.Map<List<Tenant>, List<TenantPagedItem>>(pagedList)
         );
     }
 

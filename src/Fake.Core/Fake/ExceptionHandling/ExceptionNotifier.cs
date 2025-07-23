@@ -1,9 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Fake.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Fake.ExceptionHandling;
 
-public class ExceptionNotifier(IServiceScopeFactory serviceScopeFactory) : IExceptionNotifier
+public class ExceptionNotifier(IServiceScopeFactory serviceScopeFactory) : IExceptionNotifier, ITransientDependency
 {
     public ILogger<ExceptionNotifier> Logger { get; set; } = NullLogger<ExceptionNotifier>.Instance;
 

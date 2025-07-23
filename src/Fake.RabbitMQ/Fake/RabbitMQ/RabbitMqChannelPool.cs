@@ -22,7 +22,7 @@ public class RabbitMqChannelPool(
             throw new ObjectDisposedException(nameof(RabbitMqChannelPool));
         }
 
-        var key = $"{connectionName}_{channelName}";
+        var key = $"{connectionName}:{channelName}";
         bool isNew = false;
         var wrapper = Channels.GetOrAdd(
             key,

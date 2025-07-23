@@ -31,7 +31,6 @@ public class FakeAspNetCoreModule : FakeModule
 
         context.Services.AddTransient<IAuthorizationExceptionHandler, DefaultAuthorizationExceptionHandler>();
         context.Services.AddTransient<IHttpClientInfoProvider, HttpClientInfoProvider>();
-        context.Services.AddTransient<FakeExceptionHandlingMiddleware>();
 
         context.Services.AddAuthorization();
 

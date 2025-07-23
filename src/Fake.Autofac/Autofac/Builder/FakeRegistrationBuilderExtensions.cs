@@ -1,5 +1,7 @@
-﻿using Autofac.Core;
+﻿using System.Reflection;
+using Autofac.Core;
 using Autofac.Extras.DynamicProxy;
+using Fake;
 using Fake.Autofac;
 using Fake.Castle.DynamicProxy;
 using Fake.DependencyInjection;
@@ -80,11 +82,15 @@ public static class FakeRegistrationBuilderExtensions
 
         if (context.Interceptors.Any())
         {
-            registrationBuilder = registrationBuilder.AddInterceptors(
-                registrationActionList,
-                serviceType,
-                context.Interceptors
-            );
+            var disableAbpFeaturesAttribute = context.ImplementationType.GetCustomAttribute<DisableFakeFeaturesAttribute>(true);
+            if (disableAbpFeaturesAttribute is not { DisableInterceptors: true })
+            {
+                registrationBuilder = registrationBuilder.AddInterceptors(
+                    registrationActionList,
+                    serviceType,
+                    context.Interceptors
+                );
+            }
         }
 
         return registrationBuilder;

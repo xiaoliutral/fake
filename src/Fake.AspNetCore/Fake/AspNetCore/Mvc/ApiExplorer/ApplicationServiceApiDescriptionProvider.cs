@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using Fake.Application;
+using Fake.Application.Dtos;
 using Fake.Helpers;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Formatters;
@@ -62,7 +63,7 @@ public class ApplicationServiceApiDescriptionProvider(
             (int)HttpStatusCode.BadRequest
         }.Select(statusCode => new ApiResponseType
         {
-            Type = typeof(ApplicationServiceErrorInfo),
+            Type = typeof(ApplicationExceptionResult),
             StatusCode = statusCode
         }).ToList();
 
