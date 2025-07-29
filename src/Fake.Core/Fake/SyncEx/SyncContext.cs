@@ -27,7 +27,15 @@ public sealed partial class SyncContext : IDisposable
         OperationStarted();
         task.ContinueWith(_ => OperationCompleted(), CancellationToken.None,
             TaskContinuationOptions.ExecuteSynchronously, _taskScheduler);
-        _queue.TryAdd((task, propagateExceptions));
+        try
+        {
+            _queue.TryAdd((task, propagateExceptions));
+        }
+        catch (InvalidOperationException)
+        {
+            // important：这里必须catch以保证任务延续不会出问题
+            // vexing exceptions
+        }
     }
 
     private void Execute()
@@ -71,11 +79,11 @@ public sealed partial class SyncContext : IDisposable
 
         using var wrapper = new SyncContext();
         wrapper.OperationStarted();
-        var task = wrapper._taskFactory.StartNew(func).ContinueWith(t =>
+        var task = wrapper._taskFactory.Run(func).ContinueWith(t =>
         {
             // ReSharper disable once AccessToDisposedClosure
             wrapper.OperationCompleted();
-            return t.WaitAndUnwrapException();
+            t.WaitAndUnwrapException();
         }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, wrapper._taskScheduler);
         wrapper.Execute();
         task.WaitAndUnwrapException();
@@ -90,7 +98,7 @@ public sealed partial class SyncContext : IDisposable
 
         using var wrapper = new SyncContext();
         wrapper.OperationStarted();
-        var task = wrapper._taskFactory.StartNew(func).Unwrap().ContinueWith(t =>
+        var task = wrapper._taskFactory.Run(func).ContinueWith(t =>
         {
             // ReSharper disable once AccessToDisposedClosure
             wrapper.OperationCompleted();
