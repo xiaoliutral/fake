@@ -20,7 +20,7 @@ public abstract class ValueObject
             .Aggregate((x, y) => x ^ y);
     }
 
-    protected abstract IEnumerable<object> GetEqualityComponents();
+    protected abstract IEnumerable<object?> GetEqualityComponents();
 
     public ValueObject Clone()
     {
