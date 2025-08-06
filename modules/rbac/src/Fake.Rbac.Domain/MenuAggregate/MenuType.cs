@@ -8,7 +8,7 @@ public enum MenuType
     Menu = 1,
     
     /// <summary>
-    /// 组件
+    /// 按钮
     /// </summary>
-    Component
+    Button
 }

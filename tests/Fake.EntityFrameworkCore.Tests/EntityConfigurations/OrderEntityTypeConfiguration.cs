@@ -42,11 +42,11 @@ class OrderEntityTypeConfiguration : IEntityTypeConfiguration<Order>
             .UsePropertyAccessMode(PropertyAccessMode.Field)
             .IsRequired(false);
 
-        var navigation = orderConfiguration.Metadata.FindNavigation(nameof(Order.OrderItems));
-
-        // DDD Patterns comment:
-        //Set as field (New since EF 1.1) to access the OrderItem collection property through its field
-        navigation?.SetPropertyAccessMode(PropertyAccessMode.Field);
+        // var navigation = orderConfiguration.Metadata.FindNavigation(nameof(Order.OrderItems));
+        //
+        // // DDD Patterns comment:
+        // //Set as field (New since EF 1.1) to access the OrderItem collection property through its field
+        // navigation?.SetPropertyAccessMode(PropertyAccessMode.Field);
 
         orderConfiguration.HasOne<PaymentMethod>()
             .WithMany()

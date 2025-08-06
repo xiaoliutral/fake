@@ -1,4 +1,5 @@
 using Fake.Domain.Entities.Auditing;
+using Fake.Rbac.Domain.RoleAggregate;
 
 namespace Fake.Rbac.Domain.UserAggregate;
 

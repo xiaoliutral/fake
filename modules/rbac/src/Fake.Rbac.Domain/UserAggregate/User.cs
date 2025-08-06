@@ -22,9 +22,9 @@ public class User: FullAuditedAggregateRoot<Guid>
     public string? Email { get; private set; }
     public string? Avatar { get; private set; }
     
-    public IReadOnlyCollection<Role> Roles => _roles.AsReadOnly();
+    public IReadOnlyCollection<UserRole> Roles => _roles.AsReadOnly();
 
-    private readonly List<Role> _roles = new();
+    private readonly List<UserRole> _roles = new();
 
     public User()
     {
@@ -40,4 +40,32 @@ public class User: FullAuditedAggregateRoot<Guid>
         Avatar = avatar;
     }
 
+    public void AssignRole(Guid roleId)
+    {
+        if (_roles.Any(ur => ur.RoleId == roleId))
+        {
+            return;
+        }
+        
+        _roles.Add(new UserRole(Id, roleId));
+    }
+    
+    public void RemoveRole(Guid roleId)
+    {
+        var userRole = _roles.FirstOrDefault(ur => ur.RoleId == roleId);
+        if (userRole != null)
+        {
+            _roles.Remove(userRole);
+        }
+    }
+    
+    public void ClearRoles()
+    {
+        _roles.Clear();
+    }
+    
+    public bool HasRole(Guid roleId)
+    {
+        return _roles.Any(ur => ur.RoleId == roleId);
+    }
 }

@@ -15,20 +15,20 @@ public class UserEntityTypeConfiguration: IEntityTypeConfiguration<User>
         builder.TryConfigureByConvention();
 
         builder.Property(t => t.Name).IsRequired().HasMaxLength(FakeGlobalConsts.MaxUserNameLength);
-
-        builder.HasMany(u => u.Roles).WithMany().UsingEntity<UserRole>();
-
+        
         builder.Property(t => t.Account).IsRequired().HasMaxLength(32);
 
-        builder.Property(t => t.Password).IsRequired().HasMaxLength(32);
+        builder.OwnsOne(t => t.Password);
 
         builder.Property(t => t.Email).HasMaxLength(32);
 
-        builder.Property(t => t.Avatar).HasMaxLength(32);
+        builder.Property(t => t.Avatar).HasMaxLength(64);
+        
+        builder.HasMany(u => u.Roles).WithOne().HasForeignKey(ur => ur.UserId);
 
         builder.HasIndex(u => u.Account).IsUnique();
 
-        builder.HasIndex(u => u.Email).IsUnique().HasFilter("[Email] IS NOT NULL");
+        builder.HasIndex(u => u.Email).IsUnique();
 
         builder.HasIndex(u => u.Name);
     }

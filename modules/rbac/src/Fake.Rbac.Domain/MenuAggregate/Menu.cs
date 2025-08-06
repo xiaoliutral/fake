@@ -12,9 +12,9 @@ public class Menu: FullAuditedAggregateRoot<Guid>
     public string Name { get; private set; }
     
     /// <summary>
-    /// 权限代码（由服务端生成）
+    /// 权限代码
     /// </summary>
-    public string PermissionCode { get; private set; }
+    public string? PermissionCode { get; private set; }
     
     /// <summary>
     /// 权限类型
