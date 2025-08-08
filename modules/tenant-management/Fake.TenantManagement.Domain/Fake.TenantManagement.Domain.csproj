@@ -7,8 +7,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\..\..\src\Fake.EntityFrameworkCore\Fake.EntityFrameworkCore.csproj"/>
-        <ProjectReference Include="..\Fake.TenantManagement.Domain\Fake.TenantManagement.Domain.csproj"/>
+        <ProjectReference Include="..\..\..\src\Fake.DomainDrivenDesign\Fake.DomainDrivenDesign.csproj"/>
     </ItemGroup>
-
 </Project>

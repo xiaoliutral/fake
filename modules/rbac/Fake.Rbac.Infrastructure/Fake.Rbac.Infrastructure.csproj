@@ -7,7 +7,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\..\..\src\Fake.DomainDrivenDesign\Fake.DomainDrivenDesign.csproj"/>
+        <ProjectReference Include="..\..\..\src\Fake.EntityFrameworkCore\Fake.EntityFrameworkCore.csproj"/>
+        <ProjectReference Include="..\Fake.Rbac.Domain\Fake.Rbac.Domain.csproj" />
     </ItemGroup>
 
 </Project>

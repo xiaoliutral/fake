@@ -1,4 +1,5 @@
 using Fake.Domain.Entities.Auditing;
+using Fake.Helpers;
 using Fake.Rbac.Domain.RoleAggregate;
 
 namespace Fake.Rbac.Domain.UserAggregate;
@@ -18,7 +19,7 @@ public class User: FullAuditedAggregateRoot<Guid>
     /// <summary>
     /// 密码
     /// </summary>
-    public EncryptPassword Password { get; private set; }
+    public EncryptPassword EncryptPassword { get; private set; }
     public string? Email { get; private set; }
     public string? Avatar { get; private set; }
     
@@ -31,11 +32,11 @@ public class User: FullAuditedAggregateRoot<Guid>
         
     }
     
-    public User(string name, string account, EncryptPassword password, string? email = null, string? avatar = null)
+    public User(string name, string account, string password, string? email = null, string? avatar = null)
     {
         Name = name;
         Account = account;
-        Password = password;
+        GeneratePassword(password);
         Email = email;
         Avatar = avatar;
     }
@@ -67,5 +68,12 @@ public class User: FullAuditedAggregateRoot<Guid>
     public bool HasRole(Guid roleId)
     {
         return _roles.Any(ur => ur.RoleId == roleId);
+    }
+
+    public void GeneratePassword(string password)
+    {
+        var salt = MD5Helper.GenerateSalt();
+        var pwd = MD5Helper.GeneratePassword(password, salt);
+        EncryptPassword = new EncryptPassword(pwd, salt);
     }
 }

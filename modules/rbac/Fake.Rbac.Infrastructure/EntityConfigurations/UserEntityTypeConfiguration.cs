@@ -18,7 +18,7 @@ public class UserEntityTypeConfiguration: IEntityTypeConfiguration<User>
         
         builder.Property(t => t.Account).IsRequired().HasMaxLength(32);
 
-        builder.OwnsOne(t => t.Password);
+        builder.OwnsOne(t => t.EncryptPassword);
 
         builder.Property(t => t.Email).HasMaxLength(32);
 
