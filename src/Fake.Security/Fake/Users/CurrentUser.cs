@@ -10,6 +10,29 @@ public class CurrentUser(ICurrentPrincipalAccessor currentPrincipalAccessor) : I
      */
     public virtual bool IsAuthenticated => currentPrincipalAccessor.Principal?.Identity?.IsAuthenticated ?? false;
     public virtual Guid? Id => currentPrincipalAccessor.Principal?.FindUserId();
+
+    public virtual T? GetId<T>()
+    {
+        var claimValue = FindClaimOrNull(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(claimValue))
+        {
+            return default;
+        }
+
+        if (typeof(T) == typeof(string)) return (T?)(object)claimValue;
+        
+        if (typeof(T) == typeof(Guid))
+            return (T?)(object)(Guid.TryParse(claimValue, out var id) ? id : 0);
+        
+        if (typeof(T) == typeof(long))
+            return (T?)(object)(long.TryParse(claimValue, out var id) ? id : 0);
+        
+        if (typeof(T) == typeof(int))
+            return (T?)(object)(int.TryParse(claimValue, out var id) ? id : 0);
+        
+        throw new FakeException($"不支持此类型[{typeof(T).Name}]的用户id");
+    }
+
     public Guid? TenantId => currentPrincipalAccessor.Principal?.FindTenantId();
     public virtual string? UserName => this.FindClaimValueOrNull(FakeClaimTypes.UserName);
     public string? Email => this.FindClaimValueOrNull(FakeClaimTypes.Email);

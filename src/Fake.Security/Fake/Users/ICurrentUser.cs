@@ -10,6 +10,7 @@ public interface ICurrentUser
     /// 用户唯一标识
     /// </summary>
     Guid? Id { get; }
+    T? GetId<T>();
 
     /// <summary>
     /// 租户id

@@ -1,13 +1,16 @@
 ﻿namespace Fake.Domain.Entities.Auditing;
 
-public interface IHasUpdateUserId
+public interface IHasUpdateUserId : IHasUpdateUserId<Guid>;
+
+
+public interface IHasUpdateUserId<out TUser>
 {
     /*
      * 在设计上，希望规避可空值类型
      */
-
+    
     /// <summary>
     /// 更新用户Id
     /// </summary>
-    Guid UpdateUserId { get; }
+    TUser UpdateUserId { get; }
 }
