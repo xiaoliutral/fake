@@ -22,7 +22,7 @@ public class CurrentUser(ICurrentPrincipalAccessor currentPrincipalAccessor) : I
         if (typeof(T) == typeof(string)) return (T?)(object)claimValue;
         
         if (typeof(T) == typeof(Guid))
-            return (T?)(object)(Guid.TryParse(claimValue, out var id) ? id : 0);
+            return (T?)(object)(Guid.TryParse(claimValue, out var id) ? id : Guid.Empty);
         
         if (typeof(T) == typeof(long))
             return (T?)(object)(long.TryParse(claimValue, out var id) ? id : 0);

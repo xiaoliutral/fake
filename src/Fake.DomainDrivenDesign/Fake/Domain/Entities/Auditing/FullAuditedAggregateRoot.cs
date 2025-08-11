@@ -13,9 +13,9 @@ public abstract class FullAuditedAggregateRoot<TKey> : AggregateRoot<TKey>, IFul
 [Serializable]
 public abstract class FullAuditedAggregateRoot<TKey, TUser> : AggregateRoot<TKey>, IFullAuditedEntity<TUser>
 {
-    public virtual required TUser CreateUserId { get; set; }
+    public virtual TUser CreateUserId { get; set; } = default!;
     public virtual DateTime CreateTime { get; set; }
-    public virtual required TUser UpdateUserId { get; set; }
+    public virtual TUser UpdateUserId { get; set; } = default!;
     public virtual DateTime UpdateTime { get; set; }
     public virtual bool IsDeleted { get; set; }
 }

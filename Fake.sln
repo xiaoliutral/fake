@@ -34,7 +34,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fake.AspNetCore", "src\Fake
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "toolkit", "toolkit", "{A2A27924-EED0-4A13-B7F2-949F11F9F9B6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Faker.ReplaceFileName", "toolkit\Faker.ReplaceFileName\Faker.ReplaceFileName.csproj", "{26293D9D-5A8A-4438-8446-192C9A1E3727}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fake.ReplaceFileName", "toolkit\Fake.ReplaceFileName\Fake.ReplaceFileName.csproj", "{26293D9D-5A8A-4438-8446-192C9A1E3727}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fake.Castle", "src\Fake.Castle\Fake.Castle.csproj", "{E2CA82E6-F762-4208-8ABC-CF464404FED2}"
 EndProject
@@ -120,9 +120,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{9C0E53CC-F
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nupkg", "nupkg", "{8A834EDB-5B24-4E0F-94BE-B24384D49DDE}"
 	ProjectSection(SolutionItems) = preProject
-		nupkg\pack.ps1 = nupkg\pack.ps1
-		nupkg\push.ps1 = nupkg\push.ps1
 		NuGet.Config = NuGet.Config
+		pack.ps1 = pack.ps1
+		push.ps1 = push.ps1
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fake.Caching.FreeRedis", "src\Fake.Caching.FreeRedis\Fake.Caching.FreeRedis.csproj", "{5DA97EA0-8E4C-47E1-B1BD-1F636A5437E8}"
@@ -189,6 +189,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fake.TenantManagement.Infrastructure", "modules\tenant-management\Fake.TenantManagement.Infrastructure\Fake.TenantManagement.Infrastructure.csproj", "{647982C1-E629-4507-9E4E-64C0D071E5A2}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fake.TenantManagement.Application.Contracts", "modules\tenant-management\Fake.TenantManagement.Application.Contracts\Fake.TenantManagement.Application.Contracts.csproj", "{5D4DD8D4-BF52-49F6-8D66-3BEC14792872}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fake.SugarTool", "toolkit\Fake.SugarTool\Fake.SugarTool.csproj", "{4D136285-239E-4BF0-AEB7-C0A3650B55E9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -438,6 +440,10 @@ Global
 		{5D4DD8D4-BF52-49F6-8D66-3BEC14792872}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5D4DD8D4-BF52-49F6-8D66-3BEC14792872}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5D4DD8D4-BF52-49F6-8D66-3BEC14792872}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D136285-239E-4BF0-AEB7-C0A3650B55E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D136285-239E-4BF0-AEB7-C0A3650B55E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D136285-239E-4BF0-AEB7-C0A3650B55E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D136285-239E-4BF0-AEB7-C0A3650B55E9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{A93D4EAE-90BE-4C9B-9970-5C1C8E1B994D} = {310D0E30-AC20-44C8-B0A2-155C880ED934}
@@ -518,5 +524,6 @@ Global
 		{2C9851D7-B8FC-4A0B-8F50-BBF76C7DAD61} = {6D836B7B-F7A0-4639-B034-15217B7A4FCB}
 		{647982C1-E629-4507-9E4E-64C0D071E5A2} = {6D836B7B-F7A0-4639-B034-15217B7A4FCB}
 		{5D4DD8D4-BF52-49F6-8D66-3BEC14792872} = {6D836B7B-F7A0-4639-B034-15217B7A4FCB}
+		{4D136285-239E-4BF0-AEB7-C0A3650B55E9} = {A2A27924-EED0-4A13-B7F2-949F11F9F9B6}
 	EndGlobalSection
 EndGlobal
