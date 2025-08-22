@@ -19,6 +19,6 @@ public abstract class UpdateAuditedEntity<TKey> : Entity<TKey>, IHasUpdateUserId
 [Serializable]
 public abstract class UpdateAuditedEntity<TKey, TUser> : Entity<TKey>, IHasUpdateUserId<TUser>, IHasUpdateTime
 {
-    public virtual required TUser UpdateUserId { get; set; }
+    public virtual TUser UpdateUserId { get; set; } = default!;
     public virtual DateTime UpdateTime { get; set; }
 }

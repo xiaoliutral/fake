@@ -19,6 +19,6 @@ public abstract class CreateAuditedEntity<TKey> : Entity<TKey>, IHasCreateUserId
 [Serializable]
 public abstract class CreateAuditedEntity<TKey, TUser> : Entity<TKey>, IHasCreateUserId<TUser>, IHasCreateTime
 {
-    public virtual required TUser CreateUserId { get; set; }
+    public virtual TUser CreateUserId { get; set; } = default!;
     public virtual DateTime CreateTime { get; set; }
 }
