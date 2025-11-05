@@ -1,4 +1,5 @@
 using Fake.EntityFrameworkCore;
+using Fake.Rbac.Domain.MenuAggregate;
 using Fake.Rbac.Domain.RoleAggregate;
 using Fake.Rbac.Domain.UserAggregate;
 using Fake.Rbac.Infrastructure.EntityConfigurations;
@@ -13,6 +14,7 @@ public class RbacDbContext(DbContextOptions<RbacDbContext> options)
 
     public DbSet<User> Users { get; set; }
     public DbSet<Role> Roles { get; set; }
+    public DbSet<Menu> Menus { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

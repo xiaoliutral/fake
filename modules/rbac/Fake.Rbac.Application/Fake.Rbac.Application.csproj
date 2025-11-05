@@ -9,7 +9,9 @@
     <ItemGroup>
         <ProjectReference Include="..\..\..\src\Fake.AspNetCore\Fake.AspNetCore.csproj"/>
         <ProjectReference Include="..\..\..\src\Fake.Autofac\Fake.Autofac.csproj"/>
+        <ProjectReference Include="..\..\..\src\Fake.EntityFrameworkCore\Fake.EntityFrameworkCore.csproj"/>
         <ProjectReference Include="..\..\..\src\Fake.ObjectMapping.AutoMapper\Fake.ObjectMapping.AutoMapper.csproj"/>
         <ProjectReference Include="..\Fake.Rbac.Domain\Fake.Rbac.Domain.csproj" />
+        <ProjectReference Include="..\Fake.Rbac.Infrastructure\Fake.Rbac.Infrastructure.csproj" />
     </ItemGroup>
 </Project>

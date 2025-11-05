@@ -1,0 +1,638 @@
+# Fake 框架项目规则
+
+## 项目概述
+
+这是一个基于 **Fake 框架**（.NET 8.0）的模块化应用项目。Fake 是一个受 ABP 启发的轻量级框架，专注于 DDD（领域驱动设计）和微服务架构。
+
+## 核心架构原则
+
+### 1. 模块化系统
+
+- **所有模块继承 `FakeModule`**
+- 使用 `[DependsOn(typeof(OtherModule))]` 声明模块依赖
+- 模块提供 7 个生命周期钩子：
+  - `PreConfigureServices` / `ConfigureServices` / `PostConfigureServices`
+  - `PreConfigureApplication` / `ConfigureApplication` / `PostConfigureApplication`
+  - `Shutdown`
+
+```csharp
+[DependsOn(typeof(FakeDomainDrivenDesignModule))]
+public class YourModule : FakeModule
+{
+    public override void ConfigureServices(ServiceConfigurationContext context)
+    {
+        // 服务注册
+    }
+}
+```
+
+### 2. 依赖注入（自动注入）
+
+- 实现 `ITransientDependency` = 瞬时生命周期
+- 实现 `IScopedDependency` = 作用域生命周期  
+- 实现 `ISingletonDependency` = 单例生命周期
+- 服务会被**自动注册**到 IOC 容器（基于 Autofac）
+
+**服务暴露规则**：
+- 实现本身会被暴露
+- 按约定命名的接口会被暴露（擦除开头的 I，匹配服务后缀）
+- 使用 `[ExposeServices(typeof(IService))]` 显式暴露
+- 使用 `[DisableServiceRegistration]` 禁用自动注册
+
+```csharp
+// 自动注册为瞬时服务，暴露 IUserService 和 UserService
+public interface IUserService : ITransientDependency { }
+public class UserService : IUserService { }
+```
+
+### 3. 分层架构
+
+```
+Presentation (HTTP API / Grpc)
+    ↓
+Application (Application Services / DTOs)
+    ↓
+Domain (Entities / Value Objects / Domain Services)
+    ↓
+Infrastructure (Repositories / External Services)
+```
+
+## DDD 设计模式
+
+### 实体和聚合根
+
+- **基础实体**: `Entity<TKey>`
+- **聚合根**: `AggregateRoot<TKey>` 或 `FullAuditedAggregateRoot<TKey>`
+- **审计实体**: 
+  - `CreateAuditedEntity` - 创建审计
+  - `UpdateAuditedEntity` - 更新审计
+  - `DeleteAuditedEntity` - 软删除审计
+  - `FullAuditedEntity` - 完整审计
+
+```csharp
+public class Order : FullAuditedAggregateRoot<Guid>
+{
+    public string OrderNo { get; private set; }
+    private readonly List<OrderItem> _items = new();
+    public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
+    
+    public Order(string orderNo) 
+    {
+        OrderNo = orderNo;
+    }
+    
+    public void AddItem(Product product, int quantity)
+    {
+        // 业务逻辑封装在聚合根内
+    }
+}
+```
+
+### 仓储模式
+
+- **接口**: `IRepository<TEntity>` 只用于聚合根
+- **基础方法**: FirstAsync, GetListAsync, InsertAsync, UpdateAsync, DeleteAsync
+- **自定义方法**: 在接口中定义，在实现类中实现
+
+```csharp
+public interface IOrderRepository : IRepository<Order>
+{
+    Task<Order?> FindByOrderNoAsync(string orderNo);
+}
+
+public class OrderRepository : EfCoreRepository<YourDbContext, Order>, IOrderRepository
+{
+    public OrderRepository(IDbContextProvider<YourDbContext> dbContextProvider) 
+        : base(dbContextProvider) { }
+        
+    public async Task<Order?> FindByOrderNoAsync(string orderNo)
+    {
+        var dbContext = await GetDbContextAsync();
+        return await dbContext.Orders
+            .Include(o => o.Items)
+            .FirstOrDefaultAsync(o => o.OrderNo == orderNo);
+    }
+}
+```
+
+### 值对象
+
+```csharp
+public class Address : ValueObject
+{
+    public string Street { get; private set; }
+    public string City { get; private set; }
+    
+    protected override IEnumerable<object> GetEqualityComponents()
+    {
+        yield return Street;
+        yield return City;
+    }
+}
+```
+
+### 领域服务
+
+```csharp
+public class OrderManager : DomainService
+{
+    private readonly IOrderRepository _orderRepository;
+    
+    public async Task<Order> CreateOrderAsync(string orderNo)
+    {
+        // 业务规则验证
+        await ValidateOrderNoUniqueAsync(orderNo);
+        
+        var order = new Order(orderNo);
+        await _orderRepository.InsertAsync(order);
+        return order;
+    }
+}
+```
+
+### 领域事件
+
+```csharp
+public class Order : FullAuditedAggregateRoot<Guid>, IHasDomainEvent
+{
+    private readonly List<DomainEvent> _domainEvents = new();
+    public IReadOnlyCollection<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+    
+    public void AddDomainEvent(DomainEvent eventItem)
+    {
+        _domainEvents.Add(eventItem);
+    }
+}
+```
+
+## 应用层规范
+
+### ApplicationService
+
+```csharp
+public class OrderAppService : ApplicationService
+{
+    // ApplicationService 基类提供:
+    // - ServiceProvider
+    // - Logger
+    // - ObjectMapper
+    
+    private readonly IOrderRepository _orderRepository;
+    private readonly OrderManager _orderManager;
+    
+    public async Task<OrderDto> CreateOrderAsync(CreateOrderDto input)
+    {
+        // 应用服务只做协调，业务逻辑在领域层
+        var order = await _orderManager.CreateOrderAsync(input.OrderNo);
+        return ObjectMapper.Map<Order, OrderDto>(order);
+    }
+}
+```
+
+### DTOs
+
+```csharp
+// 创建 DTO
+public class CreateOrderDto
+{
+    [Required]
+    public string OrderNo { get; set; }
+}
+
+// 返回 DTO
+public class OrderDto : AuditedEntityDto<Guid>
+{
+    public string OrderNo { get; set; }
+    public List<OrderItemDto> Items { get; set; }
+}
+
+// 分页请求
+public class PagedRequestDto
+{
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+    public string? OrderBy { get; set; }
+    public bool Descending { get; set; }
+}
+
+// 分页结果
+public class PagedResultDto<T>
+{
+    public long Total { get; set; }
+    public List<T> Items { get; set; }
+}
+```
+
+## 横切关注点
+
+### 工作单元（UoW）
+
+- **应用服务方法默认启用 UoW**
+- 使用 `[UnitOfWork]` 显式启用
+- 使用 `[DisableUnitOfWork]` 禁用（只读操作）
+
+```csharp
+[UnitOfWork]  // 可选，默认启用
+public async Task<OrderDto> CreateOrderAsync(CreateOrderDto input)
+{
+    // 方法内所有数据库操作在一个事务中
+    // 成功后自动提交，异常自动回滚
+}
+```
+
+### 授权
+
+```csharp
+// 权限定义
+public class YourPermissionDefinitionProvider : IPermissionDefinitionProvider
+{
+    public void Define(IPermissionDefinitionContext context)
+    {
+        var group = context.AddGroup("Orders", "Order Management");
+        group.AddPermission("Orders.Create", "Create Order");
+    }
+}
+
+// 使用权限
+[Authorize(Permission = "Orders.Create")]
+public async Task<OrderDto> CreateOrderAsync(CreateOrderDto input) { }
+```
+
+### 审计
+
+- **实体审计**: 继承审计实体自动记录
+- **方法审计**: 使用 `[Audited]` 标记
+- **禁用审计**: 使用 `[DisableAuditing]` 标记
+
+### 缓存
+
+```csharp
+private readonly IDistributedCache _cache;
+
+public async Task<OrderDto> GetOrderAsync(Guid id)
+{
+    var cacheKey = $"order:{id}";
+    var cached = await _cache.GetStringAsync(cacheKey);
+    // ... 缓存逻辑
+}
+```
+
+### 对象映射（AutoMapper）
+
+```csharp
+public class YourMappingProfile : Profile
+{
+    public YourMappingProfile()
+    {
+        CreateMap<Order, OrderDto>();
+        CreateMap<CreateOrderDto, Order>();
+    }
+}
+
+// 模块配置
+context.Services.Configure<FakeAutoMapperOptions>(options =>
+{
+    options.AddProfile<YourMappingProfile>(validate: false);
+});
+```
+
+### 本地化
+
+```csharp
+// 配置
+context.Services.Configure<FakeLocalizationOptions>(options =>
+{
+    options.Resources
+        .Add<YourResource>("zh")
+        .LoadVirtualJson("/Localization");
+});
+
+// 使用
+var message = _localizer["WelcomeMessage"];
+```
+
+### 事件总线
+
+```csharp
+// 本地事件
+await _localEventBus.PublishAsync(new OrderCreatedEvent { OrderId = order.Id });
+
+// 分布式事件（RabbitMQ）
+await _distributedEventBus.PublishAsync(new OrderCreatedIntegrationEvent { OrderId = order.Id });
+```
+
+## 基础设施层
+
+### EF Core 集成
+
+```csharp
+public class YourDbContext : EfCoreDbContext<YourDbContext>
+{
+    public DbSet<Order> Orders { get; set; }
+    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfiguration(new OrderConfiguration());
+    }
+}
+
+// 实体配置
+public class OrderConfiguration : IEntityTypeConfiguration<Order>
+{
+    public void Configure(EntityTypeBuilder<Order> builder)
+    {
+        builder.ToTable("Orders");
+        builder.Property(x => x.OrderNo).IsRequired().HasMaxLength(50);
+        builder.HasMany(x => x.Items).WithOne().HasForeignKey(i => i.OrderId);
+    }
+}
+```
+
+## 命名约定
+
+### 文件命名
+
+- 模块文件: `{ProjectName}Module.cs`
+- 实体: `{EntityName}.cs`
+- 仓储接口: `I{EntityName}Repository.cs`
+- 仓储实现: `{EntityName}Repository.cs`
+- 应用服务: `{EntityName}Service.cs` 或 `{EntityName}AppService.cs`
+- DTO: `{EntityName}{Action}Dto.cs`
+
+### 类命名
+
+- 领域服务: `{Business}Manager`
+- 应用服务: `{Entity}Service` 或 `{Entity}AppService`
+- DTO: `{Entity}Dto`, `Create{Entity}Dto`, `Update{Entity}Dto`
+
+### 方法命名
+
+- 查询: `Get{Entity}Async`, `GetList{Entity}Async`
+- 创建: `Create{Entity}Async`
+- 更新: `Update{Entity}Async`
+- 删除: `Delete{Entity}Async`
+
+## 项目结构
+
+```
+YourProject/
+├── src/
+│   ├── YourProject.Domain/              # 领域层
+│   │   ├── {Aggregate}Aggregate/
+│   │   │   ├── {Entity}.cs
+│   │   │   ├── I{Entity}Repository.cs
+│   │   ├── Managers/                    # 领域服务
+│   │   └── YourProjectDomainModule.cs
+│   │
+│   ├── YourProject.Application/         # 应用层
+│   │   ├── Services/
+│   │   ├── Dtos/
+│   │   │   ├── {Entity}/
+│   │   │   │   ├── {Entity}Dto.cs
+│   │   │   │   ├── Create{Entity}Dto.cs
+│   │   │   │   └── Update{Entity}Dto.cs
+│   │   ├── AutoMapper/
+│   │   └── YourProjectApplicationModule.cs
+│   │
+│   ├── YourProject.Infrastructure/      # 基础设施层
+│   │   ├── EntityConfigurations/
+│   │   ├── Repositories/
+│   │   ├── YourDbContext.cs
+│   │   └── YourProjectInfrastructureModule.cs
+│   │
+│   └── YourProject.HttpApi/             # HTTP API 层
+│       ├── Controllers/
+│       └── YourProjectHttpApiModule.cs
+│
+├── modules/                              # 业务模块
+│   └── {module-name}/
+│
+└── tests/
+```
+
+## 编码规范
+
+### 聚合根规范
+
+1. **业务逻辑封装在聚合根内部**
+2. **使用私有 setter**
+3. **集合属性只读**
+4. **提供公共方法修改状态**
+
+```csharp
+public class Order : FullAuditedAggregateRoot<Guid>
+{
+    public string OrderNo { get; private set; }  // 私有 setter
+    
+    private readonly List<OrderItem> _items = new();
+    public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();  // 只读集合
+    
+    public void AddItem(OrderItem item)  // 公共方法
+    {
+        _items.Add(item);
+    }
+}
+```
+
+### 仓储规范
+
+1. **只返回聚合根**
+2. **不要返回 IQueryable**（封装在仓储内部）
+3. **使用 Include 加载关联实体**
+4. **查询方法使用 AsNoTracking**
+
+```csharp
+public async Task<Order?> GetWithItemsAsync(Guid id)
+{
+    var dbContext = await GetDbContextAsync();
+    return await dbContext.Orders
+        .Include(o => o.Items)          // 加载关联
+        .AsNoTracking()                  // 只读查询
+        .FirstOrDefaultAsync(o => o.Id == id);
+}
+```
+
+### 应用服务规范
+
+1. **应用服务只做协调**
+2. **业务逻辑委托给领域服务或聚合根**
+3. **使用 DTO 传输数据**
+4. **一个方法一个事务**
+
+```csharp
+public async Task<OrderDto> CreateOrderAsync(CreateOrderDto input)
+{
+    // ❌ 错误：业务逻辑在应用服务
+    if (string.IsNullOrEmpty(input.OrderNo))
+        throw new Exception("订单号不能为空");
+    
+    // ✅ 正确：委托给领域服务
+    var order = await _orderManager.CreateOrderAsync(input.OrderNo);
+    
+    return ObjectMapper.Map<Order, OrderDto>(order);
+}
+```
+
+### 异常处理
+
+```csharp
+// 领域异常
+public class OrderNotFoundException : DomainException
+{
+    public OrderNotFoundException(Guid orderId) 
+        : base($"订单不存在：{orderId}") { }
+}
+
+// 业务异常
+public class InsufficientStockException : BusinessException
+{
+    public InsufficientStockException(string productName)
+        : base($"库存不足：{productName}") { }
+}
+```
+
+## 特殊标记
+
+### 属性注入
+
+```csharp
+public class MyService
+{
+    [Autowired]
+    public ILogger<MyService> Logger { get; set; }
+}
+```
+
+### 禁用功能
+
+```csharp
+[DisableServiceRegistration]      // 禁用自动服务注册
+[DisableAuditing]                  // 禁用审计
+[DisableUnitOfWork]                // 禁用工作单元
+[DisablePropertyInjection]         // 禁用属性注入
+```
+
+## 常用模块依赖
+
+```csharp
+// 核心
+using Fake;
+using Fake.Modularity;
+using Fake.DependencyInjection;
+
+// DDD
+using Fake.Domain;
+using Fake.Domain.Entities;
+using Fake.Domain.Entities.Auditing;
+using Fake.Domain.Repositories;
+using Fake.Application;
+
+// 基础设施
+using Fake.EntityFrameworkCore;
+using Fake.ObjectMapping;
+using Fake.ObjectMapping.AutoMapper;
+
+// 横切关注点
+using Fake.Authorization;
+using Fake.Auditing;
+using Fake.UnitOfWork;
+using Fake.EventBus;
+```
+
+## 注意事项
+
+1. **不要在构造函数中执行业务逻辑**（只做初始化）
+2. **避免在实体中注入服务**（使用领域服务）
+3. **仓储方法要异步**（所有数据库操作）
+4. **DTO 不要包含业务逻辑**（只做数据传输）
+5. **聚合根边界要清晰**（不要跨聚合访问）
+6. **使用值对象封装复杂数据**（如地址、金额）
+7. **领域事件用于聚合间通信**（解耦聚合）
+8. **应用服务返回 DTO**（不要返回实体）
+
+## 快速参考
+
+### 创建新模块
+
+```csharp
+[DependsOn(typeof(FakeDomainDrivenDesignModule))]
+public class YourModule : FakeModule
+{
+    public override void ConfigureServices(ServiceConfigurationContext context)
+    {
+        // 配置服务
+    }
+}
+```
+
+### 创建聚合根
+
+```csharp
+public class YourEntity : FullAuditedAggregateRoot<Guid>
+{
+    public string Name { get; private set; }
+    
+    public YourEntity(string name)
+    {
+        Name = name;
+    }
+    
+    public void Update(string name)
+    {
+        Name = name;
+    }
+}
+```
+
+### 创建仓储
+
+```csharp
+// 接口
+public interface IYourRepository : IRepository<YourEntity>
+{
+    Task<YourEntity?> FindByNameAsync(string name);
+}
+
+// 实现
+public class YourRepository : EfCoreRepository<YourDbContext, YourEntity>, IYourRepository
+{
+    public YourRepository(IDbContextProvider<YourDbContext> dbContextProvider) 
+        : base(dbContextProvider) { }
+        
+    public async Task<YourEntity?> FindByNameAsync(string name)
+    {
+        var dbContext = await GetDbContextAsync();
+        return await dbContext.Set<YourEntity>()
+            .FirstOrDefaultAsync(e => e.Name == name);
+    }
+}
+```
+
+### 创建应用服务
+
+```csharp
+public class YourAppService : ApplicationService
+{
+    private readonly IYourRepository _repository;
+    
+    public async Task<YourDto> GetAsync(Guid id)
+    {
+        var entity = await _repository.GetAsync(id);
+        return ObjectMapper.Map<YourEntity, YourDto>(entity);
+    }
+}
+```
+
+## 代码生成提示
+
+当生成代码时，请遵循以上所有规范和约定。特别注意：
+
+1. 使用正确的生命周期接口（ITransientDependency、IScopedDependency、ISingletonDependency）
+2. 聚合根使用私有 setter 和公共方法
+3. 仓储实现必须继承 EfCoreRepository
+4. 应用服务使用 ObjectMapper 进行映射
+5. 所有异步方法使用 async/await 和 CancellationToken
+6. DTO 使用数据注解验证
+7. 遵循命名约定
+

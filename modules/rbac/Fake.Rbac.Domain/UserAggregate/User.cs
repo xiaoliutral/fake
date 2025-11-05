@@ -76,4 +76,27 @@ public class User: FullAuditedAggregateRoot<Guid>
         var pwd = MD5Helper.GeneratePassword(password, salt);
         EncryptPassword = new EncryptPassword(pwd, salt);
     }
+
+    public void Update(string? name = null, string? email = null, string? avatar = null)
+    {
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            Name = name;
+        }
+
+        if (email != null)
+        {
+            Email = email;
+        }
+
+        if (avatar != null)
+        {
+            Avatar = avatar;
+        }
+    }
+
+    public void UpdateAvatar(string? avatar)
+    {
+        Avatar = avatar;
+    }
 }

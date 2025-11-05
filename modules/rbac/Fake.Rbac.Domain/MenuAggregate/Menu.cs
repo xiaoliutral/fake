@@ -54,6 +54,83 @@ public class Menu: FullAuditedAggregateRoot<Guid>
     private List<Menu> _children = new();
     public IReadOnlyList<Menu> Children => _children.AsReadOnly();
     
+    public Menu()
+    {
+        
+    }
+    
+    public Menu(Guid pId, string name, MenuType type, string? permissionCode = null, string? icon = null, 
+        string? route = null, string? component = null, int order = 0, bool isHidden = false, 
+        bool isCached = false, string? description = null)
+    {
+        PId = pId;
+        Name = name;
+        Type = type;
+        PermissionCode = permissionCode;
+        Icon = icon;
+        Route = route;
+        Component = component;
+        Order = order;
+        IsHidden = isHidden;
+        IsCached = isCached;
+        Description = description;
+    }
+    
+    public void Update(string? name = null, string? permissionCode = null, string? icon = null, 
+        string? route = null, string? component = null, bool? isHidden = null, 
+        bool? isCached = null, string? description = null)
+    {
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            Name = name;
+        }
+
+        if (permissionCode != null)
+        {
+            PermissionCode = permissionCode;
+        }
+
+        if (icon != null)
+        {
+            Icon = icon;
+        }
+
+        if (route != null)
+        {
+            Route = route;
+        }
+
+        if (component != null)
+        {
+            Component = component;
+        }
+
+        if (isHidden.HasValue)
+        {
+            IsHidden = isHidden.Value;
+        }
+
+        if (isCached.HasValue)
+        {
+            IsCached = isCached.Value;
+        }
+
+        if (description != null)
+        {
+            Description = description;
+        }
+    }
+
+    public void UpdateOrder(int order)
+    {
+        Order = order;
+    }
+
+    public void MoveTo(Guid? parentId)
+    {
+        PId = parentId ?? Guid.Empty;
+    }
+    
     // add sub menu
     public void AddChild(Menu menu)
     {
@@ -61,7 +138,7 @@ public class Menu: FullAuditedAggregateRoot<Guid>
     }
     
     // rem sub menu
-    public void RemveChild(Menu menu)
+    public void RemoveChild(Menu menu)
     {
         _children.Remove(menu);
     }

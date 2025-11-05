@@ -22,7 +22,15 @@ public class Role: FullAuditedAggregateRoot<Guid>
         Code = code;
     }
 
-    void AddPermission(string permissionCode)
+    public void Update(string? name = null)
+    {
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            Name = name;
+        }
+    }
+
+    public void AddPermission(string permissionCode)
     {
         var permission = _permissions.SingleOrDefault(p => p.PermissionCode == permissionCode);
         if (permission == null)
@@ -31,12 +39,26 @@ public class Role: FullAuditedAggregateRoot<Guid>
         }
     }
 
-    void RemovePermission(string permissionCode)
+    public void RemovePermission(string permissionCode)
     {
         var permission = _permissions.SingleOrDefault(p => p.PermissionCode == permissionCode);
         if (permission != null)
         {
             _permissions.Remove(permission);
+        }
+    }
+
+    public void ClearPermissions()
+    {
+        _permissions.Clear();
+    }
+
+    public void SetPermissions(List<string> permissionCodes)
+    {
+        _permissions.Clear();
+        foreach (var permissionCode in permissionCodes)
+        {
+            _permissions.Add(new RolePermission(Id, permissionCode));
         }
     }
 }

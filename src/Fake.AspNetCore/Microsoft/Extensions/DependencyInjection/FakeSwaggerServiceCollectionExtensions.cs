@@ -16,6 +16,8 @@ public static class FakeSwaggerServiceCollectionExtensions
             {
                 options.IncludeXmlComments(item, true);
             }
+            
+            action?.Invoke(options);
         });
 
         return services;
