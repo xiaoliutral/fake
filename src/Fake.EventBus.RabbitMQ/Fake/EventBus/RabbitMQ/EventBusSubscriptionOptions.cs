@@ -9,7 +9,7 @@ public class EventBusSubscriptionOptions
     /// </summary>
     public Dictionary<string, Type> EventTypes { get; } = [];
 
-    public JsonSerializerOptions JsonSerializerOptions { get; } = new(DefaultSerializerOptions);
+    public JsonSerializerOptions JsonSerializerOptions { get; set; } = new(DefaultSerializerOptions);
 
     internal static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {

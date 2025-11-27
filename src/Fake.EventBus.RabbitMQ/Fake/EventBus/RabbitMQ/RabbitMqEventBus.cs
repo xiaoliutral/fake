@@ -28,11 +28,12 @@ public class RabbitMqEventBus(
 
     private readonly ResiliencePipeline _pipeline = CreateResiliencePipeline(eventBusOptions.Value.RetryCount);
 
-    private readonly IConnection _connection = rabbitMqConnectionPool.Get(eventBusOptions.Value.ConnectionName);
-    private IModel? _consumerChannel; // 消费者专用通道
+    private IModel? _consumerChannel; // 消费者专用通道，异常会自动重启
 
     private readonly string _exchangeName = eventBusOptions.Value.ExchangeName; // 事件投递的交换机
 
+    // work queue：competing consumers,
+    // 当多个消费者订阅同一个队列时，RabbitMQ 使用轮询（Round-Robin）或者根据消费者的 Qos 设置来分发消息。每条消息只会被投递给其中一个消费者。
     private readonly string _queueName = (eventBusOptions.Value.QueueName ?? applicationInfo.ApplicationName)
         .TrimEnd('.') + ".Queue"; // 客户端订阅队列名称
 
@@ -43,13 +44,14 @@ public class RabbitMqEventBus(
         logger.LogDebug("Creating RabbitMQ channel for publishing event: {EventId} ({EventName})", @event.Id,
             routingKey);
 
-        using var channel = _connection.CreateModel();
+        using var channel = rabbitMqConnectionPool.Get(_eventBusOptions.ConnectionName).CreateModel();
 
         var body = SerializeMessage(@event);
 
         var properties = channel.CreateBasicProperties();
         properties.DeliveryMode = 2; // Non-persistent (1) or persistent (2).
 
+        // tips：最大努力投递
         _pipeline.Execute(chan =>
         {
             logger.LogDebug("Publishing event to RabbitMQ: {EventId} ({EventName})", @event.Id, routingKey);
@@ -161,7 +163,7 @@ public class RabbitMqEventBus(
             logger.LogDebug("Binding DLX exchange: {DlxExchangeName}, queue: {DlxQueueName}, routeKey: {DlxRouteKey}",
                 dlxExchangeName, dlxQueueName, dlxRouteKey);
 
-            channel.ExchangeDeclare(exchange: dlxExchangeName, type: ExchangeType.Direct);
+            channel.ExchangeDeclare(exchange: dlxExchangeName, type: ExchangeType.Direct, durable: true);
             channel.QueueDeclare(dlxQueueName, durable: true, exclusive: false, autoDelete: false);
             channel.QueueBind(dlxQueueName, dlxExchangeName, dlxRouteKey);
 
@@ -179,7 +181,7 @@ public class RabbitMqEventBus(
             }
         }
 
-        channel.ExchangeDeclare(exchange: _exchangeName, type: ExchangeType.Direct);
+        channel.ExchangeDeclare(exchange: _exchangeName, type: ExchangeType.Direct, durable: true);
         channel.QueueDeclare(queue: _queueName, durable: true, exclusive: false, autoDelete: false,
             arguments: arguments);
 
@@ -199,9 +201,10 @@ public class RabbitMqEventBus(
 
             // 销毁原有通道，重新创建
             channel.Dispose();
-            channel = CreateConsumerChannel();
+            var newChannel = CreateConsumerChannel();
+            _consumerChannel = newChannel;
             // 使得新的消费者通道依然能够正常的消费消息
-            StartBasicConsume(channel);
+            StartBasicConsume(newChannel);
         };
 
         return channel;
@@ -225,6 +228,7 @@ public class RabbitMqEventBus(
             try
             {
                 await ProcessingEventAsync(eventName, message);
+                channel.BasicAck(eventArgs.DeliveryTag, multiple: false);
             }
             catch (Exception ex)
             {
@@ -235,8 +239,6 @@ public class RabbitMqEventBus(
                 // For more information see: https://www.rabbitmq.com/dlx.html
                 channel.BasicNack(eventArgs.DeliveryTag, multiple: false, requeue: false);
             }
-
-            channel.BasicAck(eventArgs.DeliveryTag, multiple: false);
         };
 
         channel.BasicConsume(queue: _queueName, autoAck: false, consumer: consumer);
