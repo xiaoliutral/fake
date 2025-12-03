@@ -1,4 +1,5 @@
 ﻿using Application.IntegrationEvents;
+using Fake.EventBus.Distributed;
 using Fake.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -7,7 +8,7 @@ namespace Fake.EntityFrameworkCore.IntegrationEventLog.Tests;
 public class ApplicationEventHandlerTests
     : ApplicationTestWithTools<FakeEntityFrameworkCoreIntegrationEventLogTestModule>
 {
-    private readonly IIntegrationEventLogService _integrationEventLogService;
+    private readonly IOutboxEventLogService _outboxEventLogService;
 
     protected override void SetApplicationCreationOptions(FakeApplicationCreationOptions options)
     {
@@ -16,13 +17,13 @@ public class ApplicationEventHandlerTests
 
     public ApplicationEventHandlerTests()
     {
-        _integrationEventLogService = ServiceProvider.GetRequiredService<IIntegrationEventLogService>();
+        _outboxEventLogService = ServiceProvider.GetRequiredService<IOutboxEventLogService>();
     }
 
     [Fact]
-    void 发布集成日志()
+    async Task 发布集成日志()
     {
         var orderStartedIntegrationEvent = new OrderStartedIntegrationEvent(TestDataBuilder.UserId);
-        _integrationEventLogService.SaveEventAsync(orderStartedIntegrationEvent);
+        await _outboxEventLogService.SaveEventAsync(orderStartedIntegrationEvent);
     }
 }
