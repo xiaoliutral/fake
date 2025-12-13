@@ -4,6 +4,8 @@ namespace Fake.Rbac.Domain.MenuAggregate;
 
 public interface IMenuRepository: IRepository<Menu>
 {
+    public Task<IQueryable<Menu>> GetQueryableAsync(CancellationToken cancellationToken = default);
+    
     /// <summary>
     /// 获取菜单树
     /// </summary>

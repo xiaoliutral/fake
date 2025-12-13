@@ -1,5 +1,4 @@
-﻿using Fake.Helpers;
-using Fake.UnitOfWork;
+﻿using Fake.UnitOfWork;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -22,11 +21,14 @@ public class FakeUnitOfWorkActionFilter(IUnitOfWorkHelper unitOfWorkHelper, IUni
     protected virtual async Task HandleUnitOfWorkAction(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         var methodInfo = context.ActionDescriptor.To<ControllerActionDescriptor>().MethodInfo;
-        if (!unitOfWorkHelper.IsUnitOfWorkMethod(methodInfo, out var unitOfWorkAttribute))
+
+        if (!unitOfWorkHelper.IsUnitOfWorkMethod(methodInfo, out var unitOfWorkAttribute)) await next();
+        else
         {
+            // 开工作单元
             using var unitOfWork = unitOfWorkManager.Begin(unitOfWorkAttribute);
             var result = await next();
-            if (result.ExceptionHandled)
+            if (result.Exception == null || result.ExceptionHandled)
             {
                 await unitOfWork.CompleteAsync(context.HttpContext.RequestAborted);
             }
@@ -39,17 +41,6 @@ public class FakeUnitOfWorkActionFilter(IUnitOfWorkHelper unitOfWorkHelper, IUni
 
     protected virtual bool ShouldHandle(ActionExecutingContext context)
     {
-        if (context.ActionDescriptor is not ControllerActionDescriptor controllerActionDescriptor)
-        {
-            return false;
-        }
-
-        if (ReflectionHelper.GetAttributeOrNull<DisableUnitOfWorkAttribute>(controllerActionDescriptor.MethodInfo) !=
-            null)
-        {
-            return false;
-        }
-
-        return true;
+        return context.ActionDescriptor is ControllerActionDescriptor;
     }
 }

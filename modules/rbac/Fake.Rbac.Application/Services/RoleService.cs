@@ -6,20 +6,22 @@ using Fake.Rbac.Application.Dtos.Role;
 using Fake.Rbac.Application.Dtos.User;
 using Fake.Rbac.Domain.RoleAggregate;
 using Fake.Rbac.Domain.UserAggregate;
-using Fake.Rbac.Infrastructure.Repositories;
+using Fake.UnitOfWork;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Fake.Rbac.Application.Services;
 
+[ApiExplorerSettings(GroupName = "RBAC")]
 public class RoleService : ApplicationService, IRoleService
 {
-    private readonly IEfCoreRoleRepository _roleRepository;
-    private readonly IEfCoreUserRepository _userRepository;
+    private readonly IRoleRepository _roleRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IObjectMapper _objectMapper;
 
     public RoleService(
-        IEfCoreRoleRepository roleRepository,
-        IEfCoreUserRepository userRepository,
+        IRoleRepository roleRepository,
+        IUserRepository userRepository,
         IObjectMapper objectMapper)
     {
         _roleRepository = roleRepository;
@@ -37,8 +39,8 @@ public class RoleService : ApplicationService, IRoleService
 
         return _objectMapper.Map<Role, RoleDto>(role);
     }
-
-    public async Task<PagedResultDto<RoleDto>> GetListAsync(RolePagedRequestDto input, CancellationToken cancellationToken = default)
+    
+    public virtual async Task<PagedResultDto<RoleDto>> GetListAsync(RolePagedRequestDto input, CancellationToken cancellationToken = default)
     {
         IQueryable<Role> query = (await _roleRepository.GetQueryableAsync(cancellationToken))
             .Include(r => r.Permissions);
@@ -70,11 +72,12 @@ public class RoleService : ApplicationService, IRoleService
 
     public async Task<List<RoleSimpleDto>> GetAllRolesAsync(CancellationToken cancellationToken = default)
     {
-        var roles = await (await _roleRepository.GetQueryableAsync(cancellationToken))
-            .OrderBy(r => ((Role)r).Name)
+        var query = await _roleRepository.GetQueryableAsync(cancellationToken);
+        var roles = await query
+            .OrderBy(r => r.Name)
             .ToListAsync(cancellationToken);
 
-        return _objectMapper.Map<List<Role>, List<RoleSimpleDto>>(roles.Cast<Role>().ToList());
+        return _objectMapper.Map<List<Role>, List<RoleSimpleDto>>(roles);
     }
 
     public async Task<RoleDto> CreateAsync(RoleCreateDto input, CancellationToken cancellationToken = default)

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Fake.Rbac.Infrastructure.Repositories;
 
-public class UserRepository : EfCoreRepository<RbacDbContext, User>, IEfCoreUserRepository
+public class UserRepository : EfCoreRepository<FakeRbacDbContext, User>, IUserRepository
 {
     public async Task<User?> FindByAccountAsync(string account, CancellationToken cancellationToken = default)
     {

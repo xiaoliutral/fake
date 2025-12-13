@@ -10,7 +10,7 @@ public class UserEntityTypeConfiguration: IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.ToTable("user", RbacDbContext.DefaultSchema);
+        builder.ToTable("user", FakeRbacDbContext.DefaultSchema);
 
         builder.TryConfigureByConvention();
 

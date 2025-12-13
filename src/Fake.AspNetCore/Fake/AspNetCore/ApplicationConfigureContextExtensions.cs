@@ -22,6 +22,11 @@ public static class ApplicationConfigureContextExtensions
         ThrowHelper.ThrowIfNull(app, nameof(app), $"请检查host是否是通过{nameof(WebApplication)}创建");
         return app!;
     }
+    
+    public static IWebHostEnvironment GetEnvironment(this ApplicationConfigureContext context)
+    {
+        return context.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+    }
 
     public static IWebHostEnvironment? GetEnvironmentOrNull(this ApplicationConfigureContext context)
     {

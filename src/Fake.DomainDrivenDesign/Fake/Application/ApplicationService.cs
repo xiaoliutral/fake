@@ -1,4 +1,5 @@
-﻿using Fake.Data.Filtering;
+﻿using Fake.Auditing;
+using Fake.Data.Filtering;
 using Fake.DependencyInjection;
 using Fake.Localization;
 using Fake.ObjectMapping;
@@ -9,7 +10,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Fake.Application;
 
-public abstract class ApplicationService : IApplicationService, ITransientDependency
+public abstract class ApplicationService : IApplicationService, ITransientDependency, IUnitOfWorkEnabled,
+    IAuditingEnabled
 {
     // 属性注入，必须public
     public ILazyServiceProvider LazyServiceProvider { get; set; } = default!;
@@ -22,6 +24,8 @@ public abstract class ApplicationService : IApplicationService, ITransientDepend
     protected ICurrentUser CurrentUser => LazyServiceProvider.GetRequiredService<ICurrentUser>();
 
     protected IDataFilter DataFilter => LazyServiceProvider.GetRequiredService<IDataFilter>();
+    
+    protected IUnitOfWorkManager UnitOfWorkManager => LazyServiceProvider.GetRequiredService<IUnitOfWorkManager>();
 
     private IStringLocalizer? _localizer;
     protected IStringLocalizer L => _localizer ??= CreateLocalizer();

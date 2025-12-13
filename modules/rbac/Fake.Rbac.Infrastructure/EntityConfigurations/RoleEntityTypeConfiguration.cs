@@ -8,7 +8,7 @@ public class RoleEntityTypeConfiguration: IEntityTypeConfiguration<Role>
 {
     public void Configure(EntityTypeBuilder<Role> builder)
     {
-        builder.ToTable("role", RbacDbContext.DefaultSchema);
+        builder.ToTable("role", FakeRbacDbContext.DefaultSchema);
 
         builder.HasKey(r => r.Id);
 

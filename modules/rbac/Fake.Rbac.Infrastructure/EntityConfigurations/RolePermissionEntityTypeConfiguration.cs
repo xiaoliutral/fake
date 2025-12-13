@@ -8,7 +8,7 @@ public class RolePermissionEntityTypeConfiguration: IEntityTypeConfiguration<Rol
 {
     public void Configure(EntityTypeBuilder<RolePermission> builder)
     {
-        builder.ToTable("role_permission", RbacDbContext.DefaultSchema);
+        builder.ToTable("role_permission", FakeRbacDbContext.DefaultSchema);
 
         builder.HasIndex(rp => new { rp.RoleId, rp.PermissionCode }).IsUnique();
 

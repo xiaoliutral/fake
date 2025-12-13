@@ -20,7 +20,6 @@ public class FakeLocalizationModule : FakeModule
         context.Services.AddSingleton<ResourceManagerStringLocalizerFactory>();
 
         context.Services.TryAddTransient(typeof(IStringLocalizer<>), typeof(StringLocalizer<>));
-        context.Services.TryAddTransient<IStringLocalizer, InMemoryStringLocalizer>();
 
         context.Services.Configure<FakeVirtualFileSystemOptions>(options =>
         {

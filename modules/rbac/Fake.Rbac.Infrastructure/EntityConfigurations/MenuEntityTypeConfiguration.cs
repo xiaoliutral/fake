@@ -8,7 +8,7 @@ public class MenuEntityTypeConfiguration: IEntityTypeConfiguration<Menu>
 {
     public void Configure(EntityTypeBuilder<Menu> builder)
     {
-        builder.ToTable("menu", RbacDbContext.DefaultSchema);
+        builder.ToTable("menu", FakeRbacDbContext.DefaultSchema);
 
         builder.HasKey(m => m.Id);
 
@@ -43,11 +43,15 @@ public class MenuEntityTypeConfiguration: IEntityTypeConfiguration<Menu>
         builder.Property(m => m.Description)
             .HasMaxLength(256);
 
-        builder.HasMany(m => m.Children)
-            .WithOne()
-            .HasForeignKey(c => c.PId);
+        builder.Property(m => m.PId)
+            .IsRequired();
+
+        // Don't configure the Children navigation property to avoid FK constraint
+        // We'll handle the parent-child relationship manually using PId
+        builder.Ignore(m => m.Children);
 
         builder.HasIndex(m => m.Name);
         builder.HasIndex(m => m.PermissionCode);
+        builder.HasIndex(m => m.PId); // Index for parent lookups
     }
 }

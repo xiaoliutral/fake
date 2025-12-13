@@ -8,6 +8,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\..\src\Fake.EntityFrameworkCore\Fake.EntityFrameworkCore.csproj"/>
+        <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
         <ProjectReference Include="..\Fake.Rbac.Domain\Fake.Rbac.Domain.csproj" />
     </ItemGroup>
 

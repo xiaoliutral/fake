@@ -1,45 +1,33 @@
 using Fake.Application;
+using Fake.ObjectMapping;
 using Fake.Rbac.Application.Dtos.Permission;
+using Fake.Rbac.Domain.Permissions;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Fake.Rbac.Application.Services;
 
+[ApiExplorerSettings(GroupName = "RBAC")]
 public class PermissionService : ApplicationService, IPermissionService
 {
     private readonly IUserService _userService;
+    private readonly PermissionManager _permissionManager;
+    private readonly IObjectMapper _objectMapper;
 
-    public PermissionService(IUserService userService)
+    public PermissionService(
+        IUserService userService,
+        PermissionManager permissionManager,
+        IObjectMapper objectMapper)
     {
         _userService = userService;
+        _permissionManager = permissionManager;
+        _objectMapper = objectMapper;
     }
 
     public Task<List<PermissionDefinitionDto>> GetAllPermissionsAsync(CancellationToken cancellationToken = default)
     {
-        // TODO: 从权限定义提供器中获取所有权限
-        // 这里先返回硬编码的权限列表，后续需要实现权限定义提供器
-        var permissions = new List<PermissionDefinitionDto>
-        {
-            new() { Code = "Rbac", Name = "权限管理", Description = "权限管理模块" },
-            new() { Code = "Rbac.Users", Name = "用户管理", ParentCode = "Rbac", Description = "用户管理功能" },
-            new() { Code = "Rbac.Users.Query", Name = "查询用户", ParentCode = "Rbac.Users" },
-            new() { Code = "Rbac.Users.Create", Name = "创建用户", ParentCode = "Rbac.Users" },
-            new() { Code = "Rbac.Users.Update", Name = "更新用户", ParentCode = "Rbac.Users" },
-            new() { Code = "Rbac.Users.Delete", Name = "删除用户", ParentCode = "Rbac.Users" },
-            
-            new() { Code = "Rbac.Roles", Name = "角色管理", ParentCode = "Rbac", Description = "角色管理功能" },
-            new() { Code = "Rbac.Roles.Query", Name = "查询角色", ParentCode = "Rbac.Roles" },
-            new() { Code = "Rbac.Roles.Create", Name = "创建角色", ParentCode = "Rbac.Roles" },
-            new() { Code = "Rbac.Roles.Update", Name = "更新角色", ParentCode = "Rbac.Roles" },
-            new() { Code = "Rbac.Roles.Delete", Name = "删除角色", ParentCode = "Rbac.Roles" },
-            new() { Code = "Rbac.Roles.AssignPermissions", Name = "分配权限", ParentCode = "Rbac.Roles" },
-            
-            new() { Code = "Rbac.Menus", Name = "菜单管理", ParentCode = "Rbac", Description = "菜单管理功能" },
-            new() { Code = "Rbac.Menus.Query", Name = "查询菜单", ParentCode = "Rbac.Menus" },
-            new() { Code = "Rbac.Menus.Create", Name = "创建菜单", ParentCode = "Rbac.Menus" },
-            new() { Code = "Rbac.Menus.Update", Name = "更新菜单", ParentCode = "Rbac.Menus" },
-            new() { Code = "Rbac.Menus.Delete", Name = "删除菜单", ParentCode = "Rbac.Menus" },
-        };
-
-        return Task.FromResult(permissions);
+        var permissions = _permissionManager.GetAllPermissions();
+        var dtos = _objectMapper.Map<List<PermissionDefinition>, List<PermissionDefinitionDto>>(permissions);
+        return Task.FromResult(dtos);
     }
 
     public async Task<List<PermissionGroupDto>> GetPermissionTreeAsync(CancellationToken cancellationToken = default)

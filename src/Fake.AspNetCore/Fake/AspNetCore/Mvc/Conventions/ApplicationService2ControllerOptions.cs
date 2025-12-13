@@ -20,7 +20,7 @@ public class ApplicationService2ControllerOptions
         }
     }
 
-    private string _rootPath = "app";
+    private string _rootPath = "api";
 
     public Action<ControllerModel>? ControllerModelConfigureAction { get; set; }
 

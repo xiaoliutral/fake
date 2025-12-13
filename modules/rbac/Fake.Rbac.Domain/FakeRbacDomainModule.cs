@@ -1,6 +1,8 @@
 using Fake.DomainDrivenDesign;
 using Fake.Localization;
 using Fake.Modularity;
+using Fake.Rbac.Domain.Localization;
+using Fake.Rbac.Domain.Permissions;
 using Fake.VirtualFileSystem;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,8 +18,11 @@ public class FakeRbacDomainModule : FakeModule
 
         context.Services.Configure<FakeLocalizationOptions>(options =>
         {
-            options.Resources.Add<FakeRbacDomainModule>("zh")
+            options.Resources.Add<FakeRbacResource>("zh")
                 .LoadVirtualJson("/Localization/Resources");
         });
+
+        // 注册权限定义提供器
+        context.Services.AddSingleton<IPermissionDefinitionProvider, RbacPermissionDefinitionProvider>();
     }
 }

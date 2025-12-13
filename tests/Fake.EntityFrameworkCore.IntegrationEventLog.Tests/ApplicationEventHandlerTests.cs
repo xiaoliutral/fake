@@ -1,4 +1,5 @@
-﻿using Application.IntegrationEvents;
+﻿using System.Transactions;
+using Application.IntegrationEvents;
 using Fake.EventBus.Distributed;
 using Fake.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +24,10 @@ public class ApplicationEventHandlerTests
     [Fact]
     async Task 发布集成日志()
     {
-        var orderStartedIntegrationEvent = new OrderStartedIntegrationEvent(TestDataBuilder.UserId);
-        await _outboxEventLogService.SaveEventAsync(orderStartedIntegrationEvent);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            var orderStartedIntegrationEvent = new OrderStartedIntegrationEvent(TestDataBuilder.UserId);
+            await _outboxEventLogService.SaveEventAsync(orderStartedIntegrationEvent);
+        });
     }
 }

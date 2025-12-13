@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Fake.Rbac.Infrastructure.Repositories;
 
-public class MenuRepository : EfCoreRepository<RbacDbContext, Menu>, IEfCoreMenuRepository
+public class MenuRepository : EfCoreRepository<FakeRbacDbContext, Menu>, IMenuRepository
 {
     public async Task<List<Menu>> GetMenuTreeAsync(Guid? parentId = null, CancellationToken cancellationToken = default)
     {
@@ -66,7 +66,7 @@ public class MenuRepository : EfCoreRepository<RbacDbContext, Menu>, IEfCoreMenu
         return parents;
     }
 
-    private async Task LoadChildrenRecursiveAsync(RbacDbContext dbContext, Menu menu, CancellationToken cancellationToken)
+    private async Task LoadChildrenRecursiveAsync(FakeRbacDbContext dbContext, Menu menu, CancellationToken cancellationToken)
     {
         var children = await dbContext.Set<Menu>()
             .Where(m => m.PId == menu.Id)

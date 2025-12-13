@@ -4,6 +4,8 @@ namespace Fake.Rbac.Domain.RoleAggregate;
 
 public interface IRoleRepository: IRepository<Role>
 {
+    public Task<IQueryable<Role>> GetQueryableAsync(CancellationToken cancellationToken = default);
+    
     /// <summary>
     /// 根据编码查找角色
     /// </summary>

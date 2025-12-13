@@ -5,20 +5,22 @@ using Fake.Rbac.Application.Dtos.Menu;
 using Fake.Rbac.Domain.MenuAggregate;
 using Fake.Rbac.Domain.UserAggregate;
 using Fake.Rbac.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Fake.Rbac.Application.Services;
 
+[ApiExplorerSettings(GroupName = "RBAC")]
 public class MenuService : ApplicationService, IMenuService
 {
-    private readonly IEfCoreMenuRepository _menuRepository;
-    private readonly IEfCoreUserRepository _userRepository;
+    private readonly IMenuRepository _menuRepository;
+    private readonly IUserRepository _userRepository;
     private readonly IObjectMapper _objectMapper;
     private readonly IUserService _userService;
 
     public MenuService(
-        IEfCoreMenuRepository menuRepository,
-        IEfCoreUserRepository userRepository,
+        IMenuRepository menuRepository,
+        IUserRepository userRepository,
         IObjectMapper objectMapper,
         IUserService userService)
     {

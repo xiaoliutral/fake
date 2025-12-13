@@ -7,9 +7,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Fake.Rbac.Infrastructure;
 
-public class RbacDbContext(DbContextOptions<RbacDbContext> options)
-    : EfCoreDbContext<RbacDbContext>(options)
+public class FakeRbacDbContext(DbContextOptions<FakeRbacDbContext> options)
+    : EfCoreDbContext<FakeRbacDbContext>(options)
 {
+    // MySQL doesn't support schemas, so we set this to null
     public const string? DefaultSchema = null;
 
     public DbSet<User> Users { get; set; }

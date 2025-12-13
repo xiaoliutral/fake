@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Fake.Rbac.Infrastructure.Repositories;
 
-public class RoleRepository : EfCoreRepository<RbacDbContext, Role>, IEfCoreRoleRepository
+public class RoleRepository : EfCoreRepository<FakeRbacDbContext, Role>, IRoleRepository
 {
     public async Task<Role?> FindByCodeAsync(string code, CancellationToken cancellationToken = default)
     {

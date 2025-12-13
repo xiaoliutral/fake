@@ -1,8 +1,10 @@
 ﻿using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Fake.Collections;
 using Fake.Data;
 using Fake.Data.Filtering;
+using Fake.Data.Seeding;
 using Fake.DependencyInjection;
 using Fake.IdGenerators;
 using Fake.IdGenerators.GuidGenerator;
@@ -12,8 +14,11 @@ using Fake.Json.SystemTextJson;
 using Fake.Json.SystemTextJson.Converters;
 using Fake.Json.SystemTextJson.Modifiers;
 using Fake.Modularity;
+using Fake.SyncEx;
 using Fake.Threading;
 using Fake.Timing;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 /// <summary>
 /// 核心模块
@@ -36,11 +41,30 @@ public class FakeCoreModule : FakeModule
         ConfigureData(context);
     }
 
+    public override void PostConfigureApplication(ApplicationConfigureContext context)
+    {
+        var dataSeedOptions = context.ServiceProvider.GetRequiredService<IOptions<DataSeedOptions>>();
+
+        if (dataSeedOptions.Value.Enable)
+        {
+            // 执行数据种子
+            using var scope = context.ServiceProvider.CreateScope();
+
+            foreach (var contributor in scope.ServiceProvider.GetServices<IDataSeedContributor>())
+            {
+                SyncContext.Run(() => contributor.SeedAsync());
+            }
+        }
+    }
+
     private void ConfigureData(ServiceConfigurationContext context)
     {
+        var configuration = context.Services.GetConfiguration();
         context.Services.AddSingleton<IDataFilter, DataFilter>();
         context.Services.AddSingleton(typeof(IDataFilter<>), typeof(DataFilter<>));
         context.Services.AddTransient<IConnectionStringResolver, DefaultConnectionStringResolver>();
+
+        context.Services.Configure<DataSeedOptions>(configuration.GetSection("DataSeed"));
     }
 
     private void ConfigureClock(ServiceConfigurationContext context)

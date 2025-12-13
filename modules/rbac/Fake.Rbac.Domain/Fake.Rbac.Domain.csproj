@@ -11,6 +11,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Folder Include="Localization\Resources\" />
       <Folder Include="Managers\" />
     </ItemGroup>
 

@@ -4,6 +4,8 @@ namespace Fake.Rbac.Domain.UserAggregate;
 
 public interface IUserRepository: IRepository<User>
 {
+    public Task<IQueryable<User>> GetQueryableAsync(CancellationToken cancellationToken = default);
+    
     /// <summary>
     /// 根据账号查找用户
     /// </summary>

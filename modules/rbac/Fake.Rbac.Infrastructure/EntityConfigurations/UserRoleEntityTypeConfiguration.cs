@@ -8,7 +8,7 @@ public class UserRoleEntityTypeConfiguration: IEntityTypeConfiguration<UserRole>
 {
     public void Configure(EntityTypeBuilder<UserRole> builder)
     {
-        builder.ToTable("user_role", RbacDbContext.DefaultSchema);
+        builder.ToTable("user_role", FakeRbacDbContext.DefaultSchema);
 
         builder.HasIndex(ur => new { ur.UserId, ur.RoleId }).IsUnique();
 
