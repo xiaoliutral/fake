@@ -174,6 +174,7 @@ import { message, Modal } from 'ant-design-vue'
 import { UserService, RoleService } from '@/api'
 import type { UserDto, UserCreateDto, UserUpdateDto, RoleSimpleDto } from '@/api'
 import { hasPermission } from '@/utils/permission'
+import { handleApiError } from '@/utils/error-handler'
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -261,15 +262,16 @@ onMounted(() => {
 async function loadData() {
   loading.value = true
   try {
-    const result = await UserService.getRbacUserGetList({
-      page: pagination.current,
-      pageSize: pagination.pageSize,
-      keyword: searchKeyword.value
-    })
+    const result = await UserService.getRbacUserGetList(
+      searchKeyword.value,
+      undefined, // roleId
+      pagination.current,
+      pagination.pageSize
+    )
     dataSource.value = result.items || []
     pagination.total = result.total || 0
   } catch (error) {
-    message.error('加载数据失败')
+    handleApiError(error)
   } finally {
     loading.value = false
   }
@@ -279,7 +281,7 @@ async function loadRoles() {
   try {
     allRoles.value = await RoleService.getRbacRoleGetAllRoles()
   } catch (error) {
-    message.error('加载角色失败')
+    handleApiError(error)
   }
 }
 
@@ -332,10 +334,10 @@ async function handleModalOk() {
         email: formState.email,
         avatar: formState.avatar
       }
-      await UserService.putRbacUserUpdate({ id: currentId.value!, requestBody: updateData })
+      await UserService.putRbacUserUpdate(currentId.value!, updateData)
       message.success('更新成功')
     } else {
-      await UserService.postRbacUserCreate({ requestBody: formState })
+      await UserService.postRbacUserCreate(formState)
       message.success('创建成功')
     }
 
@@ -345,7 +347,7 @@ async function handleModalOk() {
     if (error.errorFields) {
       return
     }
-    message.error(error.message || '操作失败')
+    handleApiError(error)
   } finally {
     modalLoading.value = false
   }
@@ -353,11 +355,11 @@ async function handleModalOk() {
 
 async function handleDelete(id: string) {
   try {
-    await UserService.deleteRbacUserDelete({ id })
+    await UserService.deleteRbacUserDelete(id)
     message.success('删除成功')
     loadData()
   } catch (error) {
-    message.error('删除失败')
+    handleApiError(error)
   }
 }
 
@@ -367,12 +369,12 @@ function handleBatchDelete() {
     content: `确定要删除选中的 ${selectedRowKeys.value.length} 个用户吗？`,
     onOk: async () => {
       try {
-        await UserService.deleteRbacUserDeleteBatch({ ids: selectedRowKeys.value })
+        await UserService.deleteRbacUserDeleteBatch(selectedRowKeys.value as string[])
         message.success('删除成功')
         selectedRowKeys.value = []
         loadData()
       } catch (error) {
-        message.error('删除失败')
+        handleApiError(error)
       }
     }
   })
@@ -381,26 +383,26 @@ function handleBatchDelete() {
 async function handleAssignRoles(record: UserDto) {
   currentUserId.value = record.id!
   try {
-    const roles = await UserService.getRbacUserGetUserRoles({ userId: record.id })
+    const roles = await UserService.getRbacUserGetUserRoles(record.id)
     selectedRoleIds.value = roles.map((r: any) => r.id!)
     roleModalVisible.value = true
   } catch (error) {
-    message.error('加载用户角色失败')
+    handleApiError(error)
   }
 }
 
 async function handleRoleModalOk() {
   roleModalLoading.value = true
   try {
-    await UserService.postRbacUserAssignRoles({ 
-      userId: currentUserId.value, 
-      requestBody: selectedRoleIds.value 
-    })
+    await UserService.postRbacUserAssignRoles(
+      currentUserId.value,
+      selectedRoleIds.value
+    )
     message.success('分配角色成功')
     roleModalVisible.value = false
     loadData()
   } catch (error) {
-    message.error('分配角色失败')
+    handleApiError(error)
   } finally {
     roleModalLoading.value = false
   }

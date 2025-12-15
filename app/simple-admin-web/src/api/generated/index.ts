@@ -11,7 +11,7 @@ export type { ApplicationExceptionResult } from './models/ApplicationExceptionRe
 export type { MenuCreateDto } from './models/MenuCreateDto';
 export type { MenuDto } from './models/MenuDto';
 export type { MenuTreeDto } from './models/MenuTreeDto';
-export type { MenuType } from './models/MenuType';
+export { MenuType } from './models/MenuType';
 export type { MenuUpdateDto } from './models/MenuUpdateDto';
 export type { PermissionDefinitionDto } from './models/PermissionDefinitionDto';
 export type { PermissionGroupDto } from './models/PermissionGroupDto';

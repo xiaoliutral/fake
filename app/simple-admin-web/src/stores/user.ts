@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { AuthService, setAuthToken, clearAuthToken } from '@/api'
 import type { UserInfoDto } from '@/api'
 import { message } from 'ant-design-vue'
+import { handleApiError } from '@/utils/error-handler'
 
 export const useUserStore = defineStore('user', () => {
   const token = ref<string>(localStorage.getItem('token') || '')
@@ -16,7 +17,7 @@ export const useUserStore = defineStore('user', () => {
   // 登录
   async function login(account: string, password: string) {
     try {
-      const userInfoData = await AuthService.postRbacAuthLogin({ account, password })
+      const userInfoData = await AuthService.postRbacAuthLogin(account, password)
       // 登录成功后，使用用户ID作为临时token（实际项目中应该使用JWT）
       token.value = `Bearer_${userInfoData.id}`
       userInfo.value = userInfoData
@@ -27,7 +28,7 @@ export const useUserStore = defineStore('user', () => {
       message.success('登录成功')
       return true
     } catch (error) {
-      message.error('登录失败，请检查账号密码')
+      handleApiError(error)
       return false
     }
   }
@@ -38,7 +39,7 @@ export const useUserStore = defineStore('user', () => {
       if (!userInfo.value?.id) {
         throw new Error('用户信息不存在')
       }
-      const data = await AuthService.getRbacAuthGetCurrentUser({ userId: userInfo.value.id })
+      const data = await AuthService.getRbacAuthGetCurrentUser(userInfo.value.id)
       userInfo.value = data
       return data
     } catch (error) {

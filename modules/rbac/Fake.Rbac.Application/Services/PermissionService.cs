@@ -1,8 +1,8 @@
 using Fake.Application;
-using Fake.ObjectMapping;
 using Fake.Rbac.Application.Dtos.Permission;
-using Fake.Rbac.Domain.Permissions;
+using Fake.Rbac.Domain.MenuAggregate;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Fake.Rbac.Application.Services;
 
@@ -10,46 +10,94 @@ namespace Fake.Rbac.Application.Services;
 public class PermissionService : ApplicationService, IPermissionService
 {
     private readonly IUserService _userService;
-    private readonly PermissionManager _permissionManager;
-    private readonly IObjectMapper _objectMapper;
+    private readonly IMenuRepository _menuRepository;
 
     public PermissionService(
         IUserService userService,
-        PermissionManager permissionManager,
-        IObjectMapper objectMapper)
+        IMenuRepository menuRepository)
     {
         _userService = userService;
-        _permissionManager = permissionManager;
-        _objectMapper = objectMapper;
+        _menuRepository = menuRepository;
     }
 
-    public Task<List<PermissionDefinitionDto>> GetAllPermissionsAsync(CancellationToken cancellationToken = default)
+    public async Task<List<PermissionDefinitionDto>> GetAllPermissionsAsync(CancellationToken cancellationToken = default)
     {
-        var permissions = _permissionManager.GetAllPermissions();
-        var dtos = _objectMapper.Map<List<PermissionDefinition>, List<PermissionDefinitionDto>>(permissions);
-        return Task.FromResult(dtos);
+        // 从菜单表读取所有菜单（菜单就是权限）
+        var queryable = await _menuRepository.GetQueryableAsync(cancellationToken);
+        var menus = await queryable.ToListAsync(cancellationToken);
+        
+        var dtos = menus
+            .Where(m => !string.IsNullOrEmpty(m.PermissionCode))
+            .Select(m => new PermissionDefinitionDto
+            {
+                Code = m.PermissionCode!,
+                Name = m.Name,
+                ParentCode = GetParentPermissionCode(m, menus),
+                Description = m.Description
+            })
+            .ToList();
+        
+        return dtos;
+    }
+    
+    private string? GetParentPermissionCode(Menu menu, List<Menu> allMenus)
+    {
+        if (menu.PId == Guid.Empty)
+        {
+            return null;
+        }
+        
+        var parent = allMenus.FirstOrDefault(m => m.Id == menu.PId);
+        return parent?.PermissionCode;
     }
 
     public async Task<List<PermissionGroupDto>> GetPermissionTreeAsync(CancellationToken cancellationToken = default)
     {
-        var allPermissions = await GetAllPermissionsAsync(cancellationToken);
-
-        // 按模块分组
+        var queryable = await _menuRepository.GetQueryableAsync(cancellationToken);
+        var menus = await queryable.OrderBy(m => m.Order).ToListAsync(cancellationToken);
+        
+        // 找到所有顶级菜单（作为权限分组）
+        var rootMenus = menus.Where(m => m.PId == Guid.Empty && !string.IsNullOrEmpty(m.PermissionCode)).ToList();
+        
         var groups = new List<PermissionGroupDto>();
-
-        var rootPermissions = allPermissions.Where(p => string.IsNullOrEmpty(p.ParentCode)).ToList();
-
-        foreach (var root in rootPermissions)
+        
+        foreach (var root in rootMenus)
         {
             var group = new PermissionGroupDto
             {
+                Code = root.PermissionCode!,
                 Name = root.Name,
-                Permissions = BuildPermissionTree(root.Code, allPermissions)
+                Permissions = BuildPermissionTreeFromMenus(root.Id, menus)
             };
             groups.Add(group);
         }
 
         return groups;
+    }
+    
+    private List<PermissionDefinitionDto> BuildPermissionTreeFromMenus(Guid parentId, List<Menu> allMenus)
+    {
+        var result = new List<PermissionDefinitionDto>();
+        var children = allMenus
+            .Where(m => m.PId == parentId && !string.IsNullOrEmpty(m.PermissionCode))
+            .OrderBy(m => m.Order)
+            .ToList();
+
+        foreach (var child in children)
+        {
+            var dto = new PermissionDefinitionDto
+            {
+                Code = child.PermissionCode!,
+                Name = child.Name,
+                ParentCode = allMenus.FirstOrDefault(m => m.Id == child.PId)?.PermissionCode,
+                Description = child.Description,
+                // 递归构建子权限树
+                Children = BuildPermissionTreeFromMenus(child.Id, allMenus)
+            };
+            result.Add(dto);
+        }
+
+        return result;
     }
 
     public async Task<bool> CheckPermissionAsync(Guid userId, string permissionCode, CancellationToken cancellationToken = default)
@@ -70,18 +118,6 @@ public class PermissionService : ApplicationService, IPermissionService
         return result;
     }
 
-    private List<PermissionDefinitionDto> BuildPermissionTree(string parentCode, List<PermissionDefinitionDto> allPermissions)
-    {
-        var result = new List<PermissionDefinitionDto>();
-        var children = allPermissions.Where(p => p.ParentCode == parentCode).ToList();
 
-        foreach (var child in children)
-        {
-            result.Add(child);
-            result.AddRange(BuildPermissionTree(child.Code, allPermissions));
-        }
-
-        return result;
-    }
 }
 

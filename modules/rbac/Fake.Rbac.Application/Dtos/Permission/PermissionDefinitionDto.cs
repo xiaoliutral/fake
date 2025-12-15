@@ -24,5 +24,10 @@ public class PermissionDefinitionDto
     /// 描述
     /// </summary>
     public string? Description { get; set; }
+    
+    /// <summary>
+    /// 子权限列表
+    /// </summary>
+    public List<PermissionDefinitionDto> Children { get; set; } = new();
 }
 

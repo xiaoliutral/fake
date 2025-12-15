@@ -18,6 +18,10 @@ public class RbacApplicationAutoMapperProfile : Profile
         CreateMap<PermissionDefinition, PermissionDefinitionDto>();
         // User mappings
         CreateMap<User, UserDto>()
+            .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src => src.CreateUserId))
+            .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreateTime))
+            .ForMember(dest => dest.UpdatedBy, opt => opt.MapFrom(src => src.UpdateUserId))
+            .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdateTime))
             .ForMember(dest => dest.Roles, opt => opt.Ignore()); // 手动处理
         
         CreateMap<UserDto, UserInfoDto>()
@@ -31,6 +35,10 @@ public class RbacApplicationAutoMapperProfile : Profile
 
         // Role mappings
         CreateMap<Role, RoleDto>()
+            .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src => src.CreateUserId))
+            .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreateTime))
+            .ForMember(dest => dest.UpdatedBy, opt => opt.MapFrom(src => src.UpdateUserId))
+            .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdateTime))
             .ForMember(dest => dest.Permissions, 
                 opt => opt.MapFrom(src => src.Permissions.Select(p => p.PermissionCode).ToList()));
         
@@ -40,7 +48,11 @@ public class RbacApplicationAutoMapperProfile : Profile
             .ConstructUsing((src, ctx) => new Role(src.Name, src.Code));
 
         // Menu mappings
-        CreateMap<Menu, MenuDto>();
+        CreateMap<Menu, MenuDto>()
+            .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src => src.CreateUserId))
+            .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreateTime))
+            .ForMember(dest => dest.UpdatedBy, opt => opt.MapFrom(src => src.UpdateUserId))
+            .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdateTime));
         
         CreateMap<Menu, MenuTreeDto>()
             .ForMember(dest => dest.Children, opt => opt.Ignore()); // 手动处理

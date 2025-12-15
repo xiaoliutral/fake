@@ -6,6 +6,11 @@ namespace Fake.Rbac.Application.Dtos.Permission;
 public class PermissionGroupDto
 {
     /// <summary>
+    /// 分组代码
+    /// </summary>
+    public string Code { get; set; } = string.Empty;
+    
+    /// <summary>
     /// 分组名称
     /// </summary>
     public string Name { get; set; } = string.Empty;

@@ -28,6 +28,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solution items", "solution 
 		Directory.Build.props = Directory.Build.props
 		Fake.sln.DotSettings = Fake.sln.DotSettings
 		README.md = README.md
+		global.json = global.json
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fake.AspNetCore", "src\Fake.AspNetCore\Fake.AspNetCore.csproj", "{57E821A6-AE7A-40E4-9C32-23A26E90102E}"

@@ -6,14 +6,14 @@
  * 角色简单 DTO
  */
 export type RoleSimpleDto = {
-  id?: string;
-  /**
-   * 名称
-   */
-  name?: string | null;
-  /**
-   * 编码
-   */
-  code?: string | null;
+    id?: string;
+    /**
+     * 名称
+     */
+    name?: string | null;
+    /**
+     * 编码
+     */
+    code?: string | null;
 };
 

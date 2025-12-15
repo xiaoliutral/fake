@@ -89,14 +89,6 @@
             :disabled="isEdit"
           />
         </a-form-item>
-
-        <a-form-item label="描述" name="description">
-          <a-textarea
-            v-model:value="formState.description"
-            placeholder="请输入描述"
-            :rows="4"
-          />
-        </a-form-item>
       </a-form>
     </a-modal>
 
@@ -108,12 +100,24 @@
       @ok="handlePermissionModalOk"
       width="800px"
     >
-      <a-tree
-        v-model:checkedKeys="selectedPermissions"
-        checkable
-        :tree-data="permissionTreeData"
-        :field-names="{ title: 'name', key: 'code', children: 'permissions' }"
-      />
+      <div class="permission-tree-container">
+        <div class="permission-actions">
+          <a-button size="small" @click="expandAllPermissions">全部展开</a-button>
+          <a-button size="small" @click="collapseAllPermissions">全部收起</a-button>
+          <a-button size="small" @click="checkAllPermissions">全选</a-button>
+          <a-button size="small" @click="uncheckAllPermissions">取消全选</a-button>
+        </div>
+        <a-tree
+          v-model:checkedKeys="selectedPermissions"
+          v-model:expandedKeys="permissionExpandedKeys"
+          checkable
+          :tree-data="permissionTreeData"
+          :field-names="{ title: 'name', key: 'code', children: 'children' }"
+          check-strictly
+          :height="400"
+          virtual
+        />
+      </div>
     </a-modal>
   </div>
 </template>
@@ -124,6 +128,7 @@ import { message } from 'ant-design-vue'
 import { RoleService, PermissionService } from '@/api'
 import type { RoleDto, RoleCreateDto, RoleUpdateDto, PermissionGroupDto } from '@/api'
 import { hasPermission } from '@/utils/permission'
+import { handleApiError } from '@/utils/error-handler'
 import {
   PlusOutlined,
   ReloadOutlined
@@ -146,7 +151,6 @@ const pagination = reactive({
 const columns: TableColumnsType = [
   { title: '角色名称', dataIndex: 'name', key: 'name', width: 150 },
   { title: '角色编码', dataIndex: 'code', key: 'code', width: 150 },
-  { title: '描述', dataIndex: 'description', key: 'description' },
   { title: '创建时间', key: 'createdAt', width: 180 },
   { title: '操作', key: 'action', width: 250, fixed: 'right' }
 ]
@@ -161,8 +165,7 @@ const currentId = ref('')
 
 const formState = reactive<RoleCreateDto>({
   name: '',
-  code: '',
-  description: ''
+  code: ''
 })
 
 const formRules = {
@@ -173,6 +176,7 @@ const formRules = {
 // 权限树相关
 const permissionTree = ref<PermissionGroupDto[]>([])
 const selectedPermissions = ref<string[]>([])
+const permissionExpandedKeys = ref<string[]>([])
 const permissionModalVisible = ref(false)
 const permissionModalLoading = ref(false)
 const currentRoleId = ref('')
@@ -187,14 +191,15 @@ onMounted(() => {
 async function loadData() {
   loading.value = true
   try {
-    const result = await RoleService.getRbacRoleGetList({
-      page: pagination.current,
-      pageSize: pagination.pageSize
-    })
+    const result = await RoleService.getRbacRoleGetList(
+      undefined, // keyword
+      pagination.current,
+      pagination.pageSize
+    )
     dataSource.value = result.items || []
     pagination.total = result.total || 0
   } catch (error) {
-    message.error('加载数据失败')
+    handleApiError(error)
   } finally {
     loading.value = false
   }
@@ -202,10 +207,33 @@ async function loadData() {
 
 async function loadPermissions() {
   try {
-    permissionTree.value = await PermissionService.getRbacPermissionGetPermissionTree()
+    const groups = await PermissionService.getRbacPermissionGetPermissionTree()
+    // 将分组转换为树形结构（使用 permissions 作为第一级子节点）
+    permissionTree.value = groups.map(group => ({
+      ...group,
+      children: group.permissions || []
+    }))
+    // 默认展开前两级
+    permissionExpandedKeys.value = getPermissionExpandedKeys(permissionTree.value, 2)
   } catch (error) {
-    message.error('加载权限失败')
+    handleApiError(error)
   }
+}
+
+// 获取权限树默认展开的节点（递归处理 children）
+function getPermissionExpandedKeys(data: any[], maxLevel: number, currentLevel = 1): string[] {
+  const keys: string[] = []
+  if (currentLevel > maxLevel) return keys
+  
+  data.forEach(item => {
+    if (item.code) {
+      keys.push(item.code)
+    }
+    if (item.children && item.children.length > 0) {
+      keys.push(...getPermissionExpandedKeys(item.children, maxLevel, currentLevel + 1))
+    }
+  })
+  return keys
 }
 
 function handleTableChange(pag: any) {
@@ -219,8 +247,7 @@ function handleAdd() {
   isEdit.value = false
   Object.assign(formState, {
     name: '',
-    code: '',
-    description: ''
+    code: ''
   })
   modalVisible.value = true
 }
@@ -231,8 +258,7 @@ function handleEdit(record: RoleDto) {
   currentId.value = record.id!
   Object.assign(formState, {
     name: record.name,
-    code: record.code,
-    description: record.description
+    code: record.code
   })
   modalVisible.value = true
 }
@@ -244,14 +270,12 @@ async function handleModalOk() {
 
     if (isEdit.value) {
       const updateData: RoleUpdateDto = {
-        name: formState.name,
-        code: formState.code,
-        description: formState.description
+        name: formState.name
       }
-      await RoleService.putRbacRoleUpdate({ id: currentId.value, requestBody: updateData })
+      await RoleService.putRbacRoleUpdate(currentId.value, updateData)
       message.success('更新成功')
     } else {
-      await RoleService.postRbacRoleCreate({ requestBody: formState })
+      await RoleService.postRbacRoleCreate(formState)
       message.success('创建成功')
     }
 
@@ -261,7 +285,7 @@ async function handleModalOk() {
     if (error.errorFields) {
       return
     }
-    message.error(error.message || '操作失败')
+    handleApiError(error)
   } finally {
     modalLoading.value = false
   }
@@ -269,40 +293,84 @@ async function handleModalOk() {
 
 async function handleDelete(id: string) {
   try {
-    await RoleService.deleteRbacRoleDelete({ id })
+    await RoleService.deleteRbacRoleDelete(id)
     message.success('删除成功')
     loadData()
   } catch (error) {
-    message.error('删除失败')
+    handleApiError(error)
   }
 }
 
 async function handleAssignPermissions(record: RoleDto) {
   currentRoleId.value = record.id!
   try {
-    const permissions = await RoleService.getRbacRoleGetRolePermissions({ roleId: record.id })
+    const permissions = await RoleService.getRbacRoleGetRolePermissions(record.id)
     selectedPermissions.value = permissions
     permissionModalVisible.value = true
   } catch (error) {
-    message.error('加载角色权限失败')
+    handleApiError(error)
   }
 }
 
 async function handlePermissionModalOk() {
   permissionModalLoading.value = true
   try {
-    await RoleService.postRbacRoleAssignPermissions({ 
-      roleId: currentRoleId.value, 
-      requestBody: selectedPermissions.value 
-    })
+    await RoleService.postRbacRoleAssignPermissions(
+      currentRoleId.value,
+      selectedPermissions.value
+    )
     message.success('分配权限成功')
     permissionModalVisible.value = false
     loadData()
   } catch (error) {
-    message.error('分配权限失败')
+    handleApiError(error)
   } finally {
     permissionModalLoading.value = false
   }
+}
+
+// 展开所有权限节点
+function expandAllPermissions() {
+  const getAllKeys = (data: any[]): string[] => {
+    const keys: string[] = []
+    data.forEach(item => {
+      if (item.code) {
+        keys.push(item.code)
+      }
+      if (item.children && item.children.length > 0) {
+        keys.push(...getAllKeys(item.children))
+      }
+    })
+    return keys
+  }
+  permissionExpandedKeys.value = getAllKeys(permissionTreeData.value)
+}
+
+// 收起所有权限节点
+function collapseAllPermissions() {
+  permissionExpandedKeys.value = []
+}
+
+// 全选权限
+function checkAllPermissions() {
+  const getAllKeys = (data: any[]): string[] => {
+    const keys: string[] = []
+    data.forEach(item => {
+      if (item.code) {
+        keys.push(item.code)
+      }
+      if (item.children && item.children.length > 0) {
+        keys.push(...getAllKeys(item.children))
+      }
+    })
+    return keys
+  }
+  selectedPermissions.value = getAllKeys(permissionTreeData.value)
+}
+
+// 取消全选
+function uncheckAllPermissions() {
+  selectedPermissions.value = []
 }
 </script>
 
@@ -317,5 +385,30 @@ async function handlePermissionModalOk() {
   display: flex;
   justify-content: space-between;
   margin-bottom: 16px;
+}
+
+.permission-tree-container {
+  max-height: 500px;
+  overflow: auto;
+}
+
+.permission-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.permission-tree-container :deep(.ant-tree) {
+  background: #fafafa;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+.permission-tree-container :deep(.ant-tree-node-content-wrapper) {
+  padding: 4px 8px;
+}
+
+.permission-tree-container :deep(.ant-tree-title) {
+  font-size: 14px;
 }
 </style>

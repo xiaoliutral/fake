@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type ApplicationExceptionResult = {
-  message?: string | null;
-  details?: string | null;
+    message?: string | null;
+    details?: string | null;
 };
 

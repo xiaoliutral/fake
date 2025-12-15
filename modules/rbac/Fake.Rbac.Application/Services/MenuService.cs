@@ -38,8 +38,10 @@ public class MenuService : ApplicationService, IMenuService
 
     public async Task<List<MenuTreeDto>> GetMenuTreeAsync(CancellationToken cancellationToken = default)
     {
-        var menus = await _menuRepository.GetMenuTreeAsync(cancellationToken: cancellationToken);
-        return BuildMenuTree(menus);
+        // 获取所有菜单，不使用递归加载（避免重复构建树）
+        var queryable = await _menuRepository.GetQueryableAsync(cancellationToken);
+        var allMenus = await queryable.OrderBy(m => m.Order).ToListAsync(cancellationToken);
+        return BuildMenuTree(allMenus);
     }
 
     public async Task<List<MenuTreeDto>> GetUserMenusAsync(Guid userId, CancellationToken cancellationToken = default)

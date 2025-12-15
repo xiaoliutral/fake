@@ -15,14 +15,14 @@ public class RbacDataSeedContributor(FakeRbacDbContext dbContext, DbInitializer 
     {
         await dbInitializer.InitializeAsync();
         
+        // 种子数据：默认菜单（菜单就是权限）
+        await SeedDefaultMenusAsync();
+        
         // 种子数据：超级管理员角色
         await SeedAdminRoleAsync();
         
         // 种子数据：超级管理员用户
         await SeedAdminUserAsync();
-        
-        // 种子数据：默认菜单
-        await SeedDefaultMenusAsync();
     }
 
     private async Task SeedAdminRoleAsync()

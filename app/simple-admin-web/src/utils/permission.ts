@@ -29,7 +29,7 @@ export function hasAllPermissions(permissions: string[]): boolean {
  */
 export function hasRole(roleCode: string): boolean {
   const userStore = useUserStore()
-  return userStore.userInfo?.roles.some(r => r.code === roleCode) || false
+  return userStore.userInfo?.roles?.some(r => r.code === roleCode) || false
 }
 
 /**
@@ -38,6 +38,6 @@ export function hasRole(roleCode: string): boolean {
 export function hasAnyRole(roleCodes: string[]): boolean {
   const userStore = useUserStore()
   return roleCodes.some(code => 
-    userStore.userInfo?.roles.some(r => r.code === code)
+    userStore.userInfo?.roles?.some(r => r.code === code)
   ) || false
 }

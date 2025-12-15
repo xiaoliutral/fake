@@ -6,9 +6,9 @@
  * 更新角色 DTO
  */
 export type RoleUpdateDto = {
-  /**
-   * 名称
-   */
-  name?: string | null;
+    /**
+     * 名称
+     */
+    name?: string | null;
 };
 
