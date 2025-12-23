@@ -1,5 +1,6 @@
 using Fake.EntityFrameworkCore;
 using Fake.Rbac.Domain.MenuAggregate;
+using Fake.Rbac.Domain.OrganizationAggregate;
 using Fake.Rbac.Domain.RoleAggregate;
 using Fake.Rbac.Domain.UserAggregate;
 using Fake.Rbac.Infrastructure.EntityConfigurations;
@@ -16,6 +17,7 @@ public class FakeRbacDbContext(DbContextOptions<FakeRbacDbContext> options)
     public DbSet<User> Users { get; set; }
     public DbSet<Role> Roles { get; set; }
     public DbSet<Menu> Menus { get; set; }
+    public DbSet<Organization> Organizations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,6 +26,7 @@ public class FakeRbacDbContext(DbContextOptions<FakeRbacDbContext> options)
         modelBuilder.ApplyConfiguration(new UserRoleEntityTypeConfiguration());
         modelBuilder.ApplyConfiguration(new RolePermissionEntityTypeConfiguration());
         modelBuilder.ApplyConfiguration(new MenuEntityTypeConfiguration());
+        modelBuilder.ApplyConfiguration(new OrganizationEntityTypeConfiguration());
         base.OnModelCreating(modelBuilder);
     }
 }

@@ -18,19 +18,18 @@ public class DbInitializer(FakeRbacDbContext dbContext, ILogger<DbInitializer> l
         {
             logger.LogInformation("开始初始化数据库...");
 
-            // 确保数据库已创建
-            var created = await dbContext.Database.EnsureCreatedAsync();
-
-            logger.LogInformation(created ? "数据库创建成功" : "数据库已存在，通过创建");
-
-            // 应用所有待处理的迁移
+            // 应用所有待处理的迁移（会自动创建数据库和表）
             var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
             var migrations = pendingMigrations.ToList();
             if (migrations.Any())
             {
-                logger.LogInformation($"发现 {migrations.Count()} 个待应用的迁移");
+                logger.LogInformation("发现 {Count} 个待应用的迁移", migrations.Count);
                 await dbContext.Database.MigrateAsync();
                 logger.LogInformation("迁移应用成功");
+            }
+            else
+            {
+                logger.LogInformation("没有待应用的迁移");
             }
 
             logger.LogInformation("数据库初始化完成");

@@ -1,9 +1,11 @@
 using AutoMapper;
 using Fake.Rbac.Application.Dtos.Menu;
+using Fake.Rbac.Application.Dtos.Organization;
 using Fake.Rbac.Application.Dtos.Permission;
 using Fake.Rbac.Application.Dtos.Role;
 using Fake.Rbac.Application.Dtos.User;
 using Fake.Rbac.Domain.MenuAggregate;
+using Fake.Rbac.Domain.OrganizationAggregate;
 using Fake.Rbac.Domain.Permissions;
 using Fake.Rbac.Domain.RoleAggregate;
 using Fake.Rbac.Domain.UserAggregate;
@@ -70,6 +72,18 @@ public class RbacApplicationAutoMapperProfile : Profile
                 src.IsHidden, 
                 src.IsCached, 
                 src.Description));
+
+        // Organization mappings
+        CreateMap<Organization, OrganizationDto>()
+            .ForMember(dest => dest.CreatedBy, opt => opt.MapFrom(src => src.CreateUserId))
+            .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreateTime))
+            .ForMember(dest => dest.UpdatedBy, opt => opt.MapFrom(src => src.UpdateUserId))
+            .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdateTime))
+            .ForMember(dest => dest.LeaderName, opt => opt.Ignore()); // 手动处理
+        
+        CreateMap<Organization, OrganizationTreeDto>()
+            .ForMember(dest => dest.LeaderName, opt => opt.Ignore()) // 手动处理
+            .ForMember(dest => dest.Children, opt => opt.Ignore()); // 手动处理
     }
 }
 

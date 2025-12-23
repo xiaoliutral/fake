@@ -5,6 +5,7 @@ using Fake.DomainDrivenDesign.Repositories.EntityFrameWorkCore;
 using Fake.EntityFrameworkCore;
 using Fake.Modularity;
 using Fake.Rbac.Domain.MenuAggregate;
+using Fake.Rbac.Domain.OrganizationAggregate;
 using Fake.Rbac.Domain.RoleAggregate;
 using Fake.Rbac.Domain.UserAggregate;
 using Fake.Rbac.Infrastructure.DataSeeds;
@@ -27,6 +28,7 @@ public class FakeRbacInfrastructureModule : FakeModule
         context.Services.AddTransient<IUserRepository, UserRepository>();
         context.Services.AddTransient<IRoleRepository, RoleRepository>();
         context.Services.AddTransient<IMenuRepository, MenuRepository>();
+        context.Services.AddTransient<IOrganizationRepository, OrganizationRepository>();
 
         // 注册数据种子
         context.Services.AddTransient<IDataSeedContributor, RbacDataSeedContributor>();

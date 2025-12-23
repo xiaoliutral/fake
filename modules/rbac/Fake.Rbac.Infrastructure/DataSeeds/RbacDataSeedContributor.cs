@@ -1,5 +1,6 @@
 using Fake.Data.Seeding;
 using Fake.Rbac.Domain.MenuAggregate;
+using Fake.Rbac.Domain.OrganizationAggregate;
 using Fake.Rbac.Domain.RoleAggregate;
 using Fake.Rbac.Domain.UserAggregate;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,9 @@ public class RbacDataSeedContributor(FakeRbacDbContext dbContext, DbInitializer 
         
         // 种子数据：超级管理员用户
         await SeedAdminUserAsync();
+        
+        // 种子数据：默认组织架构
+        await SeedDefaultOrganizationsAsync();
     }
 
     private async Task SeedAdminRoleAsync()
@@ -44,7 +48,9 @@ public class RbacDataSeedContributor(FakeRbacDbContext dbContext, DbInitializer 
                 "Rbac.Roles", "Rbac.Roles.Query", "Rbac.Roles.Create", "Rbac.Roles.Update", 
                 "Rbac.Roles.Delete", "Rbac.Roles.AssignPermissions",
                 "Rbac.Menus", "Rbac.Menus.Query", "Rbac.Menus.Create", "Rbac.Menus.Update", 
-                "Rbac.Menus.Delete", "Rbac.Menus.Move"
+                "Rbac.Menus.Delete", "Rbac.Menus.Move",
+                "Rbac.Organizations", "Rbac.Organizations.Query", "Rbac.Organizations.Create", 
+                "Rbac.Organizations.Update", "Rbac.Organizations.Delete", "Rbac.Organizations.Move"
             };
 
             adminRole.SetPermissions(allPermissions);
@@ -144,7 +150,21 @@ public class RbacDataSeedContributor(FakeRbacDbContext dbContext, DbInitializer 
             "菜单管理页面"
         );
 
-        await dbContext.Menus.AddRangeAsync(new[] { userMenu, roleMenu, menuMenu });
+        var organizationMenu = new Menu(
+            systemMenu.Id,
+            "组织架构",
+            MenuType.Menu,
+            "Rbac.Organizations",
+            "apartment",
+            "/system/organizations",
+            "system/organizations/index",
+            4,
+            false,
+            true,
+            "组织架构管理页面"
+        );
+
+        await dbContext.Menus.AddRangeAsync(new[] { userMenu, roleMenu, menuMenu, organizationMenu });
         await dbContext.SaveChangesAsync(); // 保存二级菜单
 
         // 3. 创建按钮（三级菜单）
@@ -168,10 +188,103 @@ public class RbacDataSeedContributor(FakeRbacDbContext dbContext, DbInitializer 
             new Menu(menuMenu.Id, "查询", MenuType.Button, "Rbac.Menus.Query", null, null, null, 1),
             new Menu(menuMenu.Id, "新增", MenuType.Button, "Rbac.Menus.Create", null, null, null, 2),
             new Menu(menuMenu.Id, "编辑", MenuType.Button, "Rbac.Menus.Update", null, null, null, 3),
-            new Menu(menuMenu.Id, "删除", MenuType.Button, "Rbac.Menus.Delete", null, null, null, 4)
+            new Menu(menuMenu.Id, "删除", MenuType.Button, "Rbac.Menus.Delete", null, null, null, 4),
+
+            // 组织架构按钮
+            new Menu(organizationMenu.Id, "查询", MenuType.Button, "Rbac.Organizations.Query", null, null, null, 1),
+            new Menu(organizationMenu.Id, "新增", MenuType.Button, "Rbac.Organizations.Create", null, null, null, 2),
+            new Menu(organizationMenu.Id, "编辑", MenuType.Button, "Rbac.Organizations.Update", null, null, null, 3),
+            new Menu(organizationMenu.Id, "删除", MenuType.Button, "Rbac.Organizations.Delete", null, null, null, 4),
+            new Menu(organizationMenu.Id, "移动", MenuType.Button, "Rbac.Organizations.Move", null, null, null, 5)
         };
 
         await dbContext.Menus.AddRangeAsync(buttons);
         await dbContext.SaveChangesAsync(); // 保存按钮
+    }
+
+    private async Task SeedDefaultOrganizationsAsync()
+    {
+        var existingOrganizations = await dbContext.Organizations.AnyAsync();
+        if (existingOrganizations)
+        {
+            return;
+        }
+
+        // 创建示例组织架构
+        var company = new Organization(
+            "示例科技有限公司",
+            "COMPANY001",
+            OrganizationType.Company,
+            null,
+            null,
+            1,
+            "公司总部",
+            true
+        );
+        await dbContext.Organizations.AddAsync(company);
+        await dbContext.SaveChangesAsync();
+
+        // 创建部门
+        var techDept = new Organization(
+            "技术部",
+            "DEPT001",
+            OrganizationType.Department,
+            company.Id,
+            null,
+            1,
+            "技术研发部门",
+            true
+        );
+
+        var salesDept = new Organization(
+            "销售部",
+            "DEPT002",
+            OrganizationType.Department,
+            company.Id,
+            null,
+            2,
+            "销售业务部门",
+            true
+        );
+
+        var hrDept = new Organization(
+            "人力资源部",
+            "DEPT003",
+            OrganizationType.Department,
+            company.Id,
+            null,
+            3,
+            "人力资源管理部门",
+            true
+        );
+
+        await dbContext.Organizations.AddRangeAsync(new[] { techDept, salesDept, hrDept });
+        await dbContext.SaveChangesAsync();
+
+        // 创建小组
+        var devGroup = new Organization(
+            "开发组",
+            "GROUP001",
+            OrganizationType.Group,
+            techDept.Id,
+            null,
+            1,
+            "软件开发小组",
+            true
+        );
+
+        var testGroup = new Organization(
+            "测试组",
+            "GROUP002",
+            OrganizationType.Group,
+            techDept.Id,
+            null,
+            2,
+            "软件测试小组",
+            true
+        );
+
+        await dbContext.Organizations.AddRangeAsync(new[] { devGroup, testGroup });
+        await dbContext.SaveChangesAsync();
     }
 }
