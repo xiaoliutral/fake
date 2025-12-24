@@ -75,12 +75,17 @@ public class SimpleAdminApiModule : FakeModule
         app.UseFakeExceptionHandling();
         // CORS
         app.UseCors("Default");
+        
+        // 静态文件服务（用于头像等上传文件）
+        app.UseStaticFiles();
 
+        // 路由 - 必须在认证和授权之前
+        app.UseRouting();
+        
         // 认证和授权
         app.UseAuthentication();
         app.UseAuthorization();
-        // 路由
-        app.UseRouting();
+        
         // 端点映射
         app.MapControllers();
     }
@@ -88,11 +93,10 @@ public class SimpleAdminApiModule : FakeModule
     private static void ConfigureJwtAndSwagger(IConfiguration configuration, IServiceCollection services)
     {
         // 配置 JWT 认证
-        var jwtSettings = configuration.GetSection("JWTSettings");
-        var jwtSecret = jwtSettings["IssuerSigningKey"] ?? "3c1cbc3f546eda35168c3aa3cb91780fbe703f0996c1d133ea96dc85c70bbc0a";
-        var jwtIssuer = jwtSettings["ValidIssuer"] ?? "SimpleAdmin";
-        var jwtAudience = jwtSettings["ValidAudience"] ?? "SimpleAdmin";
-        var clockSkew = int.Parse(jwtSettings["ClockSkew"] ?? "10");
+        var jwtSettings = configuration.GetSection("JwtSettings");
+        var jwtSecret = jwtSettings["SecretKey"] ?? "YourSuperSecretKeyThatIsAtLeast32CharactersLong!";
+        var jwtIssuer = jwtSettings["Issuer"] ?? "SimpleAdmin";
+        var jwtAudience = jwtSettings["Audience"] ?? "SimpleAdminClient";
         
         services.AddAuthentication(options =>
             {
@@ -103,14 +107,14 @@ public class SimpleAdminApiModule : FakeModule
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = bool.Parse(jwtSettings["ValidateIssuer"] ?? "true"),
-                    ValidateAudience = bool.Parse(jwtSettings["ValidateAudience"] ?? "true"),
-                    ValidateLifetime = bool.Parse(jwtSettings["ValidateLifetime"] ?? "true"),
-                    ValidateIssuerSigningKey = bool.Parse(jwtSettings["ValidateIssuerSigningKey"] ?? "true"),
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
                     ValidIssuer = jwtIssuer,
                     ValidAudience = jwtAudience,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
-                    ClockSkew = TimeSpan.FromSeconds(clockSkew)
+                    ClockSkew = TimeSpan.FromMinutes(5)
                 };
             });
 

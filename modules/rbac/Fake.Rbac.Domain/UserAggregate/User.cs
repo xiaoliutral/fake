@@ -23,6 +23,11 @@ public class User: FullAuditedAggregateRoot<Guid>
     public string? Email { get; private set; }
     public string? Avatar { get; private set; }
     
+    /// <summary>
+    /// 所属组织ID
+    /// </summary>
+    public Guid? OrganizationId { get; private set; }
+    
     public IReadOnlyCollection<UserRole> Roles => _roles.AsReadOnly();
 
     private readonly List<UserRole> _roles = new();
@@ -32,13 +37,14 @@ public class User: FullAuditedAggregateRoot<Guid>
         
     }
     
-    public User(string name, string account, string password, string? email = null, string? avatar = null)
+    public User(string name, string account, string password, string? email = null, string? avatar = null, Guid? organizationId = null)
     {
         Name = name;
         Account = account;
         GeneratePassword(password);
         Email = email;
         Avatar = avatar;
+        OrganizationId = organizationId;
     }
 
     public void AssignRole(Guid roleId)
@@ -77,7 +83,7 @@ public class User: FullAuditedAggregateRoot<Guid>
         EncryptPassword = new EncryptPassword(pwd, salt);
     }
 
-    public void Update(string? name = null, string? email = null, string? avatar = null)
+    public void Update(string? name = null, string? email = null, string? avatar = null, Guid? organizationId = null)
     {
         if (!string.IsNullOrWhiteSpace(name))
         {
@@ -93,10 +99,17 @@ public class User: FullAuditedAggregateRoot<Guid>
         {
             Avatar = avatar;
         }
+        
+        OrganizationId = organizationId;
     }
 
     public void UpdateAvatar(string? avatar)
     {
         Avatar = avatar;
+    }
+    
+    public void SetOrganization(Guid? organizationId)
+    {
+        OrganizationId = organizationId;
     }
 }

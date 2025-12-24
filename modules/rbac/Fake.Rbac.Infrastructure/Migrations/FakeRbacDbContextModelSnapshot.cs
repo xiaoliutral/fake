@@ -272,8 +272,8 @@ namespace Fake.Rbac.Infrastructure.Migrations
                         .HasColumnType("varchar(32)");
 
                     b.Property<string>("Avatar")
-                        .HasMaxLength(64)
-                        .HasColumnType("varchar(64)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<Guid>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -303,6 +303,9 @@ namespace Fake.Rbac.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("varchar(32)");
 
+                    b.Property<Guid?>("OrganizationId")
+                        .HasColumnType("char(36)");
+
                     b.Property<DateTime>("UpdateTime")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("UpdateTime");
@@ -320,6 +323,8 @@ namespace Fake.Rbac.Infrastructure.Migrations
                         .IsUnique();
 
                     b.HasIndex("Name");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("user", (string)null);
                 });

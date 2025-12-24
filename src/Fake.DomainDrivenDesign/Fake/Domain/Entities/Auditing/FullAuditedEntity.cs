@@ -21,6 +21,7 @@ public abstract class FullAuditedEntity<TKey> : Entity<TKey>, IFullAuditedEntity
 /// <typeparam name="TUser">user id类型</typeparam>
 [Serializable]
 public abstract class FullAuditedEntity<TKey, TUser> : Entity<TKey>, IFullAuditedEntity<TUser>
+    where TUser: notnull
 {
     public virtual TUser CreateUserId { get; set; } = default!;
     public virtual DateTime CreateTime { get; set; }

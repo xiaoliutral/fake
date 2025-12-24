@@ -1,11 +1,13 @@
 using Fake.Application;
 using Fake.Rbac.Application.Dtos.Permission;
 using Fake.Rbac.Domain.MenuAggregate;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Fake.Rbac.Application.Services;
 
+[Authorize]
 [ApiExplorerSettings(GroupName = "RBAC")]
 public class PermissionService : ApplicationService, IPermissionService
 {

@@ -75,15 +75,15 @@
       <a-col :xs="24" :lg="8">
         <a-card title="快速操作" :bordered="false">
           <a-space direction="vertical" style="width: 100%">
-            <a-button type="primary" block @click="router.push('/system/user')">
+            <a-button type="primary" block @click="router.push('/system/users')">
               <user-outlined />
               用户管理
             </a-button>
-            <a-button block @click="router.push('/system/role')">
+            <a-button block @click="router.push('/system/roles')">
               <team-outlined />
               角色管理
             </a-button>
-            <a-button block @click="router.push('/system/menu')">
+            <a-button block @click="router.push('/system/menus')">
               <menu-outlined />
               菜单管理
             </a-button>

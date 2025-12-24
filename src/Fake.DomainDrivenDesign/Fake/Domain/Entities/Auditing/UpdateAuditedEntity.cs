@@ -18,6 +18,7 @@ public abstract class UpdateAuditedEntity<TKey> : Entity<TKey>, IHasUpdateUserId
 /// <typeparam name="TUser"></typeparam>
 [Serializable]
 public abstract class UpdateAuditedEntity<TKey, TUser> : Entity<TKey>, IHasUpdateUserId<TUser>, IHasUpdateTime
+    where TUser: notnull
 {
     public virtual TUser UpdateUserId { get; set; } = default!;
     public virtual DateTime UpdateTime { get; set; }

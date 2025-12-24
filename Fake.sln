@@ -197,6 +197,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "app", "app", "{AB1342A5-03D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleAdmin.Api", "app\SimpleAdmin.Api\SimpleAdmin.Api.csproj", "{5D4D2B59-FF93-45E1-B6F8-F4234470A99D}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "prompt", "prompt", "{03CD838C-2F89-4484-9561-E25798CAEE40}"
+	ProjectSection(SolutionItems) = preProject
+		.cursor\rules\backend.mdc = .cursor\rules\backend.mdc
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -535,5 +540,6 @@ Global
 		{5D4DD8D4-BF52-49F6-8D66-3BEC14792872} = {6D836B7B-F7A0-4639-B034-15217B7A4FCB}
 		{4D136285-239E-4BF0-AEB7-C0A3650B55E9} = {A2A27924-EED0-4A13-B7F2-949F11F9F9B6}
 		{5D4D2B59-FF93-45E1-B6F8-F4234470A99D} = {AB1342A5-03D2-4486-BA3D-EFE2990B8995}
+		{03CD838C-2F89-4484-9561-E25798CAEE40} = {39FED9F7-23E6-43A4-B478-B914A2E805D0}
 	EndGlobalSection
 EndGlobal

@@ -21,13 +21,19 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '仪表盘', icon: 'DashboardOutlined' }
       },
       {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/views/profile/index.vue'),
+        meta: { title: '个人中心', icon: 'UserOutlined', hidden: true }
+      },
+      {
         path: 'system',
         name: 'System',
-        redirect: '/system/user',
+        redirect: '/system/users',
         meta: { title: '系统管理', icon: 'SettingOutlined' },
         children: [
           {
-            path: 'user',
+            path: 'users',
             name: 'User',
             component: () => import('@/views/system/user/index.vue'),
             meta: { 
@@ -37,7 +43,7 @@ const routes: RouteRecordRaw[] = [
             }
           },
           {
-            path: 'role',
+            path: 'roles',
             name: 'Role',
             component: () => import('@/views/system/role/index.vue'),
             meta: { 
@@ -47,13 +53,23 @@ const routes: RouteRecordRaw[] = [
             }
           },
           {
-            path: 'menu',
+            path: 'menus',
             name: 'Menu',
             component: () => import('@/views/system/menu/index.vue'),
             meta: { 
               title: '菜单管理', 
               icon: 'MenuOutlined',
               permission: 'Rbac.Menus.Query'
+            }
+          },
+          {
+            path: 'organizations',
+            name: 'Organization',
+            component: () => import('@/views/system/organization/index.vue'),
+            meta: { 
+              title: '组织架构', 
+              icon: 'ApartmentOutlined',
+              permission: 'Rbac.Organizations.Query'
             }
           }
         ]

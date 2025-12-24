@@ -7,11 +7,13 @@ using Fake.Rbac.Application.Dtos.User;
 using Fake.Rbac.Domain.RoleAggregate;
 using Fake.Rbac.Domain.UserAggregate;
 using Fake.UnitOfWork;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Fake.Rbac.Application.Services;
 
+[Authorize]
 [ApiExplorerSettings(GroupName = "RBAC")]
 public class RoleService : ApplicationService, IRoleService
 {

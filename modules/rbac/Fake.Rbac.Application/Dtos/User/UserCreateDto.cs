@@ -42,6 +42,11 @@ public class UserCreateDto
     public string? Avatar { get; set; }
     
     /// <summary>
+    /// 所属组织ID
+    /// </summary>
+    public Guid? OrganizationId { get; set; }
+    
+    /// <summary>
     /// 角色ID列表
     /// </summary>
     public List<Guid>? RoleIds { get; set; }

@@ -22,7 +22,9 @@ public class UserEntityTypeConfiguration: IEntityTypeConfiguration<User>
 
         builder.Property(t => t.Email).HasMaxLength(32);
 
-        builder.Property(t => t.Avatar).HasMaxLength(64);
+        builder.Property(t => t.Avatar).HasMaxLength(128);
+        
+        builder.Property(t => t.OrganizationId);
         
         builder.HasMany(u => u.Roles).WithOne().HasForeignKey(ur => ur.UserId);
 
@@ -31,5 +33,7 @@ public class UserEntityTypeConfiguration: IEntityTypeConfiguration<User>
         builder.HasIndex(u => u.Email).IsUnique();
 
         builder.HasIndex(u => u.Name);
+        
+        builder.HasIndex(u => u.OrganizationId);
     }
 }

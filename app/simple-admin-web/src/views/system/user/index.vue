@@ -22,6 +22,15 @@
       </a-space>
 
       <a-space>
+        <a-tree-select
+          v-model:value="filterOrganizationId"
+          placeholder="选择组织筛选"
+          style="width: 180px"
+          :tree-data="organizationTree"
+          :field-names="{ label: 'name', value: 'id', children: 'children' }"
+          allow-clear
+          @change="handleSearch"
+        />
         <a-input-search
           v-model:value="searchKeyword"
           placeholder="搜索用户名或账号"
@@ -48,6 +57,10 @@
           <a-avatar :src="record.avatar">
             <template #icon><user-outlined /></template>
           </a-avatar>
+        </template>
+
+        <template v-else-if="column.key === 'organizationName'">
+          {{ record.organizationName || '-' }}
         </template>
 
         <template v-else-if="column.key === 'roles'">
@@ -130,6 +143,16 @@
           <a-input v-model:value="formState.email" placeholder="请输入邮箱" />
         </a-form-item>
 
+        <a-form-item label="所属组织" name="organizationId">
+          <a-tree-select
+            v-model:value="formState.organizationId"
+            placeholder="请选择所属组织"
+            :tree-data="organizationTree"
+            :field-names="{ label: 'name', value: 'id', children: 'children' }"
+            allow-clear
+          />
+        </a-form-item>
+
         <a-form-item label="头像" name="avatar">
           <a-input v-model:value="formState.avatar" placeholder="请输入头像URL" />
         </a-form-item>
@@ -171,8 +194,8 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { message, Modal } from 'ant-design-vue'
-import { UserService, RoleService } from '@/api'
-import type { UserDto, UserCreateDto, UserUpdateDto, RoleSimpleDto } from '@/api'
+import { UserService, RoleService, OrganizationService } from '@/api'
+import type { UserDto, UserCreateDto, UserUpdateDto, RoleSimpleDto, OrganizationTreeDto } from '@/api'
 import { hasPermission } from '@/utils/permission'
 import { handleApiError } from '@/utils/error-handler'
 import {
@@ -187,7 +210,9 @@ import type { TableColumnsType } from 'ant-design-vue'
 const loading = ref(false)
 const dataSource = ref<UserDto[]>([])
 const searchKeyword = ref('')
+const filterOrganizationId = ref<string>()
 const selectedRowKeys = ref<string[]>([])
+const organizationTree = ref<OrganizationTreeDto[]>([])
 
 const pagination = reactive({
   current: 1,
@@ -202,7 +227,8 @@ const columns: TableColumnsType = [
   { title: '头像', key: 'avatar', width: 80, fixed: 'left' },
   { title: '用户名', dataIndex: 'name', key: 'name', width: 120 },
   { title: '账号', dataIndex: 'account', key: 'account', width: 120 },
-  { title: '邮箱', dataIndex: 'email', key: 'email', width: 200 },
+  { title: '邮箱', dataIndex: 'email', key: 'email', width: 180 },
+  { title: '所属组织', key: 'organizationName', width: 150 },
   { title: '角色', key: 'roles', width: 200 },
   { title: '创建时间', key: 'createdAt', width: 180 },
   { title: '操作', key: 'action', width: 250, fixed: 'right' }
@@ -229,6 +255,7 @@ const formState = reactive<UserCreateDto & { id?: string }>({
   password: '',
   email: '',
   avatar: '',
+  organizationId: undefined,
   roleIds: []
 })
 
@@ -257,17 +284,18 @@ const currentUserId = ref('')
 onMounted(() => {
   loadData()
   loadRoles()
+  loadOrganizations()
 })
 
 async function loadData() {
   loading.value = true
   try {
-    const result = await UserService.getRbacUserGetList(
-      searchKeyword.value,
-      undefined, // roleId
-      pagination.current,
-      pagination.pageSize
-    )
+    const result = await UserService.getRbacUserGetList({
+      keyword: searchKeyword.value || undefined,
+      organizationId: filterOrganizationId.value || undefined,
+      page: pagination.current,
+      pageSize: pagination.pageSize
+    })
     dataSource.value = result.items || []
     pagination.total = result.total || 0
   } catch (error) {
@@ -280,6 +308,14 @@ async function loadData() {
 async function loadRoles() {
   try {
     allRoles.value = await RoleService.getRbacRoleGetAllRoles()
+  } catch (error) {
+    handleApiError(error)
+  }
+}
+
+async function loadOrganizations() {
+  try {
+    organizationTree.value = await OrganizationService.getRbacOrganizationGetTree()
   } catch (error) {
     handleApiError(error)
   }
@@ -305,6 +341,7 @@ function handleAdd() {
     password: '',
     email: '',
     avatar: '',
+    organizationId: undefined,
     roleIds: []
   })
   modalVisible.value = true
@@ -318,7 +355,8 @@ function handleEdit(record: UserDto) {
     name: record.name,
     account: record.account,
     email: record.email,
-    avatar: record.avatar
+    avatar: record.avatar,
+    organizationId: record.organizationId
   })
   modalVisible.value = true
 }
@@ -332,12 +370,13 @@ async function handleModalOk() {
       const updateData: UserUpdateDto = {
         name: formState.name,
         email: formState.email,
-        avatar: formState.avatar
+        avatar: formState.avatar,
+        organizationId: formState.organizationId
       }
-      await UserService.putRbacUserUpdate(currentId.value!, updateData)
+      await UserService.putRbacUserUpdate({ id: currentId.value, requestBody: updateData })
       message.success('更新成功')
     } else {
-      await UserService.postRbacUserCreate(formState)
+      await UserService.postRbacUserCreate({ requestBody: formState })
       message.success('创建成功')
     }
 
@@ -355,7 +394,7 @@ async function handleModalOk() {
 
 async function handleDelete(id: string) {
   try {
-    await UserService.deleteRbacUserDelete(id)
+    await UserService.deleteRbacUserDelete({ id })
     message.success('删除成功')
     loadData()
   } catch (error) {
@@ -369,7 +408,7 @@ function handleBatchDelete() {
     content: `确定要删除选中的 ${selectedRowKeys.value.length} 个用户吗？`,
     onOk: async () => {
       try {
-        await UserService.deleteRbacUserDeleteBatch(selectedRowKeys.value as string[])
+        await UserService.deleteRbacUserDeleteBatch({ ids: selectedRowKeys.value as string[] })
         message.success('删除成功')
         selectedRowKeys.value = []
         loadData()
@@ -383,7 +422,7 @@ function handleBatchDelete() {
 async function handleAssignRoles(record: UserDto) {
   currentUserId.value = record.id!
   try {
-    const roles = await UserService.getRbacUserGetUserRoles(record.id)
+    const roles = await UserService.getRbacUserGetUserRoles({ userId: record.id })
     selectedRoleIds.value = roles.map((r: any) => r.id!)
     roleModalVisible.value = true
   } catch (error) {
@@ -394,10 +433,10 @@ async function handleAssignRoles(record: UserDto) {
 async function handleRoleModalOk() {
   roleModalLoading.value = true
   try {
-    await UserService.postRbacUserAssignRoles(
-      currentUserId.value,
-      selectedRoleIds.value
-    )
+    await UserService.postRbacUserAssignRoles({
+      userId: currentUserId.value,
+      requestBody: selectedRoleIds.value
+    })
     message.success('分配角色成功')
     roleModalVisible.value = false
     loadData()

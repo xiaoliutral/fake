@@ -6,13 +6,13 @@
  * 修改密码 DTO
  */
 export type UpdatePasswordDto = {
-    /**
-     * 旧密码
-     */
-    oldPassword: string;
-    /**
-     * 新密码
-     */
-    newPassword: string;
+  /**
+   * 旧密码
+   */
+  oldPassword: string;
+  /**
+   * 新密码
+   */
+  newPassword: string;
 };
 

@@ -334,10 +334,10 @@ async function handleModalOk() {
         isCached: formState.isCached,
         description: formState.description
       }
-      await MenuService.putRbacMenuUpdate(currentId.value!, updateData)
+      await MenuService.putRbacMenuUpdate({ id: currentId.value, requestBody: updateData })
       message.success('更新成功')
     } else {
-      await MenuService.postRbacMenuCreate(formState)
+      await MenuService.postRbacMenuCreate({ requestBody: formState })
       message.success('创建成功')
     }
 
@@ -356,7 +356,7 @@ async function handleModalOk() {
 async function handleDelete(id: string | undefined) {
   if (!id) return
   try {
-    await MenuService.deleteRbacMenuDelete(id)
+    await MenuService.deleteRbacMenuDelete({ id })
     message.success('删除成功')
     loadData()
   } catch (error) {

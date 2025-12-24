@@ -4,12 +4,13 @@ using Fake.ObjectMapping;
 using Fake.Rbac.Application.Dtos.Menu;
 using Fake.Rbac.Domain.MenuAggregate;
 using Fake.Rbac.Domain.UserAggregate;
-using Fake.Rbac.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Fake.Rbac.Application.Services;
 
+[Authorize]
 [ApiExplorerSettings(GroupName = "RBAC")]
 public class MenuService : ApplicationService, IMenuService
 {

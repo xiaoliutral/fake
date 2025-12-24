@@ -7,7 +7,7 @@
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
-    "generate:api": "npx openapi-typescript-codegen --input http://localhost:5281/swagger/RBAC/swagger.json --output ./src/api/generated --client axios --useOptions --useUnionTypes --exportCore true --exportServices true --exportModels true --exportSchemas false --indent 2 --postfixServices Service --request ./src/utils/request.ts"
+    "generate:api": "npx openapi-typescript-codegen --input http://localhost:5281/swagger/RBAC/swagger.json --output ./src/api/generated --client axios --useOptions --useUnionTypes --exportCore true --exportServices true --exportModels true --exportSchemas false --indent 2 --postfixServices Service"
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",

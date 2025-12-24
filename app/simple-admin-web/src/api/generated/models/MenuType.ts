@@ -2,7 +2,4 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export enum MenuType {
-    '_1' = 1,
-    '_2' = 2,
-}
+export type MenuType = 1 | 2;

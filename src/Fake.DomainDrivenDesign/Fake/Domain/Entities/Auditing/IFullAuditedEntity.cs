@@ -5,4 +5,5 @@ public interface IFullAuditedEntity : IEntity, IHasCreateUserId, IHasUpdateUserI
     
     
 public interface IFullAuditedEntity<out TUser> : IEntity, IHasCreateUserId<TUser>, IHasUpdateUserId<TUser>
-    , IHasCreateTime, IHasUpdateTime, ISoftDelete;
+    , IHasCreateTime, IHasUpdateTime, ISoftDelete
+    where TUser: notnull;

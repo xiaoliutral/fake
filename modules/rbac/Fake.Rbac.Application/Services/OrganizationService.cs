@@ -4,10 +4,12 @@ using Fake.ObjectMapping;
 using Fake.Rbac.Application.Dtos.Organization;
 using Fake.Rbac.Domain.OrganizationAggregate;
 using Fake.Rbac.Domain.UserAggregate;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fake.Rbac.Application.Services;
 
+[Authorize]
 [ApiExplorerSettings(GroupName = "RBAC")]
 public class OrganizationService(
     IOrganizationRepository organizationRepository,

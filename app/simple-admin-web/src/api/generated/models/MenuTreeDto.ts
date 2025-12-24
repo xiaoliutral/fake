@@ -7,55 +7,55 @@ import type { MenuType } from './MenuType';
  * 菜单树 DTO
  */
 export type MenuTreeDto = {
-    id?: string;
-    createdAt?: string;
-    createdBy?: string | null;
-    updatedAt?: string | null;
-    updatedBy?: string | null;
-    /**
-     * 父级菜单ID
-     */
-    pId?: string;
-    /**
-     * 名称
-     */
-    name?: string | null;
-    /**
-     * 权限代码
-     */
-    permissionCode?: string | null;
-    type?: MenuType;
-    /**
-     * 图标
-     */
-    icon?: string | null;
-    /**
-     * 路由
-     */
-    route?: string | null;
-    /**
-     * 组件
-     */
-    component?: string | null;
-    /**
-     * 排序
-     */
-    order?: number;
-    /**
-     * 是否隐藏
-     */
-    isHidden?: boolean;
-    /**
-     * 是否缓存
-     */
-    isCached?: boolean;
-    /**
-     * 描述
-     */
-    description?: string | null;
-    /**
-     * 子菜单列表
-     */
-    children?: Array<MenuTreeDto> | null;
+  id?: string;
+  createdAt?: string;
+  createdBy?: string | null;
+  updatedAt?: string | null;
+  updatedBy?: string | null;
+  /**
+   * 父级菜单ID
+   */
+  pId?: string;
+  /**
+   * 名称
+   */
+  name?: string | null;
+  /**
+   * 权限代码
+   */
+  permissionCode?: string | null;
+  type?: MenuType;
+  /**
+   * 图标
+   */
+  icon?: string | null;
+  /**
+   * 路由
+   */
+  route?: string | null;
+  /**
+   * 组件
+   */
+  component?: string | null;
+  /**
+   * 排序
+   */
+  order?: number;
+  /**
+   * 是否隐藏
+   */
+  isHidden?: boolean;
+  /**
+   * 是否缓存
+   */
+  isCached?: boolean;
+  /**
+   * 描述
+   */
+  description?: string | null;
+  /**
+   * 子菜单列表
+   */
+  children?: Array<MenuTreeDto> | null;
 };
 

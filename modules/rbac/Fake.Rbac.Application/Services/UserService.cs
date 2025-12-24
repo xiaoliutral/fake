@@ -4,6 +4,7 @@ using Fake.ObjectMapping;
 using Fake.Rbac.Application.Dtos.Common;
 using Fake.Rbac.Application.Dtos.Role;
 using Fake.Rbac.Application.Dtos.User;
+using Fake.Rbac.Domain.OrganizationAggregate;
 using Fake.Rbac.Domain.RoleAggregate;
 using Fake.Rbac.Domain.UserAggregate;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +16,7 @@ namespace Fake.Rbac.Application.Services;
 public class UserService(
     IUserRepository userRepository,
     IRoleRepository roleRepository,
+    IOrganizationRepository organizationRepository,
     IObjectMapper objectMapper)
     : ApplicationService, IUserService
 {
@@ -34,6 +36,13 @@ public class UserService(
             var roleIds = user.Roles.Select(ur => ur.RoleId).ToList();
             var roles = await roleRepository.GetListAsync(r => roleIds.Contains(r.Id), cancellationToken: cancellationToken);
             dto.Roles = objectMapper.Map<List<Role>, List<RoleSimpleDto>>(roles);
+        }
+        
+        // 获取组织名称
+        if (user.OrganizationId.HasValue)
+        {
+            var org = await organizationRepository.FirstOrDefaultAsync(o => o.Id == user.OrganizationId.Value, cancellationToken: cancellationToken);
+            dto.OrganizationName = org?.Name;
         }
 
         return dto;
@@ -57,6 +66,12 @@ public class UserService(
         {
             query = query.Where(u => u.Roles.Any(ur => ur.RoleId == input.RoleId.Value));
         }
+        
+        // 组织筛选
+        if (input.OrganizationId.HasValue)
+        {
+            query = query.Where(u => u.OrganizationId == input.OrganizationId.Value);
+        }
 
         // 排序
         query = input.Descending 
@@ -70,6 +85,13 @@ public class UserService(
             .Take(input.PageSize)
             .ToListAsync(cancellationToken);
 
+        // 获取所有相关组织
+        var orgIds = users.Where(u => u.OrganizationId.HasValue).Select(u => u.OrganizationId!.Value).Distinct().ToList();
+        var organizations = orgIds.Any() 
+            ? await organizationRepository.GetListAsync(o => orgIds.Contains(o.Id), cancellationToken: cancellationToken)
+            : new List<Organization>();
+        var orgDict = organizations.ToDictionary(o => o.Id, o => o.Name);
+
         var dtos = new List<UserDto>();
         foreach (var user in users.Cast<User>())
         {
@@ -80,6 +102,12 @@ public class UserService(
                 var roleIds = user.Roles.Select(ur => ur.RoleId).ToList();
                 var roles = await roleRepository.GetListAsync(r => roleIds.Contains(r.Id), cancellationToken: cancellationToken);
                 dto.Roles = objectMapper.Map<List<Role>, List<RoleSimpleDto>>(roles);
+            }
+            
+            // 设置组织名称
+            if (user.OrganizationId.HasValue && orgDict.TryGetValue(user.OrganizationId.Value, out var orgName))
+            {
+                dto.OrganizationName = orgName;
             }
             
             dtos.Add(dto);
@@ -106,7 +134,7 @@ public class UserService(
             throw new DomainException($"账号已存在：{input.Account}");
         }
 
-        var user = new User(input.Name, input.Account, input.Password, input.Email, input.Avatar);
+        var user = new User(input.Name, input.Account, input.Password, input.Email, input.Avatar, input.OrganizationId);
 
         // 分配角色
         if (input.RoleIds != null && input.RoleIds.Any())
@@ -128,7 +156,7 @@ public class UserService(
     {
         var user = await userRepository.FirstAsync(u => u.Id == id, cancellationToken: cancellationToken);
 
-        user.Update(input.Name, input.Email, input.Avatar);
+        user.Update(input.Name, input.Email, input.Avatar, input.OrganizationId);
 
         await userRepository.UpdateAsync(user, cancellationToken: cancellationToken);
 

@@ -25,5 +25,10 @@ public class UserUpdateDto
     /// </summary>
     [StringLength(500, ErrorMessage = "头像URL长度不能超过500")]
     public string? Avatar { get; set; }
+    
+    /// <summary>
+    /// 所属组织ID
+    /// </summary>
+    public Guid? OrganizationId { get; set; }
 }
 

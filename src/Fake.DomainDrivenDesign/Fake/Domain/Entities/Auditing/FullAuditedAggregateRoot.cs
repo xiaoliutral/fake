@@ -12,6 +12,7 @@ public abstract class FullAuditedAggregateRoot<TKey> : AggregateRoot<TKey>, IFul
 
 [Serializable]
 public abstract class FullAuditedAggregateRoot<TKey, TUser> : AggregateRoot<TKey>, IFullAuditedEntity<TUser>
+    where TUser: notnull
 {
     public virtual TUser CreateUserId { get; set; } = default!;
     public virtual DateTime CreateTime { get; set; }

@@ -8,11 +8,18 @@ export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { ApplicationExceptionResult } from './models/ApplicationExceptionResult';
+export type { LoginResultDto } from './models/LoginResultDto';
 export type { MenuCreateDto } from './models/MenuCreateDto';
 export type { MenuDto } from './models/MenuDto';
 export type { MenuTreeDto } from './models/MenuTreeDto';
-export { MenuType } from './models/MenuType';
+export type { MenuType } from './models/MenuType';
 export type { MenuUpdateDto } from './models/MenuUpdateDto';
+export type { OrganizationCreateDto } from './models/OrganizationCreateDto';
+export type { OrganizationDto } from './models/OrganizationDto';
+export type { OrganizationMoveDto } from './models/OrganizationMoveDto';
+export type { OrganizationTreeDto } from './models/OrganizationTreeDto';
+export type { OrganizationType } from './models/OrganizationType';
+export type { OrganizationUpdateDto } from './models/OrganizationUpdateDto';
 export type { PermissionDefinitionDto } from './models/PermissionDefinitionDto';
 export type { PermissionGroupDto } from './models/PermissionGroupDto';
 export type { RoleCreateDto } from './models/RoleCreateDto';
@@ -30,6 +37,7 @@ export type { UserUpdateDto } from './models/UserUpdateDto';
 
 export { AuthService } from './services/AuthService';
 export { MenuService } from './services/MenuService';
+export { OrganizationService } from './services/OrganizationService';
 export { PermissionService } from './services/PermissionService';
 export { RoleService } from './services/RoleService';
 export { UserService } from './services/UserService';

@@ -16,5 +16,10 @@ public class UserPagedRequestDto : PagedRequestDto
     /// 角色ID
     /// </summary>
     public Guid? RoleId { get; set; }
+    
+    /// <summary>
+    /// 组织ID
+    /// </summary>
+    public Guid? OrganizationId { get; set; }
 }
 

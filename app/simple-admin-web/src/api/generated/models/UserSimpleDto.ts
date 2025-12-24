@@ -6,18 +6,18 @@
  * 用户简单 DTO
  */
 export type UserSimpleDto = {
-    id?: string;
-    /**
-     * 名称
-     */
-    name?: string | null;
-    /**
-     * 账号
-     */
-    account?: string | null;
-    /**
-     * 头像
-     */
-    avatar?: string | null;
+  id?: string;
+  /**
+   * 名称
+   */
+  name?: string | null;
+  /**
+   * 账号
+   */
+  account?: string | null;
+  /**
+   * 头像
+   */
+  avatar?: string | null;
 };
 

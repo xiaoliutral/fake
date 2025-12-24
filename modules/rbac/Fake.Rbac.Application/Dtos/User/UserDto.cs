@@ -29,6 +29,16 @@ public class UserDto : AuditedEntityDto<Guid>
     public string? Avatar { get; set; }
     
     /// <summary>
+    /// 所属组织ID
+    /// </summary>
+    public Guid? OrganizationId { get; set; }
+    
+    /// <summary>
+    /// 所属组织名称
+    /// </summary>
+    public string? OrganizationName { get; set; }
+    
+    /// <summary>
     /// 角色列表
     /// </summary>
     public List<RoleSimpleDto> Roles { get; set; } = new();

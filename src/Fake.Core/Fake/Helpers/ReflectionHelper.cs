@@ -19,30 +19,75 @@ public static class ReflectionHelper
     public static void TrySetProperty<TObject, TValue>(TObject obj, Expression<Func<TObject, TValue>> propertySelector,
         Func<TValue> valueFactory, params Type[] ignoreAttributeTypes)
     {
+        TrySetProperty(obj, propertySelector, _ => valueFactory(), ignoreAttributeTypes);
+    }
+    
+    /// <summary>
+    /// 尝试为给定对象的属性赋值
+    /// </summary>
+    /// <param name="obj">给定对象</param>
+    /// <param name="propertySelector">属性选择器</param>
+    /// <param name="valueFactory">值工厂</param>
+    /// <param name="ignoreAttributeTypes">忽略特性，如果属性标记了，则忽略赋值</param>
+    public static void TrySetProperty<TObject, TValue>(TObject obj, Expression<Func<TObject, TValue>> propertySelector,
+        Func<TObject, TValue> valueFactory, params Type[] ignoreAttributeTypes)
+    {
         if (obj is null) return;
 
         var cacheKey = $"{obj.GetType().FullName}-{propertySelector}-{ignoreAttributeTypes.JoinAsString("-")}";
 
-        var propertyInfo = PropertiesCaches.GetOrAdd(cacheKey, _ =>
+        var property = PropertiesCaches.GetOrAdd(cacheKey, PropertyFactory);
+
+        property?.SetValue(obj, valueFactory(obj));
+        return;
+        
+        PropertyInfo? PropertyFactory(string _)
         {
-            // 必须从字段或属性上读取
-            if (propertySelector.Body.NodeType != ExpressionType.MemberAccess) return null;
+            MemberExpression? memberExpression;
+            switch (propertySelector.Body.NodeType)
+            {
+                // importance：处理一元表达式-ex可空
+                case ExpressionType.Convert: {
+                    memberExpression = propertySelector.Body.As<UnaryExpression>()?.Operand as MemberExpression;
+                    break;
+                }
+                case ExpressionType.MemberAccess: {
+                    memberExpression = propertySelector.Body.As<MemberExpression>();
+                    break;
+                }
+                default: {
+                    return null;
+                }
+            }
 
-            var memberExpression = propertySelector.Body.To<MemberExpression>();
+            if (memberExpression == null)
+            {
+                return null;
+            }
 
-            var propertyInfo = obj.GetType().GetProperties().FirstOrDefault(x =>
-                x.Name == memberExpression.Member.Name &&
-                x.GetSetMethod(true) != null);
+            var propertyInfo = obj?.GetType()
+                .GetProperties()
+                .FirstOrDefault(x => x.Name == memberExpression.Member.Name);
 
-            if (propertyInfo == null) return null;
+            if (propertyInfo == null)
+            {
+                return null;
+            }
+
+            var propPrivateSetMethod = propertyInfo.GetSetMethod(true);
+            if (propPrivateSetMethod == null)
+            {
+                return null;
+            }
 
             // 如果定义了忽略特性
-            if (ignoreAttributeTypes.Any(t => propertyInfo.IsDefined(t, true))) return null;
+            if (ignoreAttributeTypes.Any(ignoreAttribute => propertyInfo.IsDefined(ignoreAttribute, true)))
+            {
+                return null;
+            }
 
             return propertyInfo;
-        });
-
-        propertyInfo?.SetValue(obj, valueFactory());
+        }
     }
 
     /// <summary>

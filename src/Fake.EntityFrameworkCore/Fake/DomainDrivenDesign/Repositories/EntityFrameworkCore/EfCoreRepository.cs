@@ -173,6 +173,8 @@ public class EfCoreRepository<TDbContext, TEntity> : IEfCoreRepository<TDbContex
          */
         var entry = dbContext.Add(entity);
 
+        await dbContext.SaveChangesAsync(cancellationToken);
+
         return entry.Entity;
     }
 
@@ -183,6 +185,8 @@ public class EfCoreRepository<TDbContext, TEntity> : IEfCoreRepository<TDbContex
         var dbContext = await GetDbContextAsync(cancellationToken);
 
         await dbContext.Set<TEntity>().AddRangeAsync(entities, cancellationToken);
+        
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task UpdateAsync(
@@ -194,6 +198,8 @@ public class EfCoreRepository<TDbContext, TEntity> : IEfCoreRepository<TDbContex
         // 在更新实体时，通常不需要显式调用 Attach，因为 Update 方法会自动将实体附加并设置其状态为 Modified
         // dbContext.Attach(entity);
         dbContext.Update(entity);
+        
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task UpdateRangeAsync(
@@ -205,6 +211,8 @@ public class EfCoreRepository<TDbContext, TEntity> : IEfCoreRepository<TDbContex
         var dbContext = await GetDbContextAsync(cancellationToken);
 
         dbContext.Set<TEntity>().UpdateRange(entities);
+        
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task DeleteAsync(
@@ -214,6 +222,8 @@ public class EfCoreRepository<TDbContext, TEntity> : IEfCoreRepository<TDbContex
         var dbContext = await GetDbContextAsync(cancellationToken);
 
         dbContext.Set<TEntity>().Remove(entity);
+        
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task DeleteRangeAsync(
@@ -225,6 +235,8 @@ public class EfCoreRepository<TDbContext, TEntity> : IEfCoreRepository<TDbContex
         var dbContext = await GetDbContextAsync(cancellationToken);
 
         dbContext.RemoveRange(entities);
+        
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task DeleteAsync(
@@ -239,5 +251,7 @@ public class EfCoreRepository<TDbContext, TEntity> : IEfCoreRepository<TDbContex
             .ToListAsync(cancellationToken);
 
         await DeleteRangeAsync(entities, cancellationToken);
+        
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }
