@@ -11,7 +11,7 @@ public class DependencyAttribute : Attribute
     public bool Replace { get; set; }
 
     /// <summary>
-    /// 只注册以前未注册的服务，使用IServiceCollection的TryAdd扩展方法
+    /// 只注册以前未注册的服务，使用IServiceCollection的TryAdd扩展方法，默认Add
     /// </summary>
     public bool TryAdd { get; set; }
 

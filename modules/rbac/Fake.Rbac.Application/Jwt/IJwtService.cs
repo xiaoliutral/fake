@@ -1,6 +1,6 @@
 using System.Security.Claims;
 
-namespace Fake.Rbac.Application.Services.Auth;
+namespace Fake.Rbac.Application.Jwt;
 
 /// <summary>
 /// JWT 服务接口
@@ -26,4 +26,12 @@ public interface IJwtService
     /// 获取令牌过期时间（秒）
     /// </summary>
     int GetExpiresInSeconds();
+
+    /// <summary>
+    /// 生成claims
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<List<Claim>> GenerateClaimsByUserIdAsync(Guid userId, CancellationToken cancellationToken);
 }

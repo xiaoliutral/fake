@@ -1,5 +1,6 @@
 ﻿using Fake.AspNetCore;
 using Fake.AspNetCore.Auditing;
+using Fake.AspNetCore.Mvc;
 using Fake.AspNetCore.Mvc.Conventions;
 using Fake.Autofac;
 using Fake.Localization;
@@ -13,15 +14,12 @@ public class SimpleWebDemoModule : FakeModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        context.Services.Configure<ApplicationService2ControllerOptions>(options =>
+        context.Services.Configure<FakeAspNetCoreMvcOptions>(options =>
         {
-            options.ScanApplicationServices<SimpleWebDemoModule>();
+            options.ApplicationServices2Controller<SimpleWebDemoModule>();
         });
         context.Services.AddFakeSwaggerGen();
         context.Services.AddFakeAspNetCoreAuditing();
-        context.Services.AddFakeExceptionFilter()
-            .AddFakeValidationActionFilter()
-            .AddFakeUnitOfWorkActionFilter();
 
         context.Services.Configure<FakeVirtualFileSystemOptions>(options =>
         {

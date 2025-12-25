@@ -1,14 +1,15 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Fake.Application;
-using Fake.Modularity;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 
 namespace Fake.AspNetCore.Mvc.Conventions;
 
-public class ApplicationService2ControllerOptions
+public class ApplicationService2ControllerSetting
 {
     internal HashSet<Type> ControllerTypes { get; } = new();
-    internal List<Assembly> Assemblies { get; } = new();
+    internal Assembly Assembly { get; }
+
+    private string _rootPath = null!;
 
     public string RootPath
     {
@@ -20,17 +21,21 @@ public class ApplicationService2ControllerOptions
         }
     }
 
-    private string _rootPath = "api";
-
     public Action<ControllerModel>? ControllerModelConfigureAction { get; set; }
 
-    public void ScanApplicationServices<TModule>() where TModule : IFakeModule
-    {
-        var assembly = typeof(TModule).Assembly;
-        if (Assemblies.Contains(assembly)) return;
+    public Func<Type, bool>? TypePredicate { get; set; }
 
-        Assemblies.Add(assembly);
-        var types = assembly.GetTypes().Where(IsApplicationService);
+    public ApplicationService2ControllerSetting(Assembly assembly, string rootPath = "api")
+    {
+        Assembly = ThrowHelper.ThrowIfNull(assembly, nameof(assembly));
+        RootPath = rootPath;
+    }
+    
+    internal void LoadControllers()
+    {
+        var types = Assembly.GetTypes()
+            .Where(IsApplicationService)
+            .WhereIf(TypePredicate != null, TypePredicate!);
 
         foreach (var type in types)
         {

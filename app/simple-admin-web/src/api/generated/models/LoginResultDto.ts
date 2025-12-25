@@ -26,9 +26,5 @@ export type LoginResultDto = {
    * 用户ID
    */
   userId?: string;
-  /**
-   * 用户名
-   */
-  userName?: string | null;
 };
 

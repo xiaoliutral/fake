@@ -7,15 +7,15 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Fake.AspNetCore.Mvc.Conventions;
 
-public class RemoteServiceConvention(
-    IOptions<ApplicationService2ControllerOptions> options,
+public class ApplicationService2ControllerConvention(
+    IOptions<FakeAspNetCoreMvcOptions> options,
     IApplicationServiceActionHelper applicationServiceActionHelper
 ) : IApplicationModelConvention
 {
-    public ILogger<RemoteServiceConvention> Logger { get; set; } =
-        NullLogger<RemoteServiceConvention>.Instance;
+    public ILogger<ApplicationService2ControllerConvention> Logger { get; set; } =
+        NullLogger<ApplicationService2ControllerConvention>.Instance;
 
-    protected ApplicationService2ControllerOptions Options { get; } = options.Value;
+    protected FakeAspNetCoreMvcOptions Options { get; } = options.Value;
 
     static string[] CommonPostfixes { get; set; } = ["ApplicationService", "AppService", "Service"];
 
@@ -25,10 +25,12 @@ public class RemoteServiceConvention(
         {
             var controllerType = controller.ControllerType.AsType();
 
+            var setting = GetControllerSettingOrNull(controllerType);
+
             if (controllerType.IsAssignableTo<IApplicationService>())
             {
                 controller.ControllerName = controller.ControllerName.RemovePostfix(CommonPostfixes);
-                Options.ControllerModelConfigureAction?.Invoke(controller);
+                setting?.ControllerModelConfigureAction?.Invoke(controller);
                 ConfigureRemoteService(controller);
             }
         }
@@ -51,12 +53,14 @@ public class RemoteServiceConvention(
 
     protected virtual void ConfigureSelector(ControllerModel controller)
     {
+        var setting = GetControllerSettingOrNull(controller.ControllerType.AsType());
+        var rootPath = setting?.RootPath ?? "api";
+
         foreach (var action in controller.Actions)
         {
             var httpVerb = applicationServiceActionHelper.GetHttpVerb(action);
-            var routeMode = new AttributeRouteModel(
-                new RouteAttribute(applicationServiceActionHelper.GetRoute(action, httpVerb))
-            );
+            var route = applicationServiceActionHelper.GetRoute(action, httpVerb, rootPath);
+            var routeMode = new AttributeRouteModel(new RouteAttribute(route));
             var selectorModel = new SelectorModel
             {
                 AttributeRouteModel = routeMode,
@@ -68,6 +72,7 @@ public class RemoteServiceConvention(
             }
             else
             {
+                // normal selector
                 foreach (var selector in action.Selectors)
                 {
                     selector.AttributeRouteModel ??= routeMode;
@@ -135,5 +140,12 @@ public class RemoteServiceConvention(
         }
 
         return true;
+    }
+
+    protected virtual ApplicationService2ControllerSetting? GetControllerSettingOrNull(Type controllerType)
+    {
+        return Options.ConventionalControllerSettings
+            .FirstOrDefault(controllerSetting =>
+                controllerSetting.ControllerTypes.Contains(controllerType));
     }
 }

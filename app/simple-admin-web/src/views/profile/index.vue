@@ -133,8 +133,8 @@ const userInfo = computed(() => userStore.userInfo)
 function getAvatarUrl(avatar: string | null | undefined): string | undefined {
   if (!avatar) return undefined
   if (avatar.startsWith('http')) return avatar
-  // 相对路径，拼接后端地址
-  return `http://localhost:5281${avatar}`
+  // 相对路径，通过 vite 代理访问
+  return avatar
 }
 
 // 用户名编辑

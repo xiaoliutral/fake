@@ -2,10 +2,8 @@ using Microsoft.AspNetCore.Mvc.ApplicationModels;
 
 namespace Fake.AspNetCore.Mvc.Conventions;
 
-public class ApplicationServiceActionHelper(IOptions<ApplicationService2ControllerOptions> options)
-    : IApplicationServiceActionHelper
+public class ApplicationServiceActionHelper: IApplicationServiceActionHelper
 {
-    protected ApplicationService2ControllerOptions Options { get; } = options.Value;
 
     public static Dictionary<string, string[]> HttpMethodPrefixes { get; set; } = new()
     {
@@ -20,9 +18,9 @@ public class ApplicationServiceActionHelper(IOptions<ApplicationService2Controll
 
     public const string AsyncPostfix = "Async";
 
-    public string GetRoute(ActionModel action, string httpVerb)
+    public string GetRoute(ActionModel action, string httpVerb, string rootPath)
     {
-        var url = $"{Options.RootPath}/{action.Controller.ControllerName.ToKebabCase()}";
+        var url = $"{rootPath}/{action.Controller.ControllerName.ToKebabCase()}";
 
         var actionUrl = action.ActionName.RemovePostfix(AsyncPostfix);
         var prefixes = HttpMethodPrefixes.GetOrDefault(httpVerb);

@@ -9,7 +9,7 @@ public static class FakeClaimsPrincipalExtensions
     {
         ThrowHelper.ThrowIfNull(principal, nameof(principal));
 
-        var userId = principal.Claims?.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+        var userId = principal.Claims?.FirstOrDefault(c => c.Type == FakeClaimTypes.UserId);
         if (userId == null || userId.Value.IsNullOrWhiteSpace())
         {
             return null;

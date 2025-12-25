@@ -2,7 +2,7 @@ using Fake.Rbac.Application.Dtos.Auth;
 using Fake.Rbac.Application.Dtos.User;
 using Microsoft.AspNetCore.Http;
 
-namespace Fake.Rbac.Application.Services.Auth;
+namespace Fake.Rbac.Application.Services;
 
 /// <summary>
 /// 认证服务接口

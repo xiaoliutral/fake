@@ -1,12 +1,11 @@
-using System.Security.Claims;
 using Fake.Application;
 using Fake.Domain.Exceptions;
 using Fake.ObjectMapping;
 using Fake.Rbac.Application.Dtos.Auth;
 using Fake.Rbac.Application.Dtos.User;
+using Fake.Rbac.Application.Jwt;
 using Fake.Rbac.Domain.Managers;
 using Fake.Rbac.Domain.UserAggregate;
-using Fake.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -14,7 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
-namespace Fake.Rbac.Application.Services.Auth;
+namespace Fake.Rbac.Application.Services;
 
 /// <summary>
 /// 认证服务
@@ -27,7 +26,6 @@ public class AuthService(
     IMenuService menuService,
     IObjectMapper objectMapper,
     IJwtService jwtService,
-    ICurrentUser currentUser,
     IUserRepository userRepository,
     IWebHostEnvironment webHostEnvironment)
     : ApplicationService, IAuthService
@@ -38,7 +36,7 @@ public class AuthService(
         // 验证用户凭证
         var user = await accountManager.ValidateCredentialsAsync(account, password, cancellationToken);
         
-        var claims = await GenerateClaimsByUserId(user.Id, cancellationToken);
+        var claims = await jwtService.GenerateClaimsByUserIdAsync(user.Id, cancellationToken);
         
         // 生成 JWT Token
         var accessToken = jwtService.GenerateAccessToken(claims);
@@ -52,26 +50,6 @@ public class AuthService(
             ExpiresIn = jwtService.GetExpiresInSeconds(),
             UserId = user.Id
         };
-    }
-
-    protected virtual async Task<List<Claim>> GenerateClaimsByUserId(Guid userId, CancellationToken cancellationToken)
-    {
-        // 获取用户角色
-        var roles = await userService.GetUserRolesAsync(userId, cancellationToken);
-        var roleCodes = roles.Select(r => r.Code).ToList();
-        
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, userId.ToString()),
-        };
-
-        // 添加角色声明
-        foreach (var role in roleCodes)
-        {
-            claims.Add(new Claim(ClaimTypes.Role, role));
-        }
-
-        return claims;
     }
 
     [AllowAnonymous]
@@ -92,7 +70,7 @@ public class AuthService(
         // 验证用户凭证
         var user = await userRepository.FirstAsync(x => x.Id == userId, cancellationToken);
         
-        var claims = await GenerateClaimsByUserId(user.Id, cancellationToken);
+        var claims = await jwtService.GenerateClaimsByUserIdAsync(user.Id, cancellationToken);
         
         // 生成新的 Token
         var newAccessToken = jwtService.GenerateAccessToken(claims);
@@ -110,13 +88,13 @@ public class AuthService(
 
     public virtual async Task<UserInfoDto> GetCurrentUserAsync(CancellationToken cancellationToken = default)
     {
-        var userId = currentUser.Id ?? throw new UnauthorizedAccessException("用户未登录");
+        var userId = CurrentUser.Id ?? throw new UnauthorizedAccessException("用户未登录");
         return await GetUserInfoAsync(userId, cancellationToken);
     }
 
     public virtual async Task ChangePasswordAsync(string oldPassword, string newPassword, CancellationToken cancellationToken = default)
     {
-        var userId = currentUser.Id ?? throw new UnauthorizedAccessException("用户未登录");
+        var userId = CurrentUser.Id ?? throw new UnauthorizedAccessException("用户未登录");
         await accountManager.UpdatePasswordAsync(userId, oldPassword, newPassword, cancellationToken);
     }
 
@@ -141,7 +119,7 @@ public class AuthService(
     
     public virtual async Task<UserInfoDto> UpdateProfileAsync(string? name, string? email, CancellationToken cancellationToken = default)
     {
-        var userId = currentUser.Id ?? throw new UnauthorizedAccessException("用户未登录");
+        var userId = CurrentUser.Id ?? throw new UnauthorizedAccessException("用户未登录");
         
         var user = await userRepository.FirstAsync(u => u.Id == userId, cancellationToken: cancellationToken);
         user.Update(name, email);
@@ -153,7 +131,7 @@ public class AuthService(
 
     public virtual async Task<string> UploadAvatarAsync(IFormFile file, CancellationToken cancellationToken = default)
     {
-        var userId = currentUser.Id ?? throw new UnauthorizedAccessException("用户未登录");
+        var userId = CurrentUser.Id ?? throw new UnauthorizedAccessException("用户未登录");
         
         // 验证文件
         if (file == null || file.Length == 0)

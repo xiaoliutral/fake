@@ -1,8 +1,10 @@
 ﻿using Fake.AspNetCore.ExceptionHandling;
 using Fake.AspNetCore.Http;
 using Fake.AspNetCore.Localization;
+using Fake.AspNetCore.Mvc;
 using Fake.AspNetCore.Mvc.ApiExplorer;
 using Fake.AspNetCore.Mvc.Conventions;
+using Fake.AspNetCore.Mvc.Filters;
 using Fake.AspNetCore.Security.Claims;
 using Fake.AspNetCore.VirtualFileSystem;
 using Fake.Authorization;
@@ -80,7 +82,7 @@ public class FakeAspNetCoreModule : FakeModule
         // Add feature providers
         var partManager = context.Services.GetInstance<ApplicationPartManager>();
         var application = context.Services.GetInstance<IFakeApplication>();
-        partManager.FeatureProviders.Add(new RemoteServiceControllerFeatureProvider(application));
+        partManager.FeatureProviders.Add(new ApplicationServiceControllerFeatureProvider(application));
         partManager.ApplicationParts.TryAdd(new AssemblyPart(typeof(FakeAspNetCoreModule).Assembly));
 
         context.Services.AddTransient<IActionDescriptorProvider, ApplicationServiceActionDescriptorProvider>();
@@ -88,11 +90,14 @@ public class FakeAspNetCoreModule : FakeModule
         context.Services.AddOptions<MvcOptions>()
             .Configure(options =>
             {
-                var conventionOptions =
-                    context.Services.GetRequiredService<IOptions<ApplicationService2ControllerOptions>>();
+                // 应用服务约定
+                var conventionOptions = context.Services.GetRequiredService<IOptions<FakeAspNetCoreMvcOptions>>();
                 var actionConventional = context.Services.GetRequiredService<IApplicationServiceActionHelper>();
+                options.Conventions.Add(new ApplicationService2ControllerConvention(conventionOptions, actionConventional));
 
-                options.Conventions.Add(new RemoteServiceConvention(conventionOptions, actionConventional));
+                options.Filters.Add<FakeValidationActionFilter>();
+                options.Filters.Add<FakeUnitOfWorkActionFilter>();
+                options.Filters.Add<FakeExceptionFilter>();
             });
         context.Services.AddTransient<IApplicationServiceActionHelper, ApplicationServiceActionHelper>();
     }
