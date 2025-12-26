@@ -14,7 +14,6 @@ using Fake.Rbac.Application.Jwt;
 namespace SimpleAdmin.Api;
 
 [DependsOn(
-    typeof(FakeAspNetCoreModule),
     typeof(FakeAutofacModule),
     typeof(FakeRbacApplicationModule),
     typeof(FakeRbacInfrastructureModule)

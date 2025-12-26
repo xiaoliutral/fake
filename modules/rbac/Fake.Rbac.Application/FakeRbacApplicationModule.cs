@@ -1,3 +1,4 @@
+using Fake.AspNetCore;
 using Fake.Modularity;
 using Fake.ObjectMapping.AutoMapper;
 using Microsoft.Extensions.DependencyInjection;
@@ -5,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Fake.Rbac.Application;
 
 [DependsOn(
+    typeof(FakeAspNetCoreModule),
     typeof(FakeRbacDomainModule),
     typeof(FakeObjectMappingAutoMapperModule)
 )]

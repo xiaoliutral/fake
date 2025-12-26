@@ -20,7 +20,7 @@ foreach ($dir in $directories) {
         Set-Location $dirPath
         Write-Host "Executing command in $dirPath"
         dotnet build
-        dotnet pack /p:Version=8.0.0-preview20 -c Debug --output "$outputPath"
+        dotnet pack /p:Version=8.0.0 -c Debug --output "$outputPath"
     } -ArgumentList $dir.FullName, "$currentDirectory\packages"
 }
 
