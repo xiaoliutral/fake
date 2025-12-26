@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Fake.AspNetCore.Authentication;
 using Fake.DependencyInjection;
 using Fake.Rbac.Application.Jwt;
 using Fake.Rbac.Application.Services;

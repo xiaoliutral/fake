@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Fake.AspNetCore.Authentication;
 using Fake.DependencyInjection;
 using Fake.Rbac.Application.Services;
 using Microsoft.Extensions.Options;

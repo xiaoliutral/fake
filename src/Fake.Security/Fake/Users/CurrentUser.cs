@@ -13,7 +13,7 @@ public class CurrentUser(ICurrentPrincipalAccessor currentPrincipalAccessor) : I
 
     public virtual T? GetId<T>()
     {
-        var claimValue = FindClaimOrNull(ClaimTypes.NameIdentifier)?.Value;
+        var claimValue = FindClaimOrNull(FakeClaimTypes.UserId)?.Value;
         if (string.IsNullOrWhiteSpace(claimValue))
         {
             return default;

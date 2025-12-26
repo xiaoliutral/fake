@@ -39,7 +39,6 @@ public class SimpleAdminApiModule : FakeModule
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         var services = context.Services;
-        var configuration = context.Services.GetConfiguration();
 
         // 配置动态 API - 扫描 RBAC 应用服务
         services.Configure<FakeAspNetCoreMvcOptions>(options =>

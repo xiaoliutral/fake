@@ -1,4 +1,4 @@
-namespace Fake.Rbac.Application.Jwt;
+namespace Fake.AspNetCore.Authentication;
 
 /// <summary>
 /// JWT 配置选项

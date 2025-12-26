@@ -7,6 +7,7 @@
         <ProjectReference Include="..\Fake.Authorization\Fake.Authorization.csproj"/>
         <ProjectReference Include="..\Fake.DomainDrivenDesign\Fake.DomainDrivenDesign.csproj"/>
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.21" />
     </ItemGroup>
     <ItemGroup>
         <EmbeddedResource Include="Fake\AspNetCore\Localization\*.json"/>
