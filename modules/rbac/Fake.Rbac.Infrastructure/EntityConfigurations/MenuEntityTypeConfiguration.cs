@@ -17,6 +17,7 @@ public class MenuEntityTypeConfiguration: IEntityTypeConfiguration<Menu>
             .HasMaxLength(64);
 
         builder.Property(m => m.PermissionCode)
+            .IsRequired()
             .HasMaxLength(64);
 
         builder.Property(m => m.Type)
@@ -51,7 +52,9 @@ public class MenuEntityTypeConfiguration: IEntityTypeConfiguration<Menu>
         builder.Ignore(m => m.Children);
 
         builder.HasIndex(m => m.Name);
-        builder.HasIndex(m => m.PermissionCode);
+        // PermissionCode 唯一索引
+        // MySQL 的唯一索引默认允许多个 NULL 值，所以不需要额外的过滤条件
+        builder.HasIndex(m => m.PermissionCode).IsUnique();
         builder.HasIndex(m => m.PId); // Index for parent lookups
     }
 }

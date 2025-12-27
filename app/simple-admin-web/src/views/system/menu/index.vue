@@ -43,7 +43,8 @@
         </template>
 
         <template v-else-if="column.key === 'icon'">
-          <component v-if="record.icon" :is="getIcon(record.icon)" />
+          <component v-if="record.icon && getIconComponent(record.icon)" :is="getIconComponent(record.icon)" />
+          <span v-else-if="record.icon" class="icon-text">{{ record.icon }}</span>
         </template>
 
         <template v-else-if="column.key === 'isHidden'">
@@ -125,7 +126,20 @@
         </a-form-item>
 
         <a-form-item v-if="formState.type === 1" label="图标" name="icon">
-          <a-input v-model:value="formState.icon" placeholder="请输入图标名称" />
+          <a-select
+            v-model:value="formState.icon"
+            placeholder="请选择图标"
+            allow-clear
+            show-search
+            :filter-option="filterIconOption"
+          >
+            <a-select-option v-for="icon in iconList" :key="icon.name" :value="icon.name">
+              <span class="icon-option">
+                <component :is="icon.component" />
+                <span class="icon-name">{{ icon.name }}</span>
+              </span>
+            </a-select-option>
+          </a-select>
         </a-form-item>
 
         <a-form-item v-if="formState.type === 1" label="路由" name="route">
@@ -165,7 +179,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, type Component as VueComponent } from 'vue'
 import { message } from 'ant-design-vue'
 import { MenuService } from '@/api'
 import type { MenuDto, MenuTreeDto, MenuCreateDto, MenuUpdateDto, MenuType } from '@/api'
@@ -190,6 +204,77 @@ const columns: TableColumnsType = [
   { title: '操作', key: 'action', width: 280 }
 ]
 
+// 图标名称映射
+const iconNameMap: Record<string, string> = {
+  'setting': 'SettingOutlined',
+  'user': 'UserOutlined',
+  'team': 'TeamOutlined',
+  'menu': 'MenuOutlined',
+  'apartment': 'ApartmentOutlined',
+  'dashboard': 'DashboardOutlined',
+  'home': 'HomeOutlined',
+  'file': 'FileOutlined',
+  'folder': 'FolderOutlined',
+  'database': 'DatabaseOutlined',
+  'cloud': 'CloudOutlined',
+  'api': 'ApiOutlined',
+  'bell': 'BellOutlined',
+  'calendar': 'CalendarOutlined',
+  'profile': 'ProfileOutlined',
+  'table': 'TableOutlined',
+  'form': 'FormOutlined',
+  'key': 'KeyOutlined',
+  'lock': 'LockOutlined',
+  'safety': 'SafetyOutlined',
+  'tool': 'ToolOutlined'
+}
+
+// 获取图标组件
+function getIconComponent(iconName: string | null | undefined): VueComponent | null {
+  if (!iconName) return null
+  
+  let mappedName = iconNameMap[iconName.toLowerCase()]
+  
+  if (!mappedName) {
+    if (iconName.includes('Outlined') || iconName.includes('Filled') || iconName.includes('TwoTone')) {
+      mappedName = iconName
+    } else {
+      mappedName = iconName.charAt(0).toUpperCase() + iconName.slice(1) + 'Outlined'
+    }
+  }
+  
+  const icon = (Icons as Record<string, VueComponent>)[mappedName]
+  return icon || null
+}
+
+// 常用图标列表
+const iconList = computed(() => {
+  const commonIcons = [
+    'SettingOutlined', 'UserOutlined', 'TeamOutlined', 'MenuOutlined', 'ApartmentOutlined',
+    'DashboardOutlined', 'HomeOutlined', 'FileOutlined', 'FolderOutlined', 'DatabaseOutlined',
+    'CloudOutlined', 'ApiOutlined', 'BellOutlined', 'CalendarOutlined', 'ProfileOutlined',
+    'TableOutlined', 'FormOutlined', 'KeyOutlined', 'LockOutlined', 'SafetyOutlined',
+    'ToolOutlined', 'ShopOutlined', 'ShoppingCartOutlined', 'GiftOutlined', 'WalletOutlined',
+    'BankOutlined', 'AuditOutlined', 'SolutionOutlined', 'IdcardOutlined', 'ContactsOutlined',
+    'ScheduleOutlined', 'FileTextOutlined', 'ClusterOutlined', 'GlobalOutlined', 'EnvironmentOutlined',
+    'RocketOutlined', 'ExperimentOutlined', 'BugOutlined', 'CodeOutlined', 'BuildOutlined',
+    'BlockOutlined', 'LayoutOutlined', 'AppstoreOutlined', 'PieChartOutlined', 'BarChartOutlined',
+    'LineChartOutlined', 'FundOutlined', 'MoneyCollectOutlined', 'InsuranceOutlined',
+    'EditOutlined', 'DeleteOutlined', 'SaveOutlined', 'CopyOutlined', 'UploadOutlined',
+    'DownloadOutlined', 'EyeOutlined', 'SearchOutlined', 'PlusOutlined', 'MinusOutlined'
+  ]
+  
+  return commonIcons.map(name => ({
+    name,
+    component: (Icons as Record<string, VueComponent>)[name]
+  })).filter(item => item.component)
+})
+
+// 图标搜索过滤
+function filterIconOption(input: string, option: any) {
+  return option.value.toLowerCase().includes(input.toLowerCase())
+}
+
 // 表单相关
 const modalVisible = ref(false)
 const modalLoading = ref(false)
@@ -201,7 +286,7 @@ const currentId = ref('')
 const formState = reactive<MenuCreateDto>({
   pId: undefined,
   name: '',
-  type: 1, // MenuType = 1 | 2
+  type: 1,
   permissionCode: '',
   icon: '',
   route: '',
@@ -214,12 +299,11 @@ const formState = reactive<MenuCreateDto>({
 
 const formRules = {
   name: [{ required: true, message: '请输入菜单名称', trigger: 'blur' }],
-  type: [{ required: true, message: '请选择菜单类型', trigger: 'change' }]
+  type: [{ required: true, message: '请选择菜单类型', trigger: 'change' }],
+  permissionCode: [{ required: true, message: '请输入权限编码', trigger: 'blur' }]
 }
 
-const menuTreeData = computed(() => {
-  return dataSource.value
-})
+const menuTreeData = computed(() => dataSource.value)
 
 onMounted(() => {
   loadData()
@@ -229,7 +313,6 @@ async function loadData() {
   loading.value = true
   try {
     dataSource.value = await MenuService.getRbacMenuGetMenuTree()
-    // 默认展开前两级
     expandedKeys.value = getDefaultExpandedKeys(dataSource.value, 2)
   } catch (error) {
     handleApiError(error)
@@ -238,40 +321,33 @@ async function loadData() {
   }
 }
 
-// 获取默认展开的节点（展开前 N 级）
 function getDefaultExpandedKeys(data: MenuTreeDto[], maxLevel: number, currentLevel = 1): string[] {
   const keys: string[] = []
   if (currentLevel > maxLevel) return keys
-  
   data.forEach(item => {
     if (item.id && item.children && item.children.length > 0) {
       keys.push(item.id)
-      // 递归获取子节点
       keys.push(...getDefaultExpandedKeys(item.children, maxLevel, currentLevel + 1))
     }
   })
   return keys
 }
 
-// 处理展开/收起
 function handleExpand(expanded: boolean, record: MenuTreeDto) {
   if (expanded) {
     if (record.id && !expandedKeys.value.includes(record.id)) {
       expandedKeys.value.push(record.id)
     }
   } else {
-    // 收起时，同时收起所有子节点
     if (record.id) {
       const keysToRemove = new Set<string>([record.id])
       const collectChildKeys = (item: MenuTreeDto) => {
-        if (item.children) {
-          item.children.forEach(child => {
-            if (child.id) {
-              keysToRemove.add(child.id)
-              collectChildKeys(child)
-            }
-          })
-        }
+        item.children?.forEach(child => {
+          if (child.id) {
+            keysToRemove.add(child.id)
+            collectChildKeys(child)
+          }
+        })
       }
       collectChildKeys(record)
       expandedKeys.value = expandedKeys.value.filter(key => !keysToRemove.has(key))
@@ -344,9 +420,7 @@ async function handleModalOk() {
     modalVisible.value = false
     loadData()
   } catch (error: any) {
-    if (error.errorFields) {
-      return
-    }
+    if (error.errorFields) return
     handleApiError(error)
   } finally {
     modalLoading.value = false
@@ -364,28 +438,18 @@ async function handleDelete(id: string | undefined) {
   }
 }
 
-function getIcon(iconName: string) {
-  return (Icons as any)[iconName] || null
-}
-
-// 展开全部
 function expandAll() {
   const getAllKeys = (data: MenuTreeDto[]): string[] => {
     const keys: string[] = []
     data.forEach(item => {
-      if (item.id) {
-        keys.push(item.id)
-      }
-      if (item.children && item.children.length > 0) {
-        keys.push(...getAllKeys(item.children))
-      }
+      if (item.id) keys.push(item.id)
+      if (item.children?.length) keys.push(...getAllKeys(item.children))
     })
     return keys
   }
   expandedKeys.value = getAllKeys(dataSource.value)
 }
 
-// 收起全部
 function collapseAll() {
   expandedKeys.value = []
 }
@@ -393,7 +457,6 @@ function collapseAll() {
 
 <style scoped>
 .menu-page {
-  padding: 24px;
   background: #fff;
   border-radius: 8px;
 }
@@ -402,5 +465,21 @@ function collapseAll() {
   display: flex;
   justify-content: space-between;
   margin-bottom: 16px;
+}
+
+.icon-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-name {
+  font-size: 12px;
+  color: #666;
+}
+
+.icon-text {
+  font-size: 12px;
+  color: #999;
 }
 </style>

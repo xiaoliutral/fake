@@ -14,7 +14,7 @@ public class Menu: FullAuditedAggregateRoot<Guid>
     /// <summary>
     /// 权限代码
     /// </summary>
-    public string? PermissionCode { get; private set; }
+    public string PermissionCode { get; private set; } = null!;
     
     /// <summary>
     /// 权限类型

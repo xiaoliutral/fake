@@ -248,8 +248,8 @@ const staticMenus: ItemType[] = [
   {
     key: '/dashboard',
     icon: () => h(DashboardOutlined),
-    label: '首页',
-    title: '首页'
+    label: 'Dashboard',
+    title: 'Dashboard'
   }
 ]
 
@@ -348,11 +348,31 @@ function handleLogout() {
 
 <style scoped>
 .basic-layout {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .layout-sider {
   box-shadow: 2px 0 8px 0 rgba(29, 35, 41, 0.05);
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.layout-sider :deep(.ant-layout-sider-children) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.layout-sider :deep(.ant-menu) {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .logo {
@@ -363,6 +383,7 @@ function handleLogout() {
   background: rgba(255, 255, 255, 0.1);
   margin: 16px;
   border-radius: 8px;
+  flex-shrink: 0;
 }
 
 .logo-text {
@@ -377,6 +398,17 @@ function handleLogout() {
   font-weight: bold;
 }
 
+.basic-layout > :deep(.ant-layout) {
+  margin-left: 220px;
+  transition: margin-left 0.2s;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.basic-layout:has(.ant-layout-sider-collapsed) > :deep(.ant-layout) {
+  margin-left: 80px;
+}
+
 .layout-header {
   background: #fff;
   padding: 0 24px;
@@ -384,6 +416,7 @@ function handleLogout() {
   align-items: center;
   justify-content: space-between;
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  flex-shrink: 0;
 }
 
 .header-left {
@@ -442,7 +475,8 @@ function handleLogout() {
   padding: 24px;
   background: #fff;
   border-radius: 8px;
-  min-height: calc(100vh - 112px);
+  overflow-y: auto;
+  height: calc(100vh - 64px - 48px);
 }
 
 .fade-enter-active,

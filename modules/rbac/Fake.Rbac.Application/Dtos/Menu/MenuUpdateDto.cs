@@ -16,8 +16,9 @@ public class MenuUpdateDto
     /// <summary>
     /// 权限代码
     /// </summary>
+    [Required(ErrorMessage = "权限代码不能为空")]
     [StringLength(100, ErrorMessage = "权限代码长度不能超过100")]
-    public string? PermissionCode { get; set; }
+    public string PermissionCode { get; set; } = string.Empty;
     
     /// <summary>
     /// 图标

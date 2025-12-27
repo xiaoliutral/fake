@@ -78,6 +78,9 @@ public class MenuService : ApplicationService, IMenuService
 
     public async Task<MenuDto> CreateAsync(MenuCreateDto input, CancellationToken cancellationToken = default)
     {
+        // 验证权限编码唯一性
+        await ValidatePermissionCodeUniqueAsync(input.PermissionCode, null, cancellationToken);
+
         var menu = _objectMapper.Map<MenuCreateDto, Menu>(input);
         
         await _menuRepository.InsertAsync(menu, cancellationToken: cancellationToken);
@@ -87,6 +90,9 @@ public class MenuService : ApplicationService, IMenuService
 
     public async Task<MenuDto> UpdateAsync(Guid id, MenuUpdateDto input, CancellationToken cancellationToken = default)
     {
+        // 验证权限编码唯一性（排除当前菜单）
+        await ValidatePermissionCodeUniqueAsync(input.PermissionCode, id, cancellationToken);
+
         var menu = await _menuRepository.FirstAsync(m => m.Id == id, cancellationToken: cancellationToken);
 
         menu.Update(input.Name, input.PermissionCode, input.Icon, input.Route, input.Component, 
@@ -163,6 +169,26 @@ public class MenuService : ApplicationService, IMenuService
         }
 
         return rootMenus.OrderBy(m => m.Order).ToList();
+    }
+
+    /// <summary>
+    /// 验证权限编码唯一性
+    /// </summary>
+    private async Task ValidatePermissionCodeUniqueAsync(string permissionCode, Guid? excludeId, CancellationToken cancellationToken)
+    {
+        var queryable = await _menuRepository.GetQueryableAsync(cancellationToken);
+        var query = queryable.Where(m => m.PermissionCode == permissionCode);
+        
+        if (excludeId.HasValue)
+        {
+            query = query.Where(m => m.Id != excludeId.Value);
+        }
+
+        var exists = await query.AnyAsync(cancellationToken);
+        if (exists)
+        {
+            throw new DomainException($"权限编码 '{permissionCode}' 已存在，请使用其他编码");
+        }
     }
 }
 
