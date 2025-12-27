@@ -3,13 +3,9 @@ using Fake.Autofac;
 using Fake.Modularity;
 using Fake.Rbac.Application;
 using Fake.Rbac.Infrastructure;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using System.Text;
 using Fake.AspNetCore.Auditing;
 using Fake.AspNetCore.Mvc;
-using Fake.Rbac.Application.Jwt;
 
 namespace SimpleAdmin.Api;
 
@@ -20,21 +16,7 @@ namespace SimpleAdmin.Api;
 )]
 public class SimpleAdminApiModule : FakeModule
 {
-    public override void PreConfigureServices(ServiceConfigurationContext context)
-    {
-        // 配置 CORS
-        context.Services.AddCors(options =>
-        {
-            options.AddPolicy("Default", policy =>
-            {
-                policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5281")
-                    .AllowAnyHeader()
-                    .AllowAnyMethod()
-                    .AllowCredentials();
-            });
-        });
-    }
-
+    private const string DefaultCorsPolicyName = "default";
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         var services = context.Services;
@@ -50,7 +32,8 @@ public class SimpleAdminApiModule : FakeModule
 
         services.AddFakeAspNetCoreAuditing();
 
-        ConfigureSwagger(services);
+        ConfigureSwagger(context);
+        ConfigureCors(context);
     }
 
     public override void ConfigureApplication(ApplicationConfigureContext context)
@@ -85,10 +68,10 @@ public class SimpleAdminApiModule : FakeModule
         app.MapControllers();
     }
 
-    private static void ConfigureSwagger(IServiceCollection services)
+    private static void ConfigureSwagger(ServiceConfigurationContext context)
     {
         // 添加 Fake Swagger 支持
-        services.AddFakeSwaggerGen(options =>
+        context.Services.AddFakeSwaggerGen(options =>
         {
             options.SwaggerDoc("v1", new OpenApiInfo
             {
@@ -121,6 +104,22 @@ public class SimpleAdminApiModule : FakeModule
                     },
                     []
                 }
+            });
+        });
+    }
+    
+    
+    private static void ConfigureCors(ServiceConfigurationContext context)
+    {
+        var configuration = context.Services.GetConfiguration();
+        context.Services.AddCors(options =>
+        {
+            options.AddPolicy(DefaultCorsPolicyName, builder =>
+            {
+                builder.WithOrigins(configuration.GetSection("App:CorsOrigins").Get<string[]>() ?? [])
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();
             });
         });
     }

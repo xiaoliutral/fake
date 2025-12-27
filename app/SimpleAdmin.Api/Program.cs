@@ -9,6 +9,7 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
+    builder.WebHost.UseUrls(builder.Configuration.GetSection("App:Urls").Get<string[]>() ?? []);
     builder.Host.UseAutofac().UseSerilog();
     builder.Services.AddApplication<SimpleAdminApiModule>();
 
