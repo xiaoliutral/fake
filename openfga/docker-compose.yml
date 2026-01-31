@@ -1,0 +1,14 @@
+version: '3.9'
+services:
+  openfga:
+    image: openfga/openfga:latest
+    command: ["run", "--playground-enabled"]
+    ports:
+      - "8080:8080"   # HTTP API
+      - "8081:8081"   # gRPC
+      - "3000:3000"   # Playground UI
+    environment:
+      OPENFGA_LOG_LEVEL: debug
+      OPENFGA_DATASTORE_ENGINE: memory
+
+
