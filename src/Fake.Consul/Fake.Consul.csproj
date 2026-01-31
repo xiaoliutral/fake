@@ -6,8 +6,9 @@
     <ItemGroup>
         <ProjectReference Include="..\Fake.Core\Fake.Core.csproj"/>
     </ItemGroup>
+
     <ItemGroup>
-        <PackageReference Include="Winton.Extensions.Configuration.Consul" Version="3.3.0"/>
+      <PackageReference Include="Consul" Version="1.7.14.9" />
     </ItemGroup>
 
 </Project>

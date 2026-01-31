@@ -1,6 +1,7 @@
 ﻿using Consul;
 using Fake;
 using Fake.Consul;
+using Fake.Consul.Configuration;
 using Microsoft.Extensions.Configuration;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -13,24 +14,19 @@ public static class ConsulServiceCollectionExtensions
     /// <param name="services"></param>
     /// <param name="action"></param>
     internal static IServiceCollection AddConsul(this IServiceCollection services,
-        Action<FakeConsulClientOptions>? action = null)
+        Action<ConsulClientConfiguration>? action = null)
     {
         var configuration = services.GetConfiguration();
-        services.Configure<FakeConsulClientOptions>(configuration.GetSection("Consul:Client"));
+        services.Configure<ConsulClientConfiguration>(configuration.GetSection("Consul:Client"));
 
-        var consulClientOptions = configuration.Get<FakeConsulClientOptions>() ?? new FakeConsulClientOptions();
+        var consulClientOptions = configuration.Get<ConsulClientConfiguration>() ?? new ConsulClientConfiguration();
         ThrowHelper.ThrowIfNull(consulClientOptions, nameof(consulClientOptions), "Consul配置为空");
         action?.Invoke(consulClientOptions);
+        services.AddSingleton<IConsulClient, ConsulClient>(_ => new ConsulClient(consulClientOptions));
 
+        // 服务注册
         services.Configure<FakeConsulRegisterOptions>(configuration.GetSection("Consul:Register"));
-
-        services.AddSingleton<IConsulClient, ConsulClient>(_ => new ConsulClient(consulConfig =>
-        {
-            consulConfig.Address = consulClientOptions.Address;
-            consulConfig.Datacenter = consulClientOptions.Datacenter;
-            consulConfig.Token = consulClientOptions.Token;
-        }));
-
+        
         return services;
     }
 }

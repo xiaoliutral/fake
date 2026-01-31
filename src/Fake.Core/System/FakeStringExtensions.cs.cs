@@ -182,6 +182,11 @@ public static class FakeStringExtensions
     /// <param name="str">The string.</param>
     /// <param name="preFixes">one or more prefix.</param>
     /// <returns>Modified string or the same string if it has not any of given prefixes</returns>
+    /// <code>
+    /// var str = "abv";
+    /// str.RemovePrefix("a"); // "bv"
+    /// str.RemovePrefix("q"); // "abv"
+    /// </code>
     public static string RemovePrefix(this string str, params string[] preFixes)
     {
         return str.RemovePrefix(StringComparison.Ordinal, preFixes);
@@ -194,6 +199,11 @@ public static class FakeStringExtensions
     /// <param name="comparisonType">String comparison type</param>
     /// <param name="preFixes">one or more prefix.</param>
     /// <returns>Modified string or the same string if it has not any of given prefixes</returns>
+    /// <code>
+    /// var str = "abv";
+    /// str.RemovePrefix("a"); // "bv"
+    /// str.RemovePrefix("q"); // "abv"
+    /// </code>
     public static string RemovePrefix(this string str, StringComparison comparisonType, params string[] preFixes)
     {
         if (str.IsNullOrEmpty())

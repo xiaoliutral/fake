@@ -1,35 +1,29 @@
-﻿using Fake;
-using Fake.Consul;
-using Winton.Extensions.Configuration.Consul;
+﻿using Consul;
+using Fake;
+using Fake.Consul.Configuration;
 
 namespace Microsoft.Extensions.Configuration;
 
 public static class ConsulConfigurationBuilderExtensions
 {
     /// <summary>
-    /// 加载Consul上的配置文件
+    /// 加载Consul上的配置文件，根据key
     /// </summary>
     /// <returns></returns>
-    public static IConfigurationRoot AddConfigurationFromConsul(this IConfigurationBuilder builder)
+    public static IConfigurationBuilder AddConsul(this IConfigurationBuilder builder, string key,
+        Action<ConsulConfigurationSource>? options = null)
     {
         var configuration = builder.Build();
-        var consulClientOptions = configuration.GetSection("Consul").Get<FakeConsulClientOptions>() ??
-                                  new FakeConsulClientOptions();
-        ThrowHelper.ThrowIfNullOrWhiteSpace(consulClientOptions.ConfigFileName);
-        // 加载Consul上的配置文件
-        builder.AddConsul(consulClientOptions.ConfigFileName!, sources =>
-        {
-            sources.ConsulConfigurationOptions = options =>
-            {
-                options.Address = consulClientOptions.Address;
-                options.Datacenter = consulClientOptions.Datacenter;
-                options.Token = consulClientOptions.Token;
-            };
-            sources.Optional = true;
-            sources.ReloadOnChange = true; // hot-update
-        });
+        var consulClientConfiguration = configuration.GetSection("Consul:Client").Get<ConsulClientConfiguration>() ??
+                                        new ConsulClientConfiguration();
+        ThrowHelper.ThrowIfNullOrWhiteSpace(key);
 
 
-        return builder.Build();
+        var consulClient = new ConsulClient(consulClientConfiguration);
+        var consulConfigSource = new ConsulConfigurationSource(consulClient, key);
+        options?.Invoke(consulConfigSource);
+        builder.Add(consulConfigSource);
+
+        return builder;
     }
 }

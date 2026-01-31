@@ -6,23 +6,16 @@ using Newtonsoft.Json;
 
 namespace Fake.Consul;
 
-public class ConsulHostedService : IHostedService
+public class ConsulHostedService(
+    ILogger<ConsulHostedService> logger,
+    IConsulClient consulClient,
+    IOptions<FakeConsulRegisterOptions> options,
+    IApplicationInfo applicationInfo)
+    : IHostedService
 {
-    private readonly ILogger<ConsulHostedService> _logger;
-    private readonly IConsulClient _consulClient;
-    private readonly IApplicationInfo _applicationInfo;
-    private readonly FakeConsulRegisterOptions _fakeConsulRegisterOptions;
+    private readonly FakeConsulRegisterOptions _fakeConsulRegisterOptions = options.Value;
     private CancellationTokenSource _consulCancellationToken = null!;
     private string _serviceId = null!;
-
-    public ConsulHostedService(ILogger<ConsulHostedService> logger, IConsulClient consulClient,
-        IOptions<FakeConsulRegisterOptions> options, IApplicationInfo applicationInfo)
-    {
-        _logger = logger;
-        _consulClient = consulClient;
-        _applicationInfo = applicationInfo;
-        _fakeConsulRegisterOptions = options.Value;
-    }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -32,29 +25,29 @@ public class ConsulHostedService : IHostedService
 
         #region 服务注销，防止重复注册
 
-        var services = await _consulClient.Catalog.Service(_applicationInfo.ApplicationName, linkedToken);
+        var services = await consulClient.Catalog.Service(applicationInfo.ApplicationName, linkedToken);
 
         var targets = services.Response.Where(x =>
             x.ServiceAddress == _fakeConsulRegisterOptions.Host && x.ServicePort == _fakeConsulRegisterOptions.Port);
 
         foreach (var service in targets)
         {
-            await _consulClient.Agent.ServiceDeregister(service.ServiceID, linkedToken);
+            await consulClient.Agent.ServiceDeregister(service.ServiceID, linkedToken);
         }
 
         #endregion
 
 
         var registration = BuildRegistration();
-        await _consulClient.Agent.ServiceRegister(registration, linkedToken);
-        _logger.LogInformation("Consul注册已完成 {Message}", JsonConvert.SerializeObject(_fakeConsulRegisterOptions));
+        await consulClient.Agent.ServiceRegister(registration, linkedToken);
+        logger.LogInformation("Consul注册已完成 {Message}", JsonConvert.SerializeObject(_fakeConsulRegisterOptions));
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         _consulCancellationToken.Cancel();
-        await _consulClient.Agent.ServiceDeregister(_serviceId, cancellationToken);
-        _logger.LogInformation("Consul已注销");
+        await consulClient.Agent.ServiceDeregister(_serviceId, cancellationToken);
+        logger.LogInformation("Consul已注销");
     }
 
 
@@ -76,7 +69,7 @@ public class ConsulHostedService : IHostedService
         var registration = new AgentServiceRegistration()
         {
             ID = _serviceId, // 服务唯一Id
-            Name = _applicationInfo.ApplicationName, // 服务组名称
+            Name = applicationInfo.ApplicationName, // 服务组名称
             Address = _fakeConsulRegisterOptions.Host, // 服务主机
             Port = _fakeConsulRegisterOptions.Port, // 服务端口
             Tags = _fakeConsulRegisterOptions.Tags, // 一组标签

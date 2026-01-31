@@ -1,8 +1,9 @@
 using ConsulServerDemo;
+using Fake.Consul.Configuration.Parsers;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration.AddConfigurationFromConsul();
+builder.Configuration.AddConsul("a/b/c", options => { options.Parser = new YamlConfigurationParser(); });
 builder.Services.AddApplication<ConsulServerDemoModule>();
 var app = builder.Build();
 app.InitializeApplication();
