@@ -13,19 +13,21 @@ public static class ConsulConfigurationBuilderExtensions
     public static IConfigurationBuilder AddConsul(this IConfigurationBuilder builder, string key,
         Action<ConsulConfigurationSource>? options = null)
     {
-        var configuration = builder.Build();
-        var consulClientConfiguration = configuration.GetSection("Consul:Client").Get<ConsulClientConfiguration>() ??
-                                        new ConsulClientConfiguration();
         ThrowHelper.ThrowIfNullOrWhiteSpace(key);
+        var configuration = builder.Sources.Any() ? (ConfigurationManager)builder : builder.Build();
 
         if (configuration.GetSection("UseLocalConfigs").Get<bool>()) return builder;
+
+        var consulClientConfiguration = configuration.GetSection("Consul").Get<ConsulClientConfiguration>() ??
+                                        throw new ArgumentException("Consul is must configured");
 
         var consulClient = new ConsulClient(consulClientConfiguration);
         var consulConfigSource = new ConsulConfigurationSource(consulClient, key);
         options?.Invoke(consulConfigSource);
-        
+
         builder.Add(consulConfigSource);
 
+        builder.Build();
         return builder;
     }
 }

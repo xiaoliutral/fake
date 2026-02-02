@@ -1,7 +1,6 @@
 ﻿using Consul;
 using Fake;
 using Fake.Consul;
-using Fake.Consul.Configuration;
 using Microsoft.Extensions.Configuration;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -17,7 +16,7 @@ public static class ConsulServiceCollectionExtensions
         Action<ConsulClientConfiguration>? action = null)
     {
         var configuration = services.GetConfiguration();
-        services.Configure<ConsulClientConfiguration>(configuration.GetSection("Consul:Client"));
+        services.Configure<ConsulClientConfiguration>(configuration.GetSection("Consul"));
 
         var consulClientOptions = configuration.Get<ConsulClientConfiguration>() ?? new ConsulClientConfiguration();
         ThrowHelper.ThrowIfNull(consulClientOptions, nameof(consulClientOptions), "Consul配置为空");
