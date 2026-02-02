@@ -18,6 +18,7 @@ public static class ConsulConfigurationBuilderExtensions
                                         new ConsulClientConfiguration();
         ThrowHelper.ThrowIfNullOrWhiteSpace(key);
 
+        if (configuration.GetSection("UseLocalConfigs").Get<bool>()) return builder;
 
         var consulClient = new ConsulClient(consulClientConfiguration);
         var consulConfigSource = new ConsulConfigurationSource(consulClient, key);
