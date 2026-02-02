@@ -2,9 +2,9 @@ using Serilog;
 using SimpleAdmin.Api;
 
 var builder = WebApplication.CreateSlimBuilder(args);
-var configuration = builder.Configuration;
+builder.Configuration.AddConsul("itfx/admin");
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(configuration)
+    .ReadFrom.Configuration(builder.Configuration)
     .CreateLogger();
 
 try

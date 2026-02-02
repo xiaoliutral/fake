@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Fake.AspNetCore\Fake.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\Fake.Autofac\Fake.Autofac.csproj" />
+    <ProjectReference Include="..\..\src\Fake.Consul\Fake.Consul.csproj" />
     <ProjectReference Include="..\..\src\Fake.EntityFrameworkCore\Fake.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\..\modules\rbac\Fake.Rbac.Application\Fake.Rbac.Application.csproj" />
     <ProjectReference Include="..\..\modules\rbac\Fake.Rbac.Infrastructure\Fake.Rbac.Infrastructure.csproj" />
