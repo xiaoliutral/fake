@@ -35,23 +35,16 @@ public class ConsulConfigurationProvider(IConsulClient consulClient, ConsulConfi
 
     private async Task DoLoadAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            var result = await GetKvPairs(false, cancellationToken);
+        var result = await GetKvPairs(false, cancellationToken);
 
-            if (result is { StatusCode: HttpStatusCode.OK, Response: not null })
-            {
-                Data = result.Response
-                    .ConvertToConfig(source.Key, source.Parser)
-                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-            }
-
-            SetLastIndex(result);
-        }
-        catch (Exception exception)
+        if (result is { StatusCode: HttpStatusCode.OK, Response: not null })
         {
-            await source.OnLoadException.Invoke(exception);
+            Data = result.Response
+                .ConvertToConfig(source.Key, source.Parser)
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
+
+        SetLastIndex(result);
     }
 
     private async Task<QueryResult<KVPair>> GetKvPairs(bool waitForChange, CancellationToken cancellationToken)
@@ -86,26 +79,19 @@ public class ConsulConfigurationProvider(IConsulClient consulClient, ConsulConfi
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            try
+            var result = await GetKvPairs(true, cancellationToken).ConfigureAwait(false);
+
+            if (result.LastIndex > _lastIndex)
             {
-                var result = await GetKvPairs(true, cancellationToken).ConfigureAwait(false);
+                Data = result.Response
+                    .ConvertToConfig(source.Key, source.Parser)
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
-                if (result.LastIndex > _lastIndex)
-                {
-                    Data = result.Response
-                        .ConvertToConfig(source.Key, source.Parser)
-                        .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-                    // 通知ConfigurationManager重新加载
-                    OnReload();
-                }
-
-                SetLastIndex(result);
+                // 通知ConfigurationManager重新加载
+                OnReload();
             }
-            catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
-            {
-                await source.OnWatchException.Invoke(exception);
-            }
+
+            SetLastIndex(result);
         }
     }
 
@@ -117,7 +103,7 @@ public class ConsulConfigurationProvider(IConsulClient consulClient, ConsulConfi
                 ? 0
                 : result.LastIndex;
     }
-    
+
     public void Dispose()
     {
         if (_disposed)

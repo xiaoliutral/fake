@@ -23,6 +23,7 @@ public static class ConsulConfigurationBuilderExtensions
         var consulClient = new ConsulClient(consulClientConfiguration);
         var consulConfigSource = new ConsulConfigurationSource(consulClient, key);
         options?.Invoke(consulConfigSource);
+        
         builder.Add(consulConfigSource);
 
         return builder;

@@ -2,7 +2,7 @@ using Serilog;
 using SimpleAdmin.Api;
 
 var builder = WebApplication.CreateSlimBuilder(args);
-builder.Configuration.AddConsul("itfx/admin");
+builder.Configuration.AddConsul("itfx/admin", source => source.ReloadOnChange = true);
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .CreateLogger();
