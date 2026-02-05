@@ -10,6 +10,11 @@ public static class FakeSwaggerApplicationBuilderExtensions
         Action<SwaggerOptions>? setupAction = null,
         Action<SwaggerUIOptions>? uiSetupAction = null)
     {
+        
+        var configuration = app.ApplicationServices.GetRequiredService<IConfiguration>();
+        var pathBase = (configuration["ASPNETCORE_PATHBASE"] ?? string.Empty).Trim('/');
+        var pathBaseValue = pathBase.IsNullOrWhiteSpace() ? string.Empty : "/" + pathBase;
+
         //启用swagger中间件
         app.UseSwagger(options =>
         {
@@ -18,7 +23,7 @@ public static class FakeSwaggerApplicationBuilderExtensions
                 var basePath = req.PathBase.HasValue ? req.PathBase.Value : "";
                 doc.Servers = new List<OpenApiServer>
                 {
-                    new() { Url = $"{req.Scheme}://{req.Host.Value}{basePath}" }
+                    new() { Url = $"{req.Scheme}://{req.Host.Value}{pathBaseValue}" }
                 };
             });
             setupAction?.Invoke(options);
@@ -30,10 +35,6 @@ public static class FakeSwaggerApplicationBuilderExtensions
             var apiDescriptionGroups = app.ApplicationServices
                 .GetRequiredService<IApiDescriptionGroupCollectionProvider>().ApiDescriptionGroups.Items;
 
-            var configuration = app.ApplicationServices.GetRequiredService<IConfiguration>();
-            var pathBase = (configuration["ASPNETCORE_PATHBASE"] ?? string.Empty).Trim('/');
-            var pathBaseValue = pathBase.IsNullOrWhiteSpace() ? string.Empty : "/" + pathBase;
-            
             foreach (var description in apiDescriptionGroups)
             {
                 options.SwaggerEndpoint($"{pathBaseValue}/swagger/{description.GroupName}/swagger.json",

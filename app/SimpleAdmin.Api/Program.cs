@@ -1,3 +1,4 @@
+using Fake.Helpers;
 using Serilog;
 using SimpleAdmin.Api;
 
