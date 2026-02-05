@@ -9,16 +9,16 @@ internal sealed class FeiShuLogger : ILogger
 {
     private readonly string _categoryName;
     private readonly Func<FeiShuLoggerConfiguration> _getCurrentConfig;
-    private readonly FeiShuNotificationService _notificationService;
+    private readonly Func<FeiShuNotificationService> _getNotificationService;
 
     public FeiShuLogger(
         string categoryName,
         Func<FeiShuLoggerConfiguration> getCurrentConfig,
-        FeiShuNotificationService notificationService)
+        Func<FeiShuNotificationService> getNotificationService)
     {
         _categoryName = categoryName;
         _getCurrentConfig = getCurrentConfig;
-        _notificationService = notificationService;
+        _getNotificationService = getNotificationService;
     }
 
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => default;
@@ -54,7 +54,7 @@ internal sealed class FeiShuLogger : ILogger
         // 添加分类信息
         var fullMessage = $"[{_categoryName}] {message}";
         
-        _notificationService.Enqueue(fullMessage, GetSubTitle(logLevel));
+        _getNotificationService().Enqueue(fullMessage, GetSubTitle(logLevel));
     }
 
     private bool ShouldSendToFeiShu(LogLevel logLevel, FeiShuLoggerConfiguration config)
