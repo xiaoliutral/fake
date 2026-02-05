@@ -13,18 +13,38 @@ public sealed class FeiShuLoggerProvider : ILoggerProvider
     private readonly IDisposable? _optionsChangeToken;
     private FeiShuLoggerConfiguration _currentConfig;
     private readonly ConcurrentDictionary<string, FeiShuLogger> _loggers = new();
-    private readonly FeiShuNotificationService _notificationService;
+    private FeiShuNotificationService _notificationService;
+    private readonly object _serviceLock = new();
 
     public FeiShuLoggerProvider(IOptionsMonitor<FeiShuLoggerConfiguration> config)
     {
         _currentConfig = config.CurrentValue;
-        _optionsChangeToken = config.OnChange(updatedConfig => _currentConfig = updatedConfig);
         _notificationService = new FeiShuNotificationService(_currentConfig.NotificationOptions);
+        
+        // 监听配置变化，重新创建通知服务
+        _optionsChangeToken = config.OnChange(updatedConfig =>
+        {
+            lock (_serviceLock)
+            {
+                _currentConfig = updatedConfig;
+                
+                // 配置变化时，重新创建通知服务
+                var oldService = _notificationService;
+                _notificationService = new FeiShuNotificationService(updatedConfig.NotificationOptions);
+                oldService?.Dispose();
+            }
+        });
     }
 
     public ILogger CreateLogger(string categoryName)
     {
-        return _loggers.GetOrAdd(categoryName, name => new FeiShuLogger(name, GetCurrentConfig, _notificationService));
+        return _loggers.GetOrAdd(categoryName, name =>
+        {
+            lock (_serviceLock)
+            {
+                return new FeiShuLogger(name, GetCurrentConfig, () => _notificationService);
+            }
+        });
     }
 
     private FeiShuLoggerConfiguration GetCurrentConfig() => _currentConfig;
@@ -33,6 +53,10 @@ public sealed class FeiShuLoggerProvider : ILoggerProvider
     {
         _loggers.Clear();
         _optionsChangeToken?.Dispose();
-        _notificationService.Dispose();
+        
+        lock (_serviceLock)
+        {
+            _notificationService?.Dispose();
+        }
     }
 }

@@ -4,31 +4,67 @@
 
 使用标准的 .NET `ILogger` 接口，通过自定义 `LoggerProvider` 自动将日志发送到飞书，**业务代码无需改动**。
 
+> 💡 **Serilog 用户**：如果你使用 Serilog，请查看 [Serilog 集成文档](./Serilog/README.md)
+
 ## 快速开始
 
-### 1. 配置（Program.cs 或 Startup.cs）
+### 方式 1：使用配置文件（推荐）
 
+**appsettings.json**
+```json
+{
+  "Logging": {
+    "FeiShu": {
+      "IsEnabled": true,
+      "MinimumLevel": "Information",
+      "FeiShuMinimumLevel": "Warning",
+      "NotificationOptions": {
+        "Webhook": "https://open.feishu.cn/open-apis/bot/v2/hook/your-webhook-key",
+        "TitlePrefix": "生产环境告警",
+        "Timeout": 20,
+        "QueueCapacity": 500,
+        "BatchSize": 10,
+        "BatchIntervalSeconds": 5
+      }
+    }
+  }
+}
+```
+
+**Program.cs**
+```csharp
+using Fake.Logging;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 只需一行代码，自动从配置文件读取
+builder.Logging.AddFeiShu();
+
+var app = builder.Build();
+```
+
+### 方式 2：代码配置
+
+**Program.cs**
 ```csharp
 using Fake.Logging;
 using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 添加飞书日志提供程序
+// 在代码中配置
 builder.Logging.AddFeiShu(config =>
 {
     config.IsEnabled = true;
-    config.MinimumLevel = LogLevel.Information;        // ILogger 最低级别
-    config.FeiShuMinimumLevel = LogLevel.Warning;      // 只有 Warning 及以上才发送到飞书
+    config.MinimumLevel = LogLevel.Information;
+    config.FeiShuMinimumLevel = LogLevel.Warning;
     
     config.NotificationOptions = new FeiShuNoticeOptions
     {
         Webhook = "https://open.feishu.cn/open-apis/bot/v2/hook/xxx",
         TitlePrefix = "生产环境告警",
-        BatchSize = 10,              // 累积 10 条消息
-        BatchIntervalSeconds = 5,    // 或 5 秒后发送
-        QueueCapacity = 500,
-        Timeout = 20
+        BatchSize = 10,
+        BatchIntervalSeconds = 5
     };
 });
 
@@ -161,6 +197,28 @@ builder.Logging
         config.FeiShuMinimumLevel = LogLevel.Error;
     });
 ```
+
+### 4. 配置热重载（Hot Reload）
+
+使用配置文件时，支持运行时修改配置，**无需重启应用**：
+
+```json
+// 运行时修改 appsettings.json
+{
+  "Logging": {
+    "FeiShu": {
+      "FeiShuMinimumLevel": "Information"  // 从 Warning 改成 Information
+    }
+  }
+}
+```
+
+**效果**：
+- ✅ 配置立即生效，无需重启
+- ✅ 新的日志级别立即应用
+- ✅ Webhook、批量大小等配置也会更新
+
+**注意**：代码配置（`AddFeiShu(config => {...})`）不支持热重载。
 
 ## 优势对比
 
