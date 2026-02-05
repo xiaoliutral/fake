@@ -15,7 +15,7 @@ public class ConsulConfigurationSource(IConsulClient consulClient, string key) :
     /// <summary>
     /// 指定阻塞请求的等待时间。最长限制为300s
     /// </summary>
-    public TimeSpan WaitTime { get; set; } = TimeSpan.FromSeconds(300);
+    public TimeSpan WaitTime { get; set; } = TimeSpan.FromSeconds(10);
 
     /// <summary>
     /// 当Consul配置数据发生变更是否重新加载配置源

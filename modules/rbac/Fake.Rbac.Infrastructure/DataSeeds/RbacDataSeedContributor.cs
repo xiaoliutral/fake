@@ -4,17 +4,20 @@ using Fake.Rbac.Domain.OrganizationAggregate;
 using Fake.Rbac.Domain.RoleAggregate;
 using Fake.Rbac.Domain.UserAggregate;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace Fake.Rbac.Infrastructure.DataSeeds;
 
 /// <summary>
 /// RBAC模块数据种子
 /// </summary>
-public class RbacDataSeedContributor(FakeRbacDbContext dbContext, DbInitializer dbInitializer) : IDataSeedContributor
+public class RbacDataSeedContributor(FakeRbacDbContext dbContext, DbInitializer dbInitializer, IConfiguration configuration) : IDataSeedContributor
 {
     public async Task SeedAsync()
     {
         await dbInitializer.InitializeAsync();
+        
+        if (!configuration.GetSection("GenerateSeedData").Get<bool>()) return;
         
         // 种子数据：默认菜单（菜单就是权限）
         await SeedDefaultMenusAsync();
