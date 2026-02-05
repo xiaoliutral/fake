@@ -51,13 +51,9 @@ public class SimpleAdminApiModule : FakeModule
     public override void ConfigureApplication(ApplicationConfigureContext context)
     {
         var app = context.GetWebApplication();
-        var env = context.GetEnvironment();
 
-        // 开发环境配置
-        if (env.IsDevelopment())
-        {
-            app.UseDeveloperExceptionPage();
-        }
+        // 虚拟路由-网关适配
+        app.UsePathBase(app.Configuration["ASPNETCORE_PATHBASE"]);
 
         // Swagger
         app.UseFakeSwagger();
