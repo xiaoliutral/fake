@@ -21,9 +21,13 @@ public static class FakeSwaggerApplicationBuilderExtensions
             var apiDescriptionGroups = app.ApplicationServices
                 .GetRequiredService<IApiDescriptionGroupCollectionProvider>().ApiDescriptionGroups.Items;
 
+            var configuration = app.ApplicationServices.GetRequiredService<IConfiguration>();
+            var pathBase = (configuration["ASPNETCORE_PATHBASE"] ?? string.Empty).Trim('/');
+            var pathBaseValue = pathBase.IsNullOrWhiteSpace() ? string.Empty : "/" + pathBase;
+            
             foreach (var description in apiDescriptionGroups)
             {
-                options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json",
+                options.SwaggerEndpoint($"{pathBaseValue}/swagger/{description.GroupName}/swagger.json",
                     description.GroupName);
             }
             
