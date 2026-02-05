@@ -1,4 +1,5 @@
-﻿using Swashbuckle.AspNetCore.Swagger;
+﻿using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.Swagger;
 using Swashbuckle.AspNetCore.SwaggerUI;
 
 namespace Microsoft.AspNetCore.Builder;
@@ -12,6 +13,14 @@ public static class FakeSwaggerApplicationBuilderExtensions
         //启用swagger中间件
         app.UseSwagger(options =>
         {
+            options.PreSerializeFilters.Add((doc, req) =>
+            {
+                var basePath = req.PathBase.HasValue ? req.PathBase.Value : "";
+                doc.Servers = new List<OpenApiServer>
+                {
+                    new() { Url = $"{req.Scheme}://{req.Host.Value}{basePath}" }
+                };
+            });
             setupAction?.Invoke(options);
         });
 
@@ -33,7 +42,7 @@ public static class FakeSwaggerApplicationBuilderExtensions
             
             options.RoutePrefix = string.Empty;
             options.DocExpansion(DocExpansion.None); // 设置swagger收起所有标签
-            options.DefaultModelExpandDepth(2);  //设置参数展开层架，这里是5层
+            options.DefaultModelExpandDepth(2);  // 设置模型参数展开层架
 
             uiSetupAction?.Invoke(options);
         });
