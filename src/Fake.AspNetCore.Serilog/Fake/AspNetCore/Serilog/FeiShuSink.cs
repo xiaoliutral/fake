@@ -1,38 +1,32 @@
+using Fake.FeiShu;
 using Serilog.Core;
 using Serilog.Events;
 
-namespace Fake.Logging.Serilog;
+namespace Fake.AspNetCore.Serilog;
 
 /// <summary>
 /// Serilog Sink，将日志发送到飞书
 /// </summary>
-public class FeiShuSink : ILogEventSink
+public class FeiShuSink(
+    FeiShuNoticeOptions options,
+    IFormatProvider? formatProvider = null,
+    LogEventLevel minimumLevel = LogEventLevel.Warning,
+    string? outputTemplate = null)
+    : ILogEventSink
 {
-    private readonly FeiShuNotificationService _notificationService;
-    private readonly IFormatProvider? _formatProvider;
-    private readonly LogEventLevel _minimumLevel;
-
-    public FeiShuSink(
-        FeiShuNoticeOptions options,
-        IFormatProvider? formatProvider = null,
-        LogEventLevel minimumLevel = LogEventLevel.Warning)
-    {
-        _notificationService = new FeiShuNotificationService(options);
-        _formatProvider = formatProvider;
-        _minimumLevel = minimumLevel;
-    }
+    private readonly FeiShuNotificationService _notificationService = new(options);
 
     public void Emit(LogEvent logEvent)
     {
-        if (logEvent.Level < _minimumLevel)
+        if (logEvent.Level < minimumLevel)
             return;
 
-#if DEBUG
-        // Debug 模式不发送
-        return;
-#endif
+// #if DEBUG
+//         // Debug 模式不发送
+//         return;
+// #endif
 
-        var message = logEvent.RenderMessage(_formatProvider);
+        var message = logEvent.RenderMessage(formatProvider);
         
         // 如果有异常，附加异常信息
         if (logEvent.Exception != null)
@@ -60,9 +54,4 @@ public class FeiShuSink : ILogEventSink
         LogEventLevel.Information => "Info",
         _ => "Debug"
     };
-
-    public void Dispose()
-    {
-        _notificationService?.Dispose();
-    }
 }

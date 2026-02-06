@@ -202,6 +202,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "prompt", "prompt", "{03CD83
 		.cursor\rules\backend.mdc = .cursor\rules\backend.mdc
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fake.AspNetCore.Serilog", "src\Fake.AspNetCore.Serilog\Fake.AspNetCore.Serilog.csproj", "{936A2587-02DD-4595-B651-A4426D103A6A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -458,6 +460,10 @@ Global
 		{5D4D2B59-FF93-45E1-B6F8-F4234470A99D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5D4D2B59-FF93-45E1-B6F8-F4234470A99D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5D4D2B59-FF93-45E1-B6F8-F4234470A99D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{936A2587-02DD-4595-B651-A4426D103A6A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{936A2587-02DD-4595-B651-A4426D103A6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{936A2587-02DD-4595-B651-A4426D103A6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{936A2587-02DD-4595-B651-A4426D103A6A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{A93D4EAE-90BE-4C9B-9970-5C1C8E1B994D} = {310D0E30-AC20-44C8-B0A2-155C880ED934}
@@ -541,5 +547,6 @@ Global
 		{4D136285-239E-4BF0-AEB7-C0A3650B55E9} = {A2A27924-EED0-4A13-B7F2-949F11F9F9B6}
 		{5D4D2B59-FF93-45E1-B6F8-F4234470A99D} = {AB1342A5-03D2-4486-BA3D-EFE2990B8995}
 		{03CD838C-2F89-4484-9561-E25798CAEE40} = {39FED9F7-23E6-43A4-B478-B914A2E805D0}
+		{936A2587-02DD-4595-B651-A4426D103A6A} = {99B75D31-AAFC-491B-B764-F88916A09FF3}
 	EndGlobalSection
 EndGlobal

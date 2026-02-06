@@ -1,9 +1,8 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Configuration;
 
-namespace Fake.Logging;
+namespace Fake.FeiShu;
 
 /// <summary>
 /// 飞书日志扩展方法

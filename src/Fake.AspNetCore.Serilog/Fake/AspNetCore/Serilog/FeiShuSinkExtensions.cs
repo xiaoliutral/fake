@@ -1,8 +1,9 @@
+using Fake.FeiShu;
 using Serilog;
 using Serilog.Configuration;
 using Serilog.Events;
 
-namespace Fake.Logging.Serilog;
+namespace Fake.AspNetCore.Serilog;
 
 /// <summary>
 /// Serilog 飞书扩展方法

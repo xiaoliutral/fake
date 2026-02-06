@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Fake.Logging;
+namespace Fake.FeiShu;
 
 /// <summary>
 /// 飞书日志提供程序，自动将日志发送到飞书
@@ -31,7 +31,7 @@ public sealed class FeiShuLoggerProvider : ILoggerProvider
                 // 配置变化时，重新创建通知服务
                 var oldService = _notificationService;
                 _notificationService = new FeiShuNotificationService(updatedConfig.NotificationOptions);
-                oldService?.Dispose();
+                oldService.Dispose();
             }
         });
     }
@@ -56,7 +56,7 @@ public sealed class FeiShuLoggerProvider : ILoggerProvider
         
         lock (_serviceLock)
         {
-            _notificationService?.Dispose();
+            _notificationService.Dispose();
         }
     }
 }
