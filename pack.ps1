@@ -6,28 +6,10 @@ Set-Location -Path $currentDirectory
 # 删除 packages 目录下的所有文件
 Remove-Item -Path "$currentDirectory\packages\*" -Recurse -Force
 
-# 切换到 ../src 目录
-Set-Location -Path "$currentDirectory\src"
+# 还原解决方案
+dotnet restore "$currentDirectory\Fake.sln"
 
-# 获取当前目录下的所有子目录
-$directories = Get-ChildItem -Directory
-
-# 使用 Start-Job 来并行执行任务
-$jobs = @()
-foreach ($dir in $directories) {
-    $jobs += Start-Job -ScriptBlock {
-        param($dirPath, $outputPath)
-        Set-Location $dirPath
-        Write-Host "Executing command in $dirPath"
-        dotnet build
-        dotnet pack /p:Version=8.0.2 -c Debug --output "$outputPath"
-    } -ArgumentList $dir.FullName, "$currentDirectory\packages"
-}
-
-# 等待所有作业完成
-$jobs | ForEach-Object { 
-    $_ | Wait-Job | Receive-Job
-    Remove-Job $_
-}
+# 统一打包解决方案（仅打包 IsPackable 的项目）
+dotnet pack "$currentDirectory\Fake.sln" -c Debug -p:Version=8.0.3 -p:RunAnalyzers=false -o "$currentDirectory\packages" --no-restore
 
 Write-Host "Executing full completed!"

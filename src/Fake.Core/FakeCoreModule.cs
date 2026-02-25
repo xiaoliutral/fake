@@ -1,11 +1,12 @@
-﻿using System.Text.Encodings.Web;
+﻿using System.Reflection;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Fake.Collections;
 using Fake.Data;
 using Fake.Data.Filtering;
 using Fake.Data.Seeding;
 using Fake.DependencyInjection;
+using Fake.FeiShu;
 using Fake.IdGenerators;
 using Fake.IdGenerators.GuidGenerator;
 using Fake.IdGenerators.Snowflake;
@@ -17,7 +18,6 @@ using Fake.Modularity;
 using Fake.SyncEx;
 using Fake.Threading;
 using Fake.Timing;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
 /// <summary>
@@ -32,6 +32,8 @@ public class FakeCoreModule : FakeModule
         context.Services.AddTransient<ICancellationTokenProvider, NullCancellationTokenProvider>();
         context.Services.AddTransient<ILazyServiceProvider, LazyServiceProvider>();
 
+        ConfigureInfras(context);
+
         ConfigureClock(context);
 
         ConfigureSystemTextJson(context);
@@ -39,6 +41,19 @@ public class FakeCoreModule : FakeModule
         ConfigureIdGenerator(context);
 
         ConfigureData(context);
+    }
+
+    private void ConfigureInfras(ServiceConfigurationContext context)
+    {
+        var configuration = context.Services.GetConfiguration();
+        context.Services.Configure<FeiShuNoticeOptions>(configuration.GetSection("FeiShuNotice"));
+        context.Services.Configure<FeiShuNoticeOptions>(options =>
+        {
+            options.Title = options.Title.IsNullOrWhiteSpace()
+                ? Assembly.GetEntryAssembly()?.GetName().Name ?? ""
+                : options.Title;
+        });
+        context.Services.AddSingleton<IFeiShuNotificationService, FeiShuNotificationService>();
     }
 
     public override void PostConfigureApplication(ApplicationConfigureContext context)
