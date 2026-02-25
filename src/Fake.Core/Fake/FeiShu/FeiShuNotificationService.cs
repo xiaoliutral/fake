@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
+using Fake.Timing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -13,6 +14,7 @@ namespace Fake.FeiShu;
 public sealed class FeiShuNotificationService : IFeiShuNotificationService
 {
     private readonly ILogger<FeiShuNotificationService> _logger;
+    private readonly IFakeClock _fakeClock;
     private readonly FeiShuNoticeOptions _options;
     private readonly HttpClient _httpClient;
     private readonly Channel<NoticeMessage> _queue;
@@ -21,9 +23,10 @@ public sealed class FeiShuNotificationService : IFeiShuNotificationService
     private readonly string _subTitle;
 
     public FeiShuNotificationService(IOptionsMonitor<FeiShuNoticeOptions> options, ILogger<FeiShuNotificationService> logger,
-        IConfiguration config)
+        IConfiguration config, IFakeClock fakeClock)
     {
         _logger = logger;
+        _fakeClock = fakeClock;
         _options = options.CurrentValue ?? throw new ArgumentNullException(nameof(options));
         _options.Validate();
 
@@ -58,7 +61,12 @@ public sealed class FeiShuNotificationService : IFeiShuNotificationService
             content = content[.._options.MaxLength] + "...";
         }
 
-        _queue.Writer.TryWrite(new NoticeMessage(content, logLevel, DateTime.Now));
+        _queue.Writer.TryWrite(new NoticeMessage(content, logLevel, _fakeClock.Now));
+    }
+
+    public async Task Send(string content, LogLevel logLevel = LogLevel.Information)
+    {
+        await SendBatchWithRetryAsync([new(content, logLevel, _fakeClock.Now)], CancellationToken.None);
     }
 
     private async Task ConsumeAsync(CancellationToken cancellationToken)
