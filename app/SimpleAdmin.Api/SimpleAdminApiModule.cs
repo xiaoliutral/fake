@@ -5,6 +5,7 @@ using Fake.Rbac.Application;
 using Fake.Rbac.Infrastructure;
 using Fake.AspNetCore.Auditing;
 using Fake.AspNetCore.Mvc;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace SimpleAdmin.Api;
 
@@ -45,6 +46,14 @@ public class SimpleAdminApiModule : FakeModule
                     .AllowAnyMethod()
                     .AllowCredentials();
             });
+        });
+        
+        services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            //新增如下两行
+            options.KnownNetworks.Clear();
+            options.KnownProxies.Clear();
         });
     }
 
