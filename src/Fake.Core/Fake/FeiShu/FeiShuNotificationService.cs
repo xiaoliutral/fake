@@ -64,9 +64,14 @@ public sealed class FeiShuNotificationService : IFeiShuNotificationService
         _queue.Writer.TryWrite(new NoticeMessage(content, logLevel, _fakeClock.Now));
     }
 
-    public async Task Send(string content, LogLevel logLevel = LogLevel.Information)
+    public async Task SendAsync(string content, LogLevel logLevel, CancellationToken cancellationToken)
     {
-        await SendBatchWithRetryAsync([new(content, logLevel, _fakeClock.Now)], CancellationToken.None);
+        await SendBatchWithRetryAsync([new(content, logLevel, _fakeClock.Now)], cancellationToken);
+    }
+
+    public async Task SendAsync(List<NoticeMessage> messages, CancellationToken cancellationToken)
+    {
+        await SendBatchWithRetryAsync(messages, cancellationToken);
     }
 
     private async Task ConsumeAsync(CancellationToken cancellationToken)
@@ -264,6 +269,4 @@ public sealed class FeiShuNotificationService : IFeiShuNotificationService
         _cts.Dispose();
         _httpClient.Dispose();
     }
-
-    private record NoticeMessage(string Content, LogLevel LogLevel, DateTime CreatedAt);
 }
