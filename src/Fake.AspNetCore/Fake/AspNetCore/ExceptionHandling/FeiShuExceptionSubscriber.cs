@@ -18,14 +18,14 @@ public class FeiShuExceptionSubscriber(
     public async Task HandleAsync(ExceptionNotificationContext context)
     {
         if (!_options.EnableFeiShuExceptionSubscribe) return;
-        
+
         var httpContext = context.ServiceProvider.GetRequiredService<IHttpContextAccessor>().HttpContext;
 
         if (httpContext is null)
         {
             notificationService.Enqueue($@"error: {context.Exception}", LogLevel.Error);
         }
-        
+
         var request = httpContext!.Request;
 
         // 1. 读取请求路径
@@ -37,7 +37,7 @@ public class FeiShuExceptionSubscriber(
         var method = request.Method; // GET, POST, PUT, etc.
 
         var message =
-            $@"{method} {fullPath} by {currentUser.UserName}[{currentUser.FindClaimOrNull(FakeClaimTypes.UserId)?.Value}]";
+            $@"{method} {fullPath} by {currentUser.UserName}[{currentUser.FindClaimOrNull(FakeClaimTypes.UserId)?.Value ?? "未登录"}]";
 
         // 3. 读取请求头
         if (_options.WriteHeader)

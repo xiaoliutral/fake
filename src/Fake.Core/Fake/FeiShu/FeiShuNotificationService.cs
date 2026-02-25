@@ -16,20 +16,21 @@ public sealed class FeiShuNotificationService : IFeiShuNotificationService
 {
     private readonly ILogger<FeiShuNotificationService> _logger;
     private readonly IFakeClock _fakeClock;
-    private readonly FeiShuNoticeOptions _options;
+    private readonly IOptionsMonitor<FeiShuNoticeOptions> _options;
     private readonly HttpClient _httpClient;
     private readonly Channel<NoticeMessage> _queue;
     private readonly CancellationTokenSource _cts;
     private readonly Task _consumerTask;
     private readonly string _subTitle;
 
-    public FeiShuNotificationService(IOptionsMonitor<FeiShuNoticeOptions> options, ILogger<FeiShuNotificationService> logger,
+    public FeiShuNotificationService(IOptionsMonitor<FeiShuNoticeOptions> options,
+        ILogger<FeiShuNotificationService> logger,
         IConfiguration config, IFakeClock fakeClock)
     {
         _logger = logger;
         _fakeClock = fakeClock;
-        _options = options.CurrentValue ?? throw new ArgumentNullException(nameof(options));
-        _options.Validate();
+        _options = options;
+        _options.CurrentValue.Validate();
 
         _httpClient = new HttpClient(new SocketsHttpHandler
         {
@@ -38,11 +39,11 @@ public sealed class FeiShuNotificationService : IFeiShuNotificationService
             ConnectTimeout = TimeSpan.FromSeconds(5)
         })
         {
-            Timeout = TimeSpan.FromSeconds(_options.Timeout)
+            Timeout = TimeSpan.FromSeconds(_options.CurrentValue.Timeout)
         };
 
         _queue = Channel.CreateBounded<NoticeMessage>(
-            new BoundedChannelOptions(_options.QueueCapacity)
+            new BoundedChannelOptions(_options.CurrentValue.QueueCapacity)
             {
                 FullMode = BoundedChannelFullMode.DropOldest,
                 SingleReader = true,
@@ -57,9 +58,9 @@ public sealed class FeiShuNotificationService : IFeiShuNotificationService
     public void Enqueue(string content, LogLevel logLevel = LogLevel.Information)
     {
         // 截断超长消息
-        if (content.Length > _options.MaxLength)
+        if (content.Length > _options.CurrentValue.MaxLength)
         {
-            content = content[.._options.MaxLength] + "...";
+            content = content[.._options.CurrentValue.MaxLength] + "...";
         }
 
         _queue.Writer.TryWrite(new NoticeMessage(content, logLevel, _fakeClock.Now));
@@ -83,14 +84,14 @@ public sealed class FeiShuNotificationService : IFeiShuNotificationService
     private async Task ConsumeAsync(CancellationToken cancellationToken)
     {
         var batch = new List<NoticeMessage>();
-        var batchTimer = new PeriodicTimer(TimeSpan.FromSeconds(_options.BatchIntervalSeconds));
+        var batchTimer = new PeriodicTimer(TimeSpan.FromSeconds(_options.CurrentValue.BatchIntervalSeconds));
 
         try
         {
             while (!cancellationToken.IsCancellationRequested)
             {
                 // 尝试读取消息直到达到批量大小
-                while (batch.Count < _options.BatchSize)
+                while (batch.Count < _options.CurrentValue.BatchSize)
                 {
                     if (_queue.Reader.TryRead(out var msg))
                     {
@@ -118,7 +119,7 @@ public sealed class FeiShuNotificationService : IFeiShuNotificationService
                 }
 
                 // 发送批量消息
-                if (batch.Count >= _options.BatchSize || await batchTimer.WaitForNextTickAsync(cancellationToken))
+                if (batch.Count >= _options.CurrentValue.BatchSize || await batchTimer.WaitForNextTickAsync(cancellationToken))
                 {
                     if (batch.Count > 0)
                     {
@@ -159,7 +160,7 @@ public sealed class FeiShuNotificationService : IFeiShuNotificationService
     {
         if (messages.Count == 0) return;
 
-        var retryDelays = _options.RetryDelays;
+        var retryDelays = _options.CurrentValue.RetryDelays;
         int maxRetries = retryDelays.Length;
 
         for (int attempt = 0; attempt < maxRetries; attempt++)
@@ -177,7 +178,7 @@ public sealed class FeiShuNotificationService : IFeiShuNotificationService
             {
                 if (attempt == maxRetries - 1)
                 {
-                    _logger.LogWarning($"已达到最大重试次数{maxRetries}，仍然无法发送到飞书{_options} \n{ex}");
+                    _logger.LogWarning($"已达到最大重试次数{maxRetries}，仍然无法发送到飞书{_options} {Environment.NewLine}{ex}");
                     break; // 最后一次尝试失败，放弃
                 }
 
@@ -188,31 +189,38 @@ public sealed class FeiShuNotificationService : IFeiShuNotificationService
 
     private async Task SendBatchToFeiShuAsync(List<NoticeMessage> messages, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(_options.Webhook)) return;
+        if (string.IsNullOrWhiteSpace(_options.CurrentValue.Webhook)) return;
         if (messages.Count == 0) return;
 
-        var grouped = messages.GroupBy(m => m.LogLevel).ToList();
-
-        var title = $"{_options.Title}{_subTitle} [{messages.Count}]";
+        var title = $"{_options.CurrentValue.Title}{_subTitle} [{messages.Count}]";
 
         var contentLines = new List<object[]>();
 
-        foreach (var group in grouped.OrderBy(g => GetLevelPriority(g.Key)))
+        var idx = 1;
+        foreach (var group in messages.GroupBy(m => m.LogLevel)
+                     .OrderBy(g => GetLevelPriority(g.Key)))
         {
             var levelEmoji = GetLevelEmoji(group.Key);
             var count = group.Count();
 
-            contentLines.Add([
-                new { tag = "text", text = $"{levelEmoji}{group.Key} [{count}]:\n" }
-            ]);
+            var subLines = new List<object>
+            {
+                new { tag = "text", text = $"{levelEmoji}{group.Key} [{count}]:" }
+            };
+            if (group.Key == LogLevel.Error || group.Key == LogLevel.Critical)
+            {
+                subLines.Add(new { tag = "at", user_id = "all" });
+            }
+
+            subLines.Add(new { tag = "text", text = $"{Environment.NewLine}" });
+            contentLines.Add(subLines.ToArray());
 
             foreach (var msg in group)
             {
                 var timestamp = msg.CreatedAt.ToString("HH:mm:ss");
                 var preview = msg.Content;
-
                 contentLines.Add([
-                    new { tag = "text", text = $"[{timestamp}] {preview}\n" }
+                    new { tag = "text", text = $"[{timestamp}] [{idx++}] {preview}{Environment.NewLine}" }
                 ]);
             }
         }
@@ -233,10 +241,16 @@ public sealed class FeiShuNotificationService : IFeiShuNotificationService
             }
         };
 
-        using var httpContent = new StringContent(
-            JsonSerializer.Serialize(message), Encoding.UTF8, "application/json");
+        var text = JsonSerializer.Serialize(message);
+        const int limit = 150 * 1024 / 4;
+        if (text.Length > limit)
+        {
+            text = text.Substring(0, limit - 3) + "...";
+        }
 
-        using var response = await _httpClient.PostAsync(_options.Webhook, httpContent, cancellationToken);
+        using var httpContent = new StringContent(text, Encoding.UTF8, "application/json");
+
+        using var response = await _httpClient.PostAsync(_options.CurrentValue.Webhook, httpContent, cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 

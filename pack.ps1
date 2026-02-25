@@ -10,6 +10,6 @@ Remove-Item -Path "$currentDirectory\packages\*" -Recurse -Force
 dotnet restore "$currentDirectory\Fake.sln"
 
 # 统一打包解决方案（仅打包 IsPackable 的项目）
-dotnet pack "$currentDirectory\Fake.sln" -c Debug -p:Version=8.0.5.2 -p:RunAnalyzers=false -o "$currentDirectory\packages"
+dotnet pack "$currentDirectory\Fake.sln" -c Debug -p:Version=8.0.5.3 -p:RunAnalyzers=false -o "$currentDirectory\packages"
 
 Write-Host "Executing full completed!"
