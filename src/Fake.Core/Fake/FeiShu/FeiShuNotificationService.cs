@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
+using Fake.SyncEx;
 using Fake.Timing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -62,6 +63,11 @@ public sealed class FeiShuNotificationService : IFeiShuNotificationService
         }
 
         _queue.Writer.TryWrite(new NoticeMessage(content, logLevel, _fakeClock.Now));
+    }
+
+    public void Send(string content, LogLevel logLevel = LogLevel.Information)
+    {
+        SyncContext.Run(() => SendAsync(content, logLevel, CancellationToken.None));
     }
 
     public async Task SendAsync(string content, LogLevel logLevel, CancellationToken cancellationToken)

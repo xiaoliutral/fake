@@ -19,7 +19,6 @@ public class SimpleJwtService(IOptions<JwtOptions> jwtOptions, IUserService user
     public override async Task<List<Claim>> GenerateClaimsByUserIdAsync(Guid userId,
         CancellationToken cancellationToken)
     {
-        throw new Exception("aweqew");
         var claims = await base.GenerateClaimsByUserIdAsync(userId, cancellationToken);
         var mapId = await rbacDbContext.Database.SqlQuery<int>($"select userid as value from user where id = {userId}")
             .FirstAsync(cancellationToken);
