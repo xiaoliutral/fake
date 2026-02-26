@@ -1,6 +1,6 @@
 using Fake.DependencyInjection;
 
-namespace Fake.Serilog.Sink.FeiShu;
+namespace Fake.Serilog;
 
 /// <summary>
 /// 桥接DI，支持纯配置文件下的依赖注入

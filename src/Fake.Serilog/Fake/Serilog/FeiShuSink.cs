@@ -1,6 +1,5 @@
 using System.Globalization;
 using Fake.FeiShu;
-using Fake.Serilog.Sink.FeiShu;
 using Microsoft.Extensions.Logging;
 using Serilog.Core;
 using Serilog.Debugging;

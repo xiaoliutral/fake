@@ -3,10 +3,10 @@ using Fake.Modularity;
 using Microsoft.Extensions.DependencyInjection;
 
 // ReSharper disable once CheckNamespace
-namespace Fake.Serilog.Sink.FeiShu;
+namespace Fake.Serilog;
 
 [DependsOn(typeof(FakeCoreModule))]
-public class FakeSerilogSinkFeiShuModule : FakeModule
+public class FakeSerilogModule : FakeModule
 {
     public override void PostConfigureApplication(ApplicationConfigureContext context)
     {

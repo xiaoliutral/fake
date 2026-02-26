@@ -9,18 +9,13 @@ Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .CreateLogger();
 
-builder.WebHost.UseUrls(builder.Configuration.GetSection("App:Urls").Get<string[]>() ?? []);
-builder.Host
-    .UseAutofac()
-    .UseSerilog((context, configuration) =>
-        configuration.ReadFrom.Configuration(context.Configuration)
-    );
-builder.Services.AddApplication<SimpleAdminApiModule>();
-var app = builder.Build();
-app.InitializeApplication();
-
 try
 {
+    builder.WebHost.UseUrls(builder.Configuration.GetSection("App:Urls").Get<string[]>() ?? []);
+    builder.Host.UseAutofac().UseSerilog();
+    builder.Services.AddApplication<SimpleAdminApiModule>();
+    var app = builder.Build();
+    app.InitializeApplication();
     await app.RunAsync();
 }
 catch (Exception ex)
