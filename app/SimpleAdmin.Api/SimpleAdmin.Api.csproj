@@ -20,6 +20,7 @@
     <ProjectReference Include="..\..\src\Fake.Autofac\Fake.Autofac.csproj" />
     <ProjectReference Include="..\..\src\Fake.Consul\Fake.Consul.csproj" />
     <ProjectReference Include="..\..\src\Fake.EntityFrameworkCore\Fake.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\Fake.Serilog.Sink.FeiShu\Fake.Serilog.Sink.FeiShu.csproj" />
     <ProjectReference Include="..\..\modules\rbac\Fake.Rbac.Application\Fake.Rbac.Application.csproj" />
     <ProjectReference Include="..\..\modules\rbac\Fake.Rbac.Infrastructure\Fake.Rbac.Infrastructure.csproj" />
 

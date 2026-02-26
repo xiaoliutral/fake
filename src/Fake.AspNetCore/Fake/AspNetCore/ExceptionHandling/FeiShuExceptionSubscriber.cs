@@ -1,6 +1,8 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text;
 using Fake.Application;
 using Fake.DependencyInjection;
+using Fake.Domain.Exceptions;
 using Fake.ExceptionHandling;
 using Fake.FeiShu;
 using Fake.Security.Claims;
@@ -18,6 +20,11 @@ public class FeiShuExceptionSubscriber(
     public async Task HandleAsync(ExceptionNotificationContext context)
     {
         if (!_options.EnableFeiShuExceptionSubscribe) return;
+        
+        // todo: 40x异常可以提升到aspnetcore层面的配置或者静态变量
+        var ex400 = context.Exception is BusinessException or DomainException or ValidationException;
+        
+        if (ex400 && _options.Skip40X) return;
 
         var httpContext = context.ServiceProvider.GetRequiredService<IHttpContextAccessor>().HttpContext;
 
@@ -65,13 +72,12 @@ public class FeiShuExceptionSubscriber(
         }
 
         message += $"\nexception: {context.Exception.Message}";
-
-        if (_options.WriteStack && context.Exception is not BusinessException)
+        
+        if (_options.WriteStack && !ex400)
         {
             message += $"\nstack: {context.Exception.StackTrace}";
         }
 
-        notificationService.Enqueue(message,
-            context.Exception is BusinessException ? LogLevel.Warning : LogLevel.Error);
+        notificationService.Enqueue(message, ex400 ? LogLevel.Warning : LogLevel.Error);
     }
 }

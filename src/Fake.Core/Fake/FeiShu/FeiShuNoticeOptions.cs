@@ -30,6 +30,7 @@ public class FeiShuNoticeOptions
     #region 异常订阅
 
     public bool EnableFeiShuExceptionSubscribe { get; set; }
+    public bool Skip40X { get; set; }
     public bool WriteBody { get; set; }
     public bool WriteHeader { get; set; }
     public bool WriteStack { get; set; }

@@ -201,11 +201,10 @@ public sealed class FeiShuNotificationService : IFeiShuNotificationService
                      .OrderBy(g => GetLevelPriority(g.Key)))
         {
             var levelEmoji = GetLevelEmoji(group.Key);
-            var count = group.Count();
 
             var subLines = new List<object>
             {
-                new { tag = "text", text = $"{levelEmoji}{group.Key} [{count}]:" }
+                new { tag = "text", text = $"{levelEmoji}{group.Key}: " }
             };
             if (group.Key == LogLevel.Error || group.Key == LogLevel.Critical)
             {

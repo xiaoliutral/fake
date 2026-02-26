@@ -5,6 +5,7 @@ using Fake.Rbac.Application;
 using Fake.Rbac.Infrastructure;
 using Fake.AspNetCore.Auditing;
 using Fake.AspNetCore.Mvc;
+using Fake.Serilog.Sink.FeiShu;
 using Microsoft.AspNetCore.HttpOverrides;
 
 namespace SimpleAdmin.Api;
@@ -12,7 +13,8 @@ namespace SimpleAdmin.Api;
 [DependsOn(
     typeof(FakeAutofacModule),
     typeof(FakeRbacApplicationModule),
-    typeof(FakeRbacInfrastructureModule)
+    typeof(FakeRbacInfrastructureModule),
+    typeof(FakeSerilogSinkFeiShuModule)
 )]
 public class SimpleAdminApiModule : FakeModule
 {

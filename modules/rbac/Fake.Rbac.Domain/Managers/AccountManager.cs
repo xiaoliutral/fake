@@ -2,6 +2,7 @@ using Fake.Domain;
 using Fake.Domain.Exceptions;
 using Fake.Helpers;
 using Fake.Rbac.Domain.UserAggregate;
+using Microsoft.Extensions.Logging;
 
 namespace Fake.Rbac.Domain.Managers;
 
@@ -11,10 +12,12 @@ namespace Fake.Rbac.Domain.Managers;
 public class AccountManager : DomainService
 {
     private readonly IUserRepository _userRepository;
+    private readonly ILogger<AccountManager> _logger;
 
-    public AccountManager(IUserRepository userRepository)
+    public AccountManager(IUserRepository userRepository, ILogger<AccountManager> logger)
     {
         _userRepository = userRepository;
+        _logger = logger;
     }
 
     /// <summary>

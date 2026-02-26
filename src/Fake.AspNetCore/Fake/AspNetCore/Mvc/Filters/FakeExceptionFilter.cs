@@ -31,8 +31,6 @@ public class FakeExceptionFilter(ILogger<FakeExceptionFilter> logger) : IAsyncEx
 
     protected virtual async Task HandleAndWrapExceptionAsync(ExceptionContext context)
     {
-        logger.LogException(context.Exception);
-
         var httpContext = context.HttpContext;
         await httpContext.RequestServices.GetRequiredService<IExceptionNotifier>()
             .NotifyAsync(new ExceptionNotificationContext(context.Exception, httpContext.RequestServices));
