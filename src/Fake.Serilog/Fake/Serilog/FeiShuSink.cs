@@ -1,12 +1,13 @@
 using System.Globalization;
 using Fake.FeiShu;
+using Fake.Serilog.Sink.FeiShu;
 using Microsoft.Extensions.Logging;
 using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Events;
 using Serilog.Formatting.Display;
 
-namespace Fake.Serilog.Sink.FeiShu;
+namespace Fake.Serilog;
 
 internal sealed class FeiShuSink(string outputTemplate) : ILogEventSink
 {

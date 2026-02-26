@@ -1,3 +1,4 @@
+using Fake.Serilog;
 using Fake.Serilog.Sink.FeiShu;
 using Serilog.Core;
 using Serilog.Events;

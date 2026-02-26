@@ -202,7 +202,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "prompt", "prompt", "{03CD83
 		.cursor\rules\backend.mdc = .cursor\rules\backend.mdc
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fake.Serilog.Sink.FeiShu", "src\Fake.Serilog.Sink.FeiShu\Fake.Serilog.Sink.FeiShu.csproj", "{960F57B4-5DB1-47AC-9B10-6E9DB57968DA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fake.Serilog", "src\Fake.Serilog\Fake.Serilog.csproj", "{960F57B4-5DB1-47AC-9B10-6E9DB57968DA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

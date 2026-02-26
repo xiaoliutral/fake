@@ -71,7 +71,7 @@ public class FeiShuExceptionSubscriber(
             message += $"\nbody: {body}";
         }
 
-        message += $"\nexception: {context.Exception.Message}";
+        message += $"\nexception: {context.Exception.GetType().Name}-{context.Exception.Message}";
         
         if (_options.WriteStack && !ex400)
         {

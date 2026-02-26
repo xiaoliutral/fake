@@ -4,6 +4,7 @@ using System.Text;
 using Fake.AspNetCore.Authentication;
 using Fake.DependencyInjection;
 using Fake.Rbac.Application.Services;
+using Fake.Security.Claims;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -94,15 +95,18 @@ public class JwtService(IOptions<JwtOptions> jwtOptions, IUserService userServic
         var roles = await userService.GetUserRolesAsync(userId, cancellationToken);
         var roleCodes = roles.Select(r => r.Code).ToList();
         
+        var user = await userService.GetAsync(userId, cancellationToken);
+        
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, userId.ToString()),
+            new(FakeClaimTypes.UserId, userId.ToString()),
+            new(FakeClaimTypes.UserName, user.Name),
         };
 
         // 添加角色声明
         foreach (var role in roleCodes)
         {
-            claims.Add(new Claim(ClaimTypes.Role, role));
+            claims.Add(new Claim(FakeClaimTypes.Role, role));
         }
 
         return claims;
