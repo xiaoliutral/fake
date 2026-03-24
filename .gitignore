@@ -9,3 +9,5 @@ riderModule.iml
 /Fake.sln.DotSettings.user
 
 Logs/
+
+node_modules/

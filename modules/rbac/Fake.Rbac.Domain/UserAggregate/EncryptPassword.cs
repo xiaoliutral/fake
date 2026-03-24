@@ -7,12 +7,12 @@ public class EncryptPassword: ValueObject
     /// <summary>
     /// 密码
     /// </summary>
-    public string Password { get; private set; }
+    public string Password { get; private set; } = null!;
 
     /// <summary>
     /// 加密盐值
     /// </summary>
-    public string Salt { get; private set; }
+    public string Salt { get; private set; } = null!;
 
     public EncryptPassword()
     {

@@ -9,17 +9,17 @@ public class User: FullAuditedAggregateRoot<Guid>
     /// <summary>
     /// 名称
     /// </summary>
-    public string Name { get; private set; }
+    public string Name { get; private set; } = null!;
     
     /// <summary>
     /// 账号
     /// </summary>
-    public string Account { get; private set; }
+    public string Account { get; private set; } = null!;
     
     /// <summary>
     /// 密码
     /// </summary>
-    public EncryptPassword EncryptPassword { get; private set; }
+    public EncryptPassword EncryptPassword { get; private set; } = null!;
     public string? Email { get; private set; }
     public string? Avatar { get; private set; }
     

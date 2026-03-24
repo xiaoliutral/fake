@@ -20,7 +20,6 @@ public static class FakeSwaggerApplicationBuilderExtensions
         {
             options.PreSerializeFilters.Add((doc, req) =>
             {
-                var basePath = req.PathBase.HasValue ? req.PathBase.Value : "";
                 doc.Servers = new List<OpenApiServer>
                 {
                     new() { Url = $"{req.Scheme}://{req.Host.Value}{pathBaseValue}" }

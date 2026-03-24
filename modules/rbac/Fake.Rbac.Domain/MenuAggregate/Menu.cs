@@ -9,7 +9,7 @@ public class Menu: FullAuditedAggregateRoot<Guid>
     /// </summary>
     public Guid PId { get; set; }
     
-    public string Name { get; private set; }
+    public string Name { get; private set; } = null!;
     
     /// <summary>
     /// 权限代码
@@ -59,7 +59,7 @@ public class Menu: FullAuditedAggregateRoot<Guid>
         
     }
     
-    public Menu(Guid pId, string name, MenuType type, string? permissionCode = null, string? icon = null, 
+    public Menu(Guid pId, string name, MenuType type, string permissionCode, string? icon = null, 
         string? route = null, string? component = null, int order = 0, bool isHidden = false, 
         bool isCached = false, string? description = null)
     {

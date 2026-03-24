@@ -1,6 +1,5 @@
 <Project>
     <PropertyGroup>
-        <RootNamespace/>
         <TargetFramework>net8.0</TargetFramework>
         <LangVersion>latest</LangVersion>
         <IsPackable>true</IsPackable>
@@ -23,8 +22,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="..\..\README.md" Pack="true" PackagePath="\"
-              Condition="!$(MSBuildProjectDirectory.Contains('modules'))"/>
+        <None Include="..\README.md" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -32,10 +30,5 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Condition="$(MSBuildProjectName) != 'Fake.Core' AND !$(MSBuildProjectDirectory.Contains('modules'))"
-                          Include="..\Fake.Core\Fake.Core.csproj"/>
     </ItemGroup>
 </Project>

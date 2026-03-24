@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using Microsoft.Extensions.Options;
 
 namespace Fake.Timing;

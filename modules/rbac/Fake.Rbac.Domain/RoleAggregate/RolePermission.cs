@@ -9,7 +9,7 @@ public class RolePermission: CreateAuditedEntity<Guid>
 {
     public Guid RoleId { get; private set; }
     
-    public string PermissionCode { get; private set; }
+    public string PermissionCode { get; private set; } = null!;
 
 
     public RolePermission()
