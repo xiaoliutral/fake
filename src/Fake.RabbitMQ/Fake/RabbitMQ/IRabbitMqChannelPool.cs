@@ -14,7 +14,7 @@ public interface IRabbitMqChannelPool : IDisposable
     IChannelAccessor Acquire(string channelName = "", string? connectionName = null);
 
     /// <summary>
-    /// 释放 <see cref="IModel"/> 对象，从池中移除。
+    /// 归还 <see cref="IModel"/> 的使用权到池中，供后续复用。
     /// </summary>
     /// <param name="channelName"></param>
     /// <param name="connectionName"></param>

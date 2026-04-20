@@ -57,4 +57,34 @@ public class ClockTest : ClockTestBase
 
         await Task.WhenAll(tasks);
     }
+
+    [Fact]
+    void 嵌套测试计时器()
+    {
+        TimeSpan inner = TimeSpan.Zero;
+
+        var outer = _fakeClock.MeasureExecutionTime(() =>
+        {
+            inner = _fakeClock.MeasureExecutionTime(() => { Thread.Sleep(50); });
+            Thread.Sleep(50);
+        });
+
+        inner.ShouldBeGreaterThan(TimeSpan.Zero);
+        outer.ShouldBeGreaterThan(inner);
+    }
+
+    [Fact]
+    async Task 嵌套测试异步计时器()
+    {
+        TimeSpan inner = TimeSpan.Zero;
+
+        var outer = await _fakeClock.MeasureExecutionTimeAsync(async () =>
+        {
+            inner = await _fakeClock.MeasureExecutionTimeAsync(async () => { await Task.Delay(50); });
+            await Task.Delay(50);
+        });
+
+        inner.ShouldBeGreaterThan(TimeSpan.Zero);
+        outer.ShouldBeGreaterThan(inner);
+    }
 }

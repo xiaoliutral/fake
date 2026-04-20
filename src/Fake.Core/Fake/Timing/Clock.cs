@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Net;
 using Microsoft.Extensions.Options;
 
 namespace Fake.Timing;
@@ -7,8 +6,6 @@ namespace Fake.Timing;
 public class Clock(IOptions<FakeClockOptions> options) : IFakeClock
 {
     private readonly FakeClockOptions _options = options.Value;
-
-    private readonly AsyncLocal<Stopwatch?> _stopwatch = new();
 
     public virtual DateTime Now => _options.Kind == DateTimeKind.Utc ? DateTime.UtcNow : DateTime.Now;
     public virtual DateTimeKind Kind => _options.Kind;
@@ -35,23 +32,17 @@ public class Clock(IOptions<FakeClockOptions> options) : IFakeClock
 
     public virtual TimeSpan MeasureExecutionTime(Action action)
     {
-        _stopwatch.Value ??= new Stopwatch();
-        _stopwatch.Value.Start();
+        var stopwatch = Stopwatch.StartNew();
         action();
-        _stopwatch.Value.Stop();
-        var elapsed = _stopwatch.Value.Elapsed;
-        _stopwatch.Value = null;
-        return elapsed;
+        stopwatch.Stop();
+        return stopwatch.Elapsed;
     }
 
     public virtual async Task<TimeSpan> MeasureExecutionTimeAsync(Func<Task> task)
     {
-        _stopwatch.Value ??= new Stopwatch();
-        _stopwatch.Value.Start();
+        var stopwatch = Stopwatch.StartNew();
         await task();
-        _stopwatch.Value.Stop();
-        var elapsed = _stopwatch.Value.Elapsed;
-        _stopwatch.Value = null;
-        return elapsed;
+        stopwatch.Stop();
+        return stopwatch.Elapsed;
     }
 }
