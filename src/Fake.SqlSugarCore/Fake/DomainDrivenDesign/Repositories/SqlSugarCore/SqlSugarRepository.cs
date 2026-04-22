@@ -175,9 +175,41 @@ public class SqlSugarRepository<TDbContext, TEntity> : ISqlSugarRepository<TDbCo
         }
     }
 
-    public virtual Task DeleteRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default)
+    public virtual async Task DeleteRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var list = entities.ToList();
+        if (list.Count == 0) return;
+        cancellationToken = GetCancellationToken(cancellationToken);
+        var ctx = await GetDbContextAsync(cancellationToken);
+        if (list.First() is ISoftDelete)
+        {
+            var update = ctx.Updateable(list).UpdateColumns(nameof(ISoftDelete.IsDeleted));
+
+            foreach (var entity in list)
+            {
+                AuditPropertySetter.SetSoftDeleteProperty(entity);
+
+                if (entity is IHasUpdateTime)
+                {
+                    update.UpdateColumns(nameof(IHasUpdateTime.UpdateTime));
+                }
+
+                if (entity is IHasUpdateUserId)
+                {
+                    update.UpdateColumns(nameof(IHasUpdateUserId.UpdateUserId));
+                }
+
+                if (entity is IHasUpdateTime or IHasUpdateUserId)
+                {
+                    AuditPropertySetter.SetModificationProperties(entity);
+                }
+            }
+            await update.ExecuteCommandAsync(cancellationToken);
+        }
+        else
+        {
+            await ctx.Deleteable(list).ExecuteCommandAsync(cancellationToken);
+        }
     }
 
     public virtual async Task DeleteAsync(Expression<Func<TEntity, bool>> predicate,

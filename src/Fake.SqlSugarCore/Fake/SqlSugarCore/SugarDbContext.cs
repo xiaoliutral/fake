@@ -53,6 +53,7 @@ public abstract class SugarDbContext<TDbContext> where TDbContext : SugarDbConte
             },
             ConfigureExternalServices = new ConfigureExternalServices
             {
+                // 每列只执行一次
                 EntityService = ConfigureEntityService,
                 EntityNameService = ConfigureEntityNameService,
             },
@@ -87,6 +88,11 @@ public abstract class SugarDbContext<TDbContext> where TDbContext : SugarDbConte
     {
     }
 
+    /// <summary>
+    /// 实体列级配置，仅执行一次
+    /// </summary>
+    /// <param name="property"></param>
+    /// <param name="column"></param>
     protected virtual void ConfigureEntityService(PropertyInfo property, EntityColumnInfo column)
     {
         if (property.Name == nameof(Entity<Any>.Id))
@@ -94,12 +100,12 @@ public abstract class SugarDbContext<TDbContext> where TDbContext : SugarDbConte
             column.IsPrimarykey = true;
         }
 
-        if (property.Name == nameof(Entity<Any>.IsTransient))
+        if (property.Name == nameof(IEntity.IsTransient))
         {
             column.IsIgnore = true;
         }
 
-        if (property.Name == nameof(AggregateRoot.ConcurrencyStamp))
+        if (property.Name == nameof(IAggregateRoot.ConcurrencyStamp))
         {
             column.IsEnableUpdateVersionValidation = true;
         }
@@ -178,7 +184,7 @@ public abstract class SugarDbContext<TDbContext> where TDbContext : SugarDbConte
     {
         if (entityInfo.EntityColumnInfo.IsPrimarykey)
         {
-            if (entityInfo.EntityValue is IHasDomainEvent entity)
+            if (entityInfo.EntityValue is IHasDomainEvent { DomainEvents: not null } entity && entity.DomainEvents.Count != 0)
             {
                 SyncContext.Run(() => PublishDomainEventsAsync(entity));
             }

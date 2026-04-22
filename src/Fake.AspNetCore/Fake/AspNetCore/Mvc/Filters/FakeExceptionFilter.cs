@@ -42,6 +42,10 @@ public class FakeExceptionFilter(ILogger<FakeExceptionFilter> logger) : IAsyncEx
         }
         else
         {
+            if (context.HttpContext.Response.HasStarted)
+            {
+                logger.LogWarning("Exception occurred, but response has already started!");
+            }
             var statusCodeFinder = httpContext.RequestServices.GetRequiredService<IHttpExceptionStatusCodeFinder>();
             var exceptionHandlingOptions = httpContext.RequestServices
                 .GetRequiredService<IOptions<FakeExceptionHandlingOptions>>()
@@ -51,6 +55,12 @@ public class FakeExceptionFilter(ILogger<FakeExceptionFilter> logger) : IAsyncEx
             var remoteServiceErrorInfo =
                 exceptionToErrorInfoConverter.Convert(context.Exception, exceptionHandlingOptions);
 
+            if (exceptionHandlingOptions.ShouldLogException(context.Exception))
+            {
+                var logLevel = context.Exception.GetLogLevel();
+                logger.LogException(context.Exception, logLevel);
+            }
+            
             context.HttpContext.Response.StatusCode = (int)statusCodeFinder.Find(httpContext, context.Exception);
             context.Result = new ObjectResult(remoteServiceErrorInfo);
         }

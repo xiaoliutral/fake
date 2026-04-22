@@ -12,8 +12,7 @@ public abstract class AggregateRoot : Entity, IAggregateRoot, IHasDomainEvent
     public IReadOnlyCollection<DomainEvent>? DomainEvents => _domainEvents?.AsReadOnly();
 
     [DisableAuditing] public virtual Guid ConcurrencyStamp { get; set; } = SimpleGuidGenerator.Instance.Generate();
-
-
+    
     protected virtual void AddDomainEvent(DomainEvent domainEvent)
     {
         _domainEvents ??= new List<DomainEvent>();

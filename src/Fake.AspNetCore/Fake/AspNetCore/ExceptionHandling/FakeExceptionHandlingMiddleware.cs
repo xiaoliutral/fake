@@ -22,7 +22,7 @@ public class FakeExceptionHandlingMiddleware(ILogger<FakeExceptionHandlingMiddle
             // 如果响应已经开始了，中止该管道
             if (context.Response.HasStarted)
             {
-                logger.LogWarning("一个异常发生了，但响应已经开始了！");
+                logger.LogWarning("Exception occurred, but response has already started!");
                 throw; // didn't throw ex
             }
 
@@ -32,8 +32,6 @@ public class FakeExceptionHandlingMiddleware(ILogger<FakeExceptionHandlingMiddle
 
     protected virtual async Task HandleAndWrapExceptionAsync(HttpContext httpContext, Exception exception)
     {
-        logger.LogException(exception);
-
         await httpContext.RequestServices.GetRequiredService<IExceptionNotifier>()
             .NotifyAsync(new ExceptionNotificationContext(exception, httpContext.RequestServices));
 
@@ -51,6 +49,12 @@ public class FakeExceptionHandlingMiddleware(ILogger<FakeExceptionHandlingMiddle
             var jsonSerializer = httpContext.RequestServices.GetRequiredService<IFakeJsonSerializer>();
 
             var errorModel = errorInfoConverter.Convert(exception, exceptionHandlingOptions);
+            
+            if (exceptionHandlingOptions.ShouldLogException(exception))
+            {
+                var logLevel = exception.GetLogLevel();
+                logger.LogException(exception, logLevel);
+            }
 
             httpContext.Response.Clear();
             httpContext.Response.StatusCode = (int)statusCodeFinder.Find(httpContext, exception);
