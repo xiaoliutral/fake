@@ -94,11 +94,12 @@ public class FakeAspNetCoreModule : FakeModule
                 var conventionOptions = context.Services.GetRequiredService<IOptions<FakeAspNetCoreMvcOptions>>();
                 var actionConventional = context.Services.GetRequiredService<IApplicationServiceActionHelper>();
                 options.Conventions.Add(new ApplicationService2ControllerConvention(conventionOptions, actionConventional));
-
-                options.Filters.Add<FakeValidationActionFilter>();
-                options.Filters.Add<FakeUnitOfWorkActionFilter>();
-                options.Filters.Add<FakeExceptionFilter>();
             });
         context.Services.AddTransient<IApplicationServiceActionHelper, ApplicationServiceActionHelper>();
+
+        // 默认过滤器
+        context.Services.AddFakeValidationActionFilter()
+            .AddFakeUnitOfWorkActionFilter()
+            .AddFakeExceptionFilter();
     }
 }
