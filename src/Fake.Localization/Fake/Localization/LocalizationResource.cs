@@ -2,7 +2,7 @@ using Fake.Modularity;
 
 namespace Fake.Localization;
 
-public class LocalizationResource : LocalizationResourceBase
+public sealed class LocalizationResource : LocalizationResourceBase
 {
     public Type ResourceType { get; }
 
@@ -15,20 +15,20 @@ public class LocalizationResource : LocalizationResourceBase
     {
         ThrowHelper.ThrowIfNull(resourceType, nameof(resourceType));
         ResourceType = resourceType;
-        AddBaseResourceTypes();
+        AddInheritedResourceTypes();
     }
 
-    protected virtual void AddBaseResourceTypes()
+    private void AddInheritedResourceTypes()
     {
         var descriptors = ResourceType
             .GetCustomAttributes(true)
-            .OfType<IDependsOnProvider>();
+            .OfType<InheritResourceAttribute>();
 
         foreach (var descriptor in descriptors)
         {
-            foreach (var baseResourceType in descriptor.GetDependedTypes())
+            foreach (var inheritedResourceType in descriptor.ResourceTypes)
             {
-                BaseResourceNames.TryAdd(LocalizationResourceNameAttribute.GetName(baseResourceType));
+                InheritedResourceNames.TryAdd(LocalizationResourceNameAttribute.GetName(inheritedResourceType));
             }
         }
     }

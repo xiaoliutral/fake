@@ -6,4 +6,8 @@
       <ProjectReference Include="..\Fake.Localization\Fake.Localization.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <EmbeddedResource Include="Fake\Validation\Localization\Resources\*.json"/>
+    </ItemGroup>
+
 </Project>

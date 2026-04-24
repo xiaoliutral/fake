@@ -99,6 +99,14 @@ public class FakeApplication : IFakeApplication
         }
 
         var context = new ServiceConfigurationContext(Services);
+        
+        foreach (var module in Modules)
+        {
+            if (module.Instance is FakeModule abpModule)
+            {
+                abpModule.ServiceConfigurationContext = context;
+            }
+        }
 
         // PreConfigureServices
         foreach (var module in Modules)

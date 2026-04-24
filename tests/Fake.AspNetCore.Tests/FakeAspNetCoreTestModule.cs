@@ -25,10 +25,6 @@ public class FakeAspNetCoreTestModule : FakeModule
         {
             options.Resources.Add<LocalizationTestResource>("zh")
                 .LoadVirtualJson("/Localization/Resources");
-        });
-
-        context.Services.Configure<FakeLocalizationOptions>(options =>
-        {
             options.DefaultErrorResourceType = typeof(LocalizationTestResource);
         });
     }

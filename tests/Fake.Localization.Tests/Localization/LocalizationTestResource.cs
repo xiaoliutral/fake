@@ -1,10 +1,6 @@
-﻿using Fake.Modularity;
+﻿namespace Fake.Localization.Tests.Localization;
 
-namespace Fake.Localization.Tests.Localization;
-
-[DependsOn(typeof(LocalizationTestValidationResource))]
-[DependsOn(typeof(FakeLocalizationResource))]
+[InheritResource(typeof(LocalizationTestValidationResource))]
+[InheritResource(typeof(FakeLocalizationResource))]
 [LocalizationResourceName("TestResource")]
-public sealed class LocalizationTestResource
-{
-}
+public sealed class LocalizationTestResource;

@@ -4,7 +4,7 @@ using Microsoft.Extensions.Localization;
 
 namespace Fake.Localization.Contributors;
 
-public class JsonVirtualLocalizationResourceContributorBase(string virtualPath)
+public class JsonVirtualLocalizationResourceContributor(string virtualPath)
     : VirtualFileLocalizationResourceContributorBase(virtualPath)
 {
     private static readonly JsonSerializerOptions? DeserializeOptions = new()

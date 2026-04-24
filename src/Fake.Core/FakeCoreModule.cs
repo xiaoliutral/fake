@@ -6,6 +6,7 @@ using Fake.Data;
 using Fake.Data.Filtering;
 using Fake.Data.Seeding;
 using Fake.DependencyInjection;
+using Fake.ExceptionHandling;
 using Fake.FeiShu;
 using Fake.IdGenerators;
 using Fake.IdGenerators.GuidGenerator;
@@ -32,8 +33,6 @@ public class FakeCoreModule : FakeModule
         context.Services.AddTransient<ICancellationTokenProvider, NullCancellationTokenProvider>();
         context.Services.AddTransient<ILazyServiceProvider, LazyServiceProvider>();
 
-        ConfigureInfras(context);
-
         ConfigureClock(context);
 
         ConfigureSystemTextJson(context);
@@ -42,20 +41,7 @@ public class FakeCoreModule : FakeModule
 
         ConfigureData(context);
     }
-
-    private void ConfigureInfras(ServiceConfigurationContext context)
-    {
-        var configuration = context.Services.GetConfiguration();
-        context.Services.Configure<FeiShuNoticeOptions>(configuration.GetSection("FeiShuNotice"));
-        context.Services.Configure<FeiShuNoticeOptions>(options =>
-        {
-            options.Title = options.Title.IsNullOrWhiteSpace()
-                ? Assembly.GetEntryAssembly()?.GetName().Name ?? ""
-                : options.Title;
-        });
-        context.Services.AddSingleton<IFeiShuNotificationService, FeiShuNotificationService>();
-    }
-
+    
     public override void PostConfigureApplication(ApplicationConfigureContext context)
     {
         var dataSeedOptions = context.ServiceProvider.GetRequiredService<IOptions<DataSeedOptions>>();

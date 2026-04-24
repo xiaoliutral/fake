@@ -29,6 +29,7 @@ public sealed class StringLocalizerTest : ApplicationTest<FakeLocalizationTestMo
         using (CultureHelper.UseCulture("en"))
         {
             _localizer["Hi", "xx"].Value.ShouldBe("Hello xx");
+            _localizer[FakeLocalizationResource.DefaultLanguage].Value.ShouldBe("Default Language");
         }
 
         _localizer["Hi", "xx"].Value.ShouldBe("你好");

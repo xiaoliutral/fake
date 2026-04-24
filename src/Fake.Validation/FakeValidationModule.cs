@@ -1,6 +1,8 @@
 ﻿using Fake.DynamicProxy;
 using Fake.Localization;
 using Fake.Modularity;
+using Fake.Validation.Localization;
+using Fake.VirtualFileSystem;
 using Microsoft.Extensions.DependencyInjection;
 
 // ReSharper disable once CheckNamespace
@@ -36,8 +38,19 @@ public class FakeValidationModule : FakeModule
     {
         context.Services.AddTransient<ValidationInterceptor>();
         context.Services.AddTransient<IObjectValidator, ObjectValidator>();
-        context.Services.AddTransient<IObjectValidationContributor, DataAnnotationObjectValidationContributor>();
         context.Services.AddTransient<IAttributeValidationResultProvider, DefaultAttributeValidationResultProvider>();
+        
+        Configure<FakeVirtualFileSystemOptions>(options =>
+        {
+            options.FileProviders.Add<FakeValidationModule>("Fake.Validation");
+        });
+
+        Configure<FakeLocalizationOptions>(options =>
+        {
+            options.Resources
+                .Add<FakeValidationResource>("zh")
+                .LoadVirtualJson("/Localization/Resources");
+        });
     }
 
 

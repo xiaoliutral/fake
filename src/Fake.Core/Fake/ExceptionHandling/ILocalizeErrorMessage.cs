@@ -8,5 +8,5 @@ public interface ILocalizeErrorMessage
     /// <summary>
     /// 本地化参数
     /// </summary>
-    public object[]? Arguments { get; set; }
+    public object[]? LocalizeLocalizeArguments { get; set; }
 }

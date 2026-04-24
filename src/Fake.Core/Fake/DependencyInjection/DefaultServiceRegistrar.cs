@@ -16,7 +16,7 @@ public class DefaultServiceRegistrar : AbstractServiceRegistrar
         if (lifetime == null) return;
 
         // 获取需要暴露的服务
-        var exposedServices = GetExposedServices(type);
+        var exposedServices = GetExposedServices(type).Select(t => new ServiceIdentifier(t)).ToList();
 
         // 触发服务暴露动作
         TriggerServiceExposingActions(services, type, exposedServices);
@@ -43,7 +43,7 @@ public class DefaultServiceRegistrar : AbstractServiceRegistrar
         }
     }
 
-    protected virtual List<ServiceIdentifier> GetExposedServices(Type type)
+    protected virtual List<Type> GetExposedServices(Type type)
     {
         return ExposedServiceExplorer.GetExposedServices(type);
     }

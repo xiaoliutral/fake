@@ -91,7 +91,7 @@ public class FakeStringLocalizerFactory(
             contributor.Initialize(context);
         }
 
-        var inheritsLocalizer = resource.BaseResourceNames
+        var inheritsLocalizer = resource.InheritedResourceNames
             .Select(baseResourceName =>
             {
                 var baseResource = _options.Resources.GetOrDefault(baseResourceName);

@@ -13,7 +13,7 @@ public static class LocalizationResourceBaseExtensions
 
         foreach (var type in types)
         {
-            localizationResource.BaseResourceNames
+            localizationResource.InheritedResourceNames
                 .TryAdd(LocalizationResourceNameAttribute.GetName(type));
         }
 
@@ -27,7 +27,7 @@ public static class LocalizationResourceBaseExtensions
         ThrowHelper.ThrowIfNull(localizationResource, nameof(localizationResource));
         ThrowHelper.ThrowIfNull(virtualPath, nameof(virtualPath));
 
-        localizationResource.Contributors.Add(new JsonVirtualLocalizationResourceContributorBase(virtualPath));
+        localizationResource.Contributors.Add(new JsonVirtualLocalizationResourceContributor(virtualPath));
 
         return localizationResource;
     }

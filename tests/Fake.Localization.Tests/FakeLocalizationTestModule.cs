@@ -19,6 +19,8 @@ public class FakeLocalizationTestModule : FakeModule
 
         context.Services.Configure<FakeLocalizationOptions>(options =>
         {
+            options.DefaultResourceType = typeof(LocalizationTestResource);
+            
             options.Resources.Add<LocalizationTestResource>("zh")
                 .LoadVirtualJson("/Localization/Resources");
 

@@ -10,7 +10,7 @@ public abstract class LocalizationResourceBase
     /// <summary>
     /// 继承的资源
     /// </summary>
-    public List<string> BaseResourceNames { get; }
+    public List<string> InheritedResourceNames { get; }
 
     public string? DefaultCultureName { get; set; }
     public List<ILocalizationResourceContributor> Contributors { get; }
@@ -23,7 +23,7 @@ public abstract class LocalizationResourceBase
         ResourceName = resourceName;
         DefaultCultureName = defaultCultureName;
 
-        BaseResourceNames = new();
+        InheritedResourceNames = new();
         Contributors = new();
     }
 

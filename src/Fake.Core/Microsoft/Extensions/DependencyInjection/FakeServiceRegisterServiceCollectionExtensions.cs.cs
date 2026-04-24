@@ -5,7 +5,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 
 public static class FakeServiceRegisterServiceCollectionExtensions
 {
-    #region ServiceRegistered 服务注册后切面
+    #region ServiceRegistered 服务注册后切面，此时服务已经注册好了，可以加拦截器了
 
     /// <summary>
     /// 在每个服务注册到IOC容器后调度
@@ -46,7 +46,7 @@ public static class FakeServiceRegisterServiceCollectionExtensions
 
     #endregion
 
-    #region ServiceExposing 服务暴露切面
+    #region ServiceExposing 服务暴露切面，此时服务准备暴露，可以修改暴露的实现
 
     /// <summary>
     /// 服务暴露时调度，可以在这里变更暴露内容
@@ -78,7 +78,20 @@ public static class FakeServiceRegisterServiceCollectionExtensions
 
     #endregion
 
-    #region ServiceRegistrar 服务注册切面
+    #region ServiceRegistrar 服务注册切面，此切面具备服最大权限，这里适合用于对每一个服务施加效果，例如对象映射、对象校验这种大量的服务注册问题
+
+    /// <summary>
+    /// 添加服务注册器，服务注册时会执行每一个注册器
+    /// </summary>
+    /// <param name="services"></param>
+    /// <param name="registrar"></param>
+    /// <returns></returns>
+    public static IServiceCollection AddServiceRegistrar(this IServiceCollection services, IServiceRegistrar registrar)
+    {
+        services.GetOrCreateServiceRegisterList().Add(registrar);
+
+        return services;
+    }
 
     /// <summary>
     /// 注册给定程序集内所有满足注册标准的服务
@@ -95,20 +108,6 @@ public static class FakeServiceRegisterServiceCollectionExtensions
 
         return services;
     }
-
-    /// <summary>
-    /// 添加服务注册器，服务注册时会执行每一个注册器
-    /// </summary>
-    /// <param name="services"></param>
-    /// <param name="registrar"></param>
-    /// <returns></returns>
-    public static IServiceCollection AddServiceRegistrar(this IServiceCollection services, IServiceRegistrar registrar)
-    {
-        services.GetOrCreateServiceRegisterList().Add(registrar);
-
-        return services;
-    }
-
 
     /// <summary>
     /// 获取或创建服务注册器集合，服务注册时会执行每一个注册器

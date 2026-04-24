@@ -1,19 +1,18 @@
-using System.ComponentModel.DataAnnotations;
 using System.Text;
 using Fake.Application;
-using Fake.DependencyInjection;
 using Fake.Domain.Exceptions;
 using Fake.ExceptionHandling;
 using Fake.FeiShu;
 using Fake.Security.Claims;
 using Fake.Users;
+using Fake.Validation;
 
 namespace Fake.AspNetCore.ExceptionHandling;
 
 public class FeiShuExceptionSubscriber(
     IFeiShuNotificationService notificationService,
     ICurrentUser currentUser,
-    IOptionsMonitor<FeiShuNoticeOptions> optionsMonitor) : IExceptionSubscriber, ITransientDependency
+    IOptionsMonitor<FeiShuNoticeOptions> optionsMonitor) : IExceptionSubscriber
 {
     private readonly FeiShuNoticeOptions _options = optionsMonitor.CurrentValue;
 

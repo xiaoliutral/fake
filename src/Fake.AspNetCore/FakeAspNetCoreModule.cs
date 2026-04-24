@@ -9,6 +9,7 @@ using Fake.AspNetCore.Security.Claims;
 using Fake.AspNetCore.VirtualFileSystem;
 using Fake.Authorization;
 using Fake.DomainDrivenDesign;
+using Fake.ExceptionHandling;
 using Fake.Localization;
 using Fake.Modularity;
 using Fake.Security.Claims;
@@ -49,20 +50,16 @@ public class FakeAspNetCoreModule : FakeModule
             options.Resources.Add<FakeAspNetCoreErrorResource>("zh")
                 .LoadVirtualJson("/Localization");
         });
-        
+
+        // Data Annotations
         context.Services.AddMvc()
             .AddDataAnnotationsLocalization(options =>
             {
                 options.DataAnnotationLocalizerProvider = (type, factory) =>
                 {
-                    if (resourceType != null)
-                    {
-                        return factory.Create(resourceType);
-                    }
-
-                    return factory.CreateDefaultOrNull() ?? throw new FakeException($"{type.Name} Resource not found");
+                    return factory.CreateDefaultOrNull() ?? factory.Create(type);
                 };
-            })
+            });
 
         ConfigureControllers(context);
     }

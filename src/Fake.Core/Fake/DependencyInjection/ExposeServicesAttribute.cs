@@ -23,8 +23,7 @@ public class ExposeServicesAttribute(params Type[] exposedServiceTypes) : Attrib
     /// </summary>
     public bool ExposeSelf { get; set; } = true;
 
-
-    public ServiceIdentifier[] GetExposedServices(Type implementType)
+    public Type[] GetExposedServices(Type implementType)
     {
         var res = new List<Type>(exposedServiceTypes);
         if (ExposeInterface)
@@ -40,7 +39,7 @@ public class ExposeServicesAttribute(params Type[] exposedServiceTypes) : Attrib
             res.TryAdd(implementType);
         }
 
-        return res.Select(t => new ServiceIdentifier(t)).ToArray();
+        return res.ToArray();
     }
 
     private static List<Type> GetConventionalNamingServiceTypes(Type targetType)

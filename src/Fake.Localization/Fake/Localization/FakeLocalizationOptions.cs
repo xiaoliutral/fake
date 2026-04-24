@@ -1,4 +1,5 @@
-﻿using Fake.Collections;
+﻿using System.Reflection;
+using Fake.Collections;
 using Fake.Localization.Contributors;
 
 namespace Fake.Localization;
@@ -16,7 +17,7 @@ public class FakeLocalizationOptions
     public Type? DefaultResourceType { get; set; }
 
     /// <summary>
-    /// 默认异常资源类型
+    /// 默认异常资源类型，若无则取默认资源类型
     /// </summary>
     public Type? DefaultErrorResourceType { get; set; }
 
@@ -35,4 +36,21 @@ public class FakeLocalizationOptions
     /// 尝试从本地化资源default culture找
     /// </summary>
     public bool TryGetFromDefaultCulture { get; set; } = true;
+    
+    public IDictionary<Assembly, Type> AssemblyResources { get; } = new Dictionary<Assembly, Type>();
+
+    public void AddAssemblyResource(
+        Type resourceType,
+        params Assembly[] assemblies)
+    {
+        if (assemblies.IsNullOrEmpty())
+        {
+            assemblies = [resourceType.Assembly];
+        }
+
+        foreach (var assembly in assemblies)
+        {
+            AssemblyResources[assembly] = resourceType;
+        }
+    }
 }

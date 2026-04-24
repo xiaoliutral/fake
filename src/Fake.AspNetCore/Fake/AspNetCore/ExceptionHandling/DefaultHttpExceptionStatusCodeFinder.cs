@@ -5,6 +5,7 @@ using Fake.Authorization;
 using Fake.Data;
 using Fake.DependencyInjection;
 using Fake.Domain.Exceptions;
+using Fake.Validation;
 
 namespace Fake.AspNetCore.ExceptionHandling;
 

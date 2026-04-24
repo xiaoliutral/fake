@@ -6,6 +6,10 @@ using Microsoft.Extensions.Primitives;
 
 namespace Fake.Localization.Contributors;
 
+/// <summary>
+/// 虚拟文件本地化资源贡献者基类
+/// </summary>
+/// <param name="virtualPath"></param>
 public abstract class VirtualFileLocalizationResourceContributorBase(string virtualPath)
     : ILocalizationResourceContributor
 {

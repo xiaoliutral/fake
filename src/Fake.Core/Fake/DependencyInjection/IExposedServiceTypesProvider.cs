@@ -13,5 +13,5 @@ public interface IExposedServiceTypesProvider
     /// </summary>
     /// <param name="implementType"></param>
     /// <returns></returns>
-    ServiceIdentifier[] GetExposedServices(Type implementType);
+    Type[] GetExposedServices(Type implementType);
 }

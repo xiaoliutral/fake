@@ -1,6 +1,7 @@
 using System.Collections;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using Fake.DependencyInjection;
 using Fake.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -9,9 +10,8 @@ namespace Fake.Validation;
 
 public class DataAnnotationObjectValidationContributor(
     IOptions<FakeValidationOptions> options,
-    IServiceProvider serviceProvider) : IObjectValidationContributor
+    IServiceProvider serviceProvider) : IObjectValidationContributor, ITransientDependency
 {
-    public const int MaxRecursiveParameterValidationDepth = 5;
     private readonly FakeValidationOptions _validationOptions = options.Value;
 
     public virtual Task AddErrorsAsync(ObjectValidationContext context)
@@ -24,7 +24,7 @@ public class DataAnnotationObjectValidationContributor(
     protected virtual void ValidateObjectRecursively(List<ValidationResult> errors, object? validatingObject,
         int currentDepth)
     {
-        if (currentDepth > MaxRecursiveParameterValidationDepth) return;
+        if (currentDepth > _validationOptions.MaxRecursiveParameterValidationDepth) return;
         if (validatingObject is null) return;
         
         AddErrors(errors, validatingObject);

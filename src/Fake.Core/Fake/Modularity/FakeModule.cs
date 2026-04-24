@@ -6,6 +6,19 @@ public abstract class FakeModule : IFakeModule
     ///     当赋值为true时 跳过Fake提供的自动服务注册
     /// </summary>
     public virtual bool SkipServiceRegistration => false;
+    
+    private ServiceConfigurationContext? _serviceConfigurationContext;
+    protected internal ServiceConfigurationContext ServiceConfigurationContext{
+        get {
+            if (_serviceConfigurationContext == null)
+            {
+                throw new FakeInitializationException($"{nameof(ServiceConfigurationContext)} is only available in the {nameof(ConfigureServices)}, {nameof(PreConfigureServices)} and {nameof(PostConfigureServices)} methods.");
+            }
+
+            return _serviceConfigurationContext;
+        }
+        internal set => _serviceConfigurationContext = value;
+    }
 
     public virtual void PreConfigureServices(ServiceConfigurationContext context)
     {
@@ -33,5 +46,11 @@ public abstract class FakeModule : IFakeModule
 
     public virtual void Shutdown(ApplicationShutdownContext context)
     {
+    }
+    
+    protected void Configure<TOptions>(Action<TOptions> configureOptions)
+        where TOptions : class
+    {
+        ServiceConfigurationContext.Services.Configure(configureOptions);
     }
 }

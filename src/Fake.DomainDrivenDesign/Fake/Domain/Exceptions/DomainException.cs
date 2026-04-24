@@ -12,10 +12,10 @@ public class DomainException
     {
         
     }
-    public DomainException(string? message = null, params object[] arguments) : base(message)
+    public DomainException(string? message = null, params object[] localizeArguments) : base(message)
     {
-        Arguments = arguments;
+        LocalizeLocalizeArguments = localizeArguments;
     }
     public LogLevel LogLevel { get; set; } = LogLevel.Warning;
-    public object[]? Arguments { get; set; }
+    public object[]? LocalizeLocalizeArguments { get; set; }
 }

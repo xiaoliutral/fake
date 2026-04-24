@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="..\..\common.test.props"/>
+    <ItemGroup>
+        <EmbeddedResource Include="Localization\Resources\**\*.json"/>
+        <EmbeddedResource Include="Localization\Validation\en.json" />
+        <EmbeddedResource Include="Localization\Validation\zh.json" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Fake.Validation\Fake.Validation.csproj" />
+        <ProjectReference Include="..\AFakeTestEntry\AFakeTestEntry.csproj"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkPackageVersion)"/>
+    </ItemGroup>
+    
+</Project>

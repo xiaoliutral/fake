@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Fake.Core\Fake.Core.csproj" />
+      <ProjectReference Include="..\Fake.Validation\Fake.Validation.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="FluentValidation" Version="12.1.1" />
+    </ItemGroup>
+
+</Project>
