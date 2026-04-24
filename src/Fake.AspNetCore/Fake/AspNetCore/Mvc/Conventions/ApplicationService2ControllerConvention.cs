@@ -103,7 +103,7 @@ public class ApplicationService2ControllerConvention(
                     continue;
                 }
 
-                if (!TypeHelper.IsBaseType(prm.ParameterInfo.ParameterType, includeEnums: true))
+                if (!TypeHelper.IsPrimitiveExtended(prm.ParameterInfo.ParameterType, includeEnums: true))
                 {
                     if (CanUseFormBodyBinding(action, prm))
                     {

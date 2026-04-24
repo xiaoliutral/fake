@@ -18,28 +18,28 @@ public static class TypeHelper
     }
 
     /// <summary>
-    /// 是否是基础类型
+    /// 是否是基元类型（拓展版本include string、enum、datetime..）
     /// </summary>
     /// <param name="type"></param>
     /// <param name="includeNullables"></param>
     /// <param name="includeEnums"></param>
     /// <returns></returns>
-    public static bool IsBaseType(Type type, bool includeNullables = true, bool includeEnums = false)
+    public static bool IsPrimitiveExtended(Type type, bool includeNullables = true, bool includeEnums = false)
     {
-        if (IsPrimitiveExtended(type, includeEnums))
+        if (IsPrimitiveExtendedInternal(type, includeEnums))
         {
             return true;
         }
 
-        if (includeNullables && IsNullable(type) && type.GenericTypeArguments.Any())
+        if (includeNullables && IsNullable(type) && type.GenericTypeArguments.Length != 0)
         {
-            return IsPrimitiveExtended(type.GenericTypeArguments[0], includeEnums);
+            return IsPrimitiveExtendedInternal(type.GenericTypeArguments[0], includeEnums);
         }
 
         return false;
     }
 
-    private static bool IsPrimitiveExtended(Type type, bool includeEnums)
+    private static bool IsPrimitiveExtendedInternal(Type type, bool includeEnums)
     {
         // c# primitive types：https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/built-in-types
         if (type.IsPrimitive)

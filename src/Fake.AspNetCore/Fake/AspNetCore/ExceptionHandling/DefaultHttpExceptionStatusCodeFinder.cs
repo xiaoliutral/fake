@@ -25,7 +25,7 @@ public class DefaultHttpExceptionStatusCodeFinder : IHttpExceptionStatusCodeFind
 
         if (exception is FakeDbConcurrencyException) return HttpStatusCode.Conflict;
 
-        if (exception is DomainException or ValidationException or BusinessException) return HttpStatusCode.BadRequest;
+        if (exception is DomainException or FakeValidationException or BusinessException) return HttpStatusCode.BadRequest;
 
         return HttpStatusCode.InternalServerError;
     }

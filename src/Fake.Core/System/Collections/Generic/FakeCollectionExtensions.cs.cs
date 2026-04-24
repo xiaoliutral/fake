@@ -13,7 +13,7 @@ public static class FakeCollectionExtensions
     }
 
     /// <summary>
-    /// 尝试添加项到集合，项不存在则成功添加并返回true，否则返回false
+    /// 尝试添加项到集合，项不存在则添加并返回true，否则返回false
     /// </summary>
     /// <param name="source"></param>
     /// <param name="item"></param>
@@ -33,13 +33,13 @@ public static class FakeCollectionExtensions
     }
     
     /// <summary>
-    /// Adds items to the collection which are not already in the collection.
+    /// 尝试添加项到集合，项不存在则添加并添加到返回列表
     /// </summary>
     /// <param name="source">The collection</param>
     /// <param name="items">Item to check and add</param>
     /// <typeparam name="T">Type of the items in the collection</typeparam>
     /// <returns>Returns the added items.</returns>
-    public static IEnumerable<T> AddIfNotContains<T>(this ICollection<T> source, params T[] items)
+    public static IEnumerable<T> TryAdd<T>(this ICollection<T> source, IEnumerable<T>  items)
     {
         ThrowHelper.ThrowIfNull(source, nameof(source));
 

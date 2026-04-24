@@ -15,6 +15,6 @@ public class BusinessException : FakeException, IHasLogLevel, ILocalizeErrorMess
         Arguments = arguments;
     }
     
-    public LogLevel LogLevel { get; set; } = LogLevel.Information;
+    public LogLevel LogLevel { get; set; } = LogLevel.Warning;
     public object[]? Arguments { get; set; }
 }

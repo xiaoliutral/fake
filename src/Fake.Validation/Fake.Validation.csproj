@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../../common.props"/>
+    <Import Project="../../configureawait.props"/>
+    <ItemGroup>
+      <ProjectReference Include="..\Fake.Localization\Fake.Localization.csproj" />
+    </ItemGroup>
+
+</Project>

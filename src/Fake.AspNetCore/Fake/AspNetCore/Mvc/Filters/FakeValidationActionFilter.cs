@@ -1,5 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Fake.AspNetCore.Mvc.Validation;
 using Fake.Helpers;
+using Fake.Validation;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -7,15 +8,11 @@ namespace Fake.AspNetCore.Mvc.Filters;
 
 public class FakeValidationActionFilter : IAsyncActionFilter
 {
-    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+    public virtual async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         if (ShouldHandle(context))
         {
-            if (context.ModelState.ErrorCount > 0)
-            {
-                HandleModelError(context);
-                return;
-            }
+            context.HttpContext.RequestServices.GetRequiredService<IModelStateValidator>().Validate(context.ModelState);
         }
 
         await next();
@@ -28,7 +25,7 @@ public class FakeValidationActionFilter : IAsyncActionFilter
                 .Select(error => error.ErrorMessage))
             .JoinAsString("\n");
 
-        throw new ValidationException(message);
+        throw new FakeValidationException(message);
     }
 
     protected virtual bool ShouldHandle(ActionExecutingContext context)
@@ -38,7 +35,7 @@ public class FakeValidationActionFilter : IAsyncActionFilter
             return false;
         }
 
-        if (ReflectionHelper.GetAttributeOrNull<DisableValidationAttribute>(controllerActionDescriptor.MethodInfo) !=
+        if (ReflectionHelper.GetAttributeOrDefault<DisableValidationAttribute>(controllerActionDescriptor.MethodInfo) !=
             null)
         {
             return false;
@@ -47,6 +44,3 @@ public class FakeValidationActionFilter : IAsyncActionFilter
         return true;
     }
 }
-
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
-public class DisableValidationAttribute : Attribute;

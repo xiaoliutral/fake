@@ -2,7 +2,7 @@
 
 namespace Fake;
 
-// todo: 多语言
+// todo: 多语言 ?
 [DebuggerStepThrough]
 public static class ThrowHelper
 {

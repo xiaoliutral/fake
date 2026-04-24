@@ -13,6 +13,7 @@ using Fake.Localization;
 using Fake.Modularity;
 using Fake.Security.Claims;
 using Fake.VirtualFileSystem;
+using Microsoft.Extensions.Localization;
 
 // ReSharper disable once CheckNamespace
 namespace Fake.AspNetCore;
@@ -48,6 +49,20 @@ public class FakeAspNetCoreModule : FakeModule
             options.Resources.Add<FakeAspNetCoreErrorResource>("zh")
                 .LoadVirtualJson("/Localization");
         });
+        
+        context.Services.AddMvc()
+            .AddDataAnnotationsLocalization(options =>
+            {
+                options.DataAnnotationLocalizerProvider = (type, factory) =>
+                {
+                    if (resourceType != null)
+                    {
+                        return factory.Create(resourceType);
+                    }
+
+                    return factory.CreateDefaultOrNull() ?? throw new FakeException($"{type.Name} Resource not found");
+                };
+            })
 
         ConfigureControllers(context);
     }

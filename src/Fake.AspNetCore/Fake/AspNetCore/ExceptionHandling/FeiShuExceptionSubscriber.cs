@@ -22,7 +22,7 @@ public class FeiShuExceptionSubscriber(
         if (!_options.EnableFeiShuExceptionSubscribe) return;
         
         // todo: 40x异常可以提升到aspnetcore层面的配置或者静态变量
-        var ex400 = context.Exception is BusinessException or DomainException or ValidationException;
+        var ex400 = context.Exception is BusinessException or DomainException or FakeValidationException;
         
         if (ex400 && _options.Skip40X) return;
 

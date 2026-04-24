@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -8,6 +9,7 @@ public static class ReflectionHelper
 {
     private static readonly ConcurrentDictionary<string, PropertyInfo?> PropertiesCaches = new();
     private static readonly ConcurrentDictionary<Assembly, IReadOnlyList<Type>> AssemblyCaches = new();
+    private static readonly ConcurrentDictionary<string, IReadOnlyList<Attribute>> AttributeCache = new();
 
     /// <summary>
     /// 尝试为给定对象的属性赋值
@@ -21,7 +23,7 @@ public static class ReflectionHelper
     {
         TrySetProperty(obj, propertySelector, _ => valueFactory(), ignoreAttributeTypes);
     }
-    
+
     /// <summary>
     /// 尝试为给定对象的属性赋值
     /// </summary>
@@ -40,22 +42,25 @@ public static class ReflectionHelper
 
         property?.SetValue(obj, valueFactory(obj));
         return;
-        
+
         PropertyInfo? PropertyFactory(string _)
         {
             MemberExpression? memberExpression;
             switch (propertySelector.Body.NodeType)
             {
                 // importance：处理一元表达式-ex可空
-                case ExpressionType.Convert: {
+                case ExpressionType.Convert:
+                {
                     memberExpression = propertySelector.Body.As<UnaryExpression>()?.Operand as MemberExpression;
                     break;
                 }
-                case ExpressionType.MemberAccess: {
+                case ExpressionType.MemberAccess:
+                {
                     memberExpression = propertySelector.Body.As<MemberExpression>();
                     break;
                 }
-                default: {
+                default:
+                {
                     return null;
                 }
             }
@@ -65,7 +70,7 @@ public static class ReflectionHelper
                 return null;
             }
 
-            var propertyInfo = obj?.GetType()
+            var propertyInfo = obj.GetType()
                 .GetProperties()
                 .FirstOrDefault(x => x.Name == memberExpression.Member.Name);
 
@@ -90,6 +95,7 @@ public static class ReflectionHelper
         }
     }
 
+
     /// <summary>
     /// 获取给定成员指定特性，如果没有则返回defaultValue
     /// </summary>
@@ -99,14 +105,16 @@ public static class ReflectionHelper
     /// <param name="includeDeclaringType">从定义类型上寻找</param>
     /// <typeparam name="TAttribute"></typeparam>
     /// <returns></returns>
-    public static TAttribute? GetAttributeOrNull<TAttribute>(MemberInfo memberInfo,
-        TAttribute? defaultValue = null, bool inherit = true, bool includeDeclaringType = true)
+    public static TAttribute? GetAttributeOrDefault<TAttribute>(
+        MemberInfo memberInfo,
+        TAttribute? defaultValue = null,
+        bool inherit = true,
+        bool includeDeclaringType = true)
         where TAttribute : Attribute
     {
-        return memberInfo.GetCustomAttribute<TAttribute>(inherit)
-               ?? memberInfo.DeclaringType?.GetType().GetCustomAttribute<TAttribute>(inherit)
-               ?? defaultValue;
+        return GetAttributes<TAttribute>(memberInfo, inherit, includeDeclaringType).FirstOrDefault() ?? defaultValue;
     }
+
 
     /// <summary>
     /// 获取给定成员指定特性集合
@@ -116,13 +124,22 @@ public static class ReflectionHelper
     /// <param name="includeDeclaringType">从定义类型上寻找</param>
     /// <typeparam name="TAttribute"></typeparam>
     /// <returns></returns>
-    public static IEnumerable<TAttribute> GetAttributes<TAttribute>(MemberInfo memberInfo,
+    public static IReadOnlyList<TAttribute> GetAttributes<TAttribute>(MemberInfo memberInfo,
         bool inherit = true, bool includeDeclaringType = true)
         where TAttribute : Attribute
     {
-        return memberInfo.GetCustomAttributes<TAttribute>(inherit)
-            .Concat(memberInfo.DeclaringType?.GetType().GetCustomAttributes<TAttribute>(inherit)
-                    ?? Array.Empty<TAttribute>());
+        var key = $"{memberInfo}-{typeof(TAttribute)}-{inherit}-{includeDeclaringType}";
+
+        var value = AttributeCache.GetOrAdd(key, AttributeFactory);
+
+        return value.Cast<TAttribute>().ToImmutableArray();
+
+        IReadOnlyList<TAttribute> AttributeFactory(string _)
+        {
+            return memberInfo.GetCustomAttributes<TAttribute>(inherit)
+                .Concat(memberInfo.DeclaringType?.GetTypeInfo().GetCustomAttributes<TAttribute>(inherit)
+                        ?? []).ToImmutableArray();
+        }
     }
 
 
