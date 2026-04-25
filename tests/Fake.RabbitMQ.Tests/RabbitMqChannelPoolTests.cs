@@ -1,3 +1,4 @@
+#nullable enable
 using Fake.RabbitMQ;
 using Fake.Timing;
 using Microsoft.Extensions.Logging.Abstractions;

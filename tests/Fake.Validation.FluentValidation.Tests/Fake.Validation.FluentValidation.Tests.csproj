@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="..\..\common.test.props"/>
+   
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Fake.Validation.FluentValidation\Fake.Validation.FluentValidation.csproj" />
+        <ProjectReference Include="..\AFakeTestEntry\AFakeTestEntry.csproj"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkPackageVersion)"/>
+    </ItemGroup>
+
+</Project>

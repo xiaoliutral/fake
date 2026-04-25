@@ -8,7 +8,7 @@ public static class ExposedServiceExplorer
         ExposeSelf = true
     };
 
-    public static List<Type> GetExposedServices(Type type)
+    public static List<ServiceIdentifier> GetExposedServices(Type type)
     {
         return type
             .GetCustomAttributes(true)

@@ -38,6 +38,8 @@ public class FakeValidationModule : FakeModule
     {
         context.Services.AddTransient<ValidationInterceptor>();
         context.Services.AddTransient<IObjectValidator, ObjectValidator>();
+        context.Services.AddTransient<DataAnnotationObjectValidationContributor>();
+        context.Services.AddTransient<IObjectValidationContributor, DataAnnotationObjectValidationContributor>();
         context.Services.AddTransient<IAttributeValidationResultProvider, DefaultAttributeValidationResultProvider>();
         
         Configure<FakeVirtualFileSystemOptions>(options =>

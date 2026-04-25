@@ -23,7 +23,7 @@ public class ExposeServicesAttribute(params Type[] exposedServiceTypes) : Attrib
     /// </summary>
     public bool ExposeSelf { get; set; } = true;
 
-    public Type[] GetExposedServices(Type implementType)
+    public ServiceIdentifier[] GetExposedServices(Type implementType)
     {
         var res = new List<Type>(exposedServiceTypes);
         if (ExposeInterface)
@@ -39,7 +39,7 @@ public class ExposeServicesAttribute(params Type[] exposedServiceTypes) : Attrib
             res.TryAdd(implementType);
         }
 
-        return res.ToArray();
+        return res.Select(t => new ServiceIdentifier(t)).ToArray();
     }
 
     private static List<Type> GetConventionalNamingServiceTypes(Type targetType)
@@ -65,7 +65,8 @@ public class ExposeServicesAttribute(params Type[] exposedServiceTypes) : Attrib
                 interfaceName = interfaceName.Slice(1, interfaceName.Length - 1);
             }
 
-            //TODO：为什么这里暴露了泛型，仍然获取不了服务
+            // tips：为什么这里暴露了泛型，仍然获取不了服务？
+            //       因为此时的泛型没有封闭，泛型参数<>是未知的
             // if (implementType.IsGenericType)
             // {
             //     if (implementType.Name.Substring(0, implementType.Name.IndexOf('`')).EndsWith(interfaceName.ToString()))

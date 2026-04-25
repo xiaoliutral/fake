@@ -33,7 +33,7 @@ public static class FakeObjectExtensions
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T? As<T>(this object obj) where T : class
+    public static T? As<T>(this object? obj) where T : class
     {
         return obj as T;
     }

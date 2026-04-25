@@ -4,10 +4,11 @@ using Microsoft.Extensions.Options;
 
 namespace Fake.Validation;
 
-public class ObjectValidator(IOptions<FakeValidationOptions> options, IServiceScopeFactory serviceScopeFactory) : IObjectValidator
+public class ObjectValidator(IOptions<FakeValidationOptions> options, IServiceScopeFactory serviceScopeFactory)
+    : IObjectValidator
 {
     private readonly FakeValidationOptions _validationOptions = options.Value;
-    
+
     public virtual async Task ValidateAsync(object validatingObject, string? name = null, bool allowNull = false)
     {
         var errors = await GetErrorsAsync(validatingObject, name, allowNull);
@@ -21,7 +22,8 @@ public class ObjectValidator(IOptions<FakeValidationOptions> options, IServiceSc
         }
     }
 
-    public virtual async Task<List<ValidationResult>> GetErrorsAsync(object validatingObject, string? name = null, bool allowNull = false)
+    public virtual async Task<List<ValidationResult>> GetErrorsAsync(object validatingObject, string? name = null,
+        bool allowNull = false)
     {
         // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
         if (validatingObject == null)
@@ -38,15 +40,15 @@ public class ObjectValidator(IOptions<FakeValidationOptions> options, IServiceSc
                     : new ValidationResult(name + " is null!", [name])
             ];
         }
-        
+
         var context = new ObjectValidationContext(validatingObject);
 
         using (var scope = serviceScopeFactory.CreateScope())
         {
             foreach (var contributorType in _validationOptions.Contributors)
             {
-                var contributor = (IObjectValidationContributor)
-                    scope.ServiceProvider.GetRequiredService(contributorType);
+                var contributor = scope.ServiceProvider.GetRequiredService(contributorType)
+                    .To<IObjectValidationContributor>();
                 await contributor.AddErrorsAsync(context);
             }
         }

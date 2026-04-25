@@ -10,7 +10,7 @@ namespace Fake.Validation;
 
 public class DataAnnotationObjectValidationContributor(
     IOptions<FakeValidationOptions> options,
-    IServiceProvider serviceProvider) : IObjectValidationContributor, ITransientDependency
+    IServiceProvider serviceProvider) : IObjectValidationContributor
 {
     private readonly FakeValidationOptions _validationOptions = options.Value;
 

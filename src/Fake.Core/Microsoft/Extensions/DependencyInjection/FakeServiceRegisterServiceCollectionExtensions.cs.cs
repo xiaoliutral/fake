@@ -78,7 +78,7 @@ public static class FakeServiceRegisterServiceCollectionExtensions
 
     #endregion
 
-    #region ServiceRegistrar 服务注册切面，此切面具备服最大权限，这里适合用于对每一个服务施加效果，例如对象映射、对象校验这种大量的服务注册问题
+    #region ServiceRegistrar 服务注册切面，这里无差别对每一个class施加效果，适合例如对象映射、对象校验这种需要自动注册的场景
 
     /// <summary>
     /// 添加服务注册器，服务注册时会执行每一个注册器
