@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
-namespace Fake.AspNetCore.Mvc.ApiExplorer;
+namespace Fake.AspNetCore.ApiExplorer;
 
 public class ApplicationServiceApiDescriptionProvider(
     IModelMetadataProvider modelMetadataProvider,

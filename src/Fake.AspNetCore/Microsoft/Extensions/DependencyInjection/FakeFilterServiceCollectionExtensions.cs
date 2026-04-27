@@ -1,5 +1,6 @@
 ﻿using Fake.AspNetCore.ExceptionHandling;
-using Fake.AspNetCore.Mvc.Filters;
+using Fake.AspNetCore.UnitOfWork;
+using Fake.AspNetCore.Validation;
 using Fake.Modularity;
 using Fake.UnitOfWork;
 using Microsoft.AspNetCore.Mvc.Filters;

@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using Microsoft.AspNetCore.Mvc.Controllers;
 
-namespace Fake.AspNetCore.Mvc.Conventions;
+namespace Fake.AspNetCore.ApiConventions;
 
 public class ApplicationServiceControllerFeatureProvider(IFakeApplication application) : ControllerFeatureProvider
 {
@@ -10,7 +10,7 @@ public class ApplicationServiceControllerFeatureProvider(IFakeApplication applic
     {
         return application.ServiceProvider
             .GetRequiredService<IOptions<FakeAspNetCoreMvcOptions>>().Value
-            .ConventionalControllerSettings
+            .ControllerSettings
             .Any(x => x.ControllerTypes.Contains(typeInfo.AsType()));
     }
 }

@@ -1,10 +1,11 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text;
 using Fake.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace Fake.Validation;
 
-public class FakeValidationException: FakeException, IHasLogLevel
+public class FakeValidationException: FakeException, IHasLogLevel, IHasExceptionLog
 {
     public LogLevel LogLevel { get; set; } = LogLevel.Warning;
 
@@ -31,5 +32,25 @@ public class FakeValidationException: FakeException, IHasLogLevel
     public FakeValidationException(string message, Exception innerException)
         : base(message, innerException)
     {
+    }
+
+    public void Log(ILogger logger)
+    {
+        if (ValidationErrors.IsNullOrEmpty()) return;
+
+        var validationErrors = new StringBuilder();
+        validationErrors.AppendLine("There are " + ValidationErrors.Count + " validation errors:");
+        foreach (var validationResult in ValidationErrors)
+        {
+            var memberNames = "";
+            if (validationResult.MemberNames.Any())
+            {
+                memberNames = $" ({string.Join(", ", validationResult.MemberNames)})";
+            }
+
+            validationErrors.AppendLine(validationResult.ErrorMessage + memberNames);
+        }
+
+        logger.LogWithLevel(LogLevel, validationErrors.ToString());
     }
 }

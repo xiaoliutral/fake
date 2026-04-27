@@ -4,7 +4,6 @@ using Fake.Modularity;
 using Fake.Rbac.Application;
 using Fake.Rbac.Infrastructure;
 using Fake.AspNetCore.Auditing;
-using Fake.AspNetCore.Mvc;
 using Fake.Serilog;
 using Microsoft.AspNetCore.HttpOverrides;
 

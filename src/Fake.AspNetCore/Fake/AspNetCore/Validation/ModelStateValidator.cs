@@ -2,12 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Fake.Validation;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
-namespace Fake.AspNetCore.Mvc.Validation;
-
-public interface IModelStateValidator
-{
-    void Validate(ModelStateDictionary modelState);
-}
+namespace Fake.AspNetCore.Validation;
 
 public class ModelStateValidator : IModelStateValidator
 {

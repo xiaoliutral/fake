@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace Fake.AspNetCore.Mvc.Conventions;
+namespace Fake.AspNetCore.ApiConventions;
 
 public class ApplicationService2ControllerConvention(
     IOptions<FakeAspNetCoreMvcOptions> options,
@@ -144,7 +144,7 @@ public class ApplicationService2ControllerConvention(
 
     protected virtual ApplicationService2ControllerSetting? GetControllerSettingOrNull(Type controllerType)
     {
-        return Options.ConventionalControllerSettings
+        return Options.ControllerSettings
             .FirstOrDefault(controllerSetting =>
                 controllerSetting.ControllerTypes.Contains(controllerType));
     }

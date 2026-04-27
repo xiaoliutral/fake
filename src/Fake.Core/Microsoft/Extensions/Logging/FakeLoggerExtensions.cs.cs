@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Fake.Logging;
 
 namespace Microsoft.Extensions.Logging;
 
@@ -25,7 +26,42 @@ public static class FakeLoggerExtensions
     public static void LogException(this ILogger logger, Exception exception, LogLevel logLevel)
     {
         logger.LogWithLevel(logLevel, exception);
+        LogExceptionLog(logger, exception);
         LogData(logger, exception, logLevel);
+    }
+
+    private static void LogExceptionLog(ILogger logger, Exception exception)
+    {
+        var loggingExceptions = new List<IHasExceptionLog>();
+
+        switch (exception)
+        {
+            case IHasExceptionLog logging:
+                loggingExceptions.Add(logging);
+                break;
+            case AggregateException { InnerException: not null } aggException:
+            {
+                if (aggException.InnerException is IHasExceptionLog selfLogging)
+                {
+                    loggingExceptions.Add(selfLogging);
+                }
+
+                foreach (var innerException in aggException.InnerExceptions)
+                {
+                    if (innerException is IHasExceptionLog withSelfLogging)
+                    {
+                        loggingExceptions.TryAdd(withSelfLogging);
+                    }
+                }
+
+                break;
+            }
+        }
+
+        foreach (var ex in loggingExceptions)
+        {
+            ex.Log(logger);
+        }
     }
 
     /// <summary>

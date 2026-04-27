@@ -1,7 +1,5 @@
 ﻿using Fake.AspNetCore;
 using Fake.AspNetCore.Auditing;
-using Fake.AspNetCore.Mvc;
-using Fake.AspNetCore.Mvc.Conventions;
 using Fake.Autofac;
 using Fake.Localization;
 using Fake.Modularity;

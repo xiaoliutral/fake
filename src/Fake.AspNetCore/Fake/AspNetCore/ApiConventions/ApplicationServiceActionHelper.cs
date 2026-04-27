@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 
-namespace Fake.AspNetCore.Mvc.Conventions;
+namespace Fake.AspNetCore.ApiConventions;
 
 public class ApplicationServiceActionHelper: IApplicationServiceActionHelper
 {

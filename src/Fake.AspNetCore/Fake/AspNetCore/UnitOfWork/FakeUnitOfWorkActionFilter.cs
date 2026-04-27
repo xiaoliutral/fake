@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace Fake.AspNetCore.Mvc.Filters;
+namespace Fake.AspNetCore.UnitOfWork;
 
 public class FakeUnitOfWorkActionFilter(IUnitOfWorkHelper unitOfWorkHelper, IUnitOfWorkManager unitOfWorkManager)
     : IAsyncActionFilter

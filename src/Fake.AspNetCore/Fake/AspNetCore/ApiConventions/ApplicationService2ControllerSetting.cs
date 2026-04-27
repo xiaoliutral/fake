@@ -2,7 +2,7 @@ using System.Reflection;
 using Fake.Application;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 
-namespace Fake.AspNetCore.Mvc.Conventions;
+namespace Fake.AspNetCore.ApiConventions;
 
 public class ApplicationService2ControllerSetting
 {

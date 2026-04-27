@@ -1,10 +1,9 @@
-﻿using Fake.AspNetCore.ExceptionHandling;
-using Fake.Authorization;
+﻿using Fake.Authorization;
 using Fake.ExceptionHandling;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace Fake.AspNetCore.Mvc.Filters;
+namespace Fake.AspNetCore.ExceptionHandling;
 
 public class FakeExceptionFilter(ILogger<FakeExceptionFilter> logger) : IAsyncExceptionFilter
 {

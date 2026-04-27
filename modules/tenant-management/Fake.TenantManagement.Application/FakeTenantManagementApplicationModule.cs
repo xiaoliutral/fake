@@ -1,6 +1,5 @@
 ﻿using Fake.AspNetCore;
 using Fake.AspNetCore.Mvc;
-using Fake.AspNetCore.Mvc.Conventions;
 using Fake.Modularity;
 using Fake.ObjectMapping.AutoMapper;
 using Fake.TenantManagement.Domain;

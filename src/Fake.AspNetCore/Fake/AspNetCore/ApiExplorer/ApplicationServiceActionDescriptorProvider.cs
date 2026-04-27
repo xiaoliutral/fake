@@ -1,4 +1,4 @@
-﻿namespace Fake.AspNetCore.Mvc.ApiExplorer;
+﻿namespace Fake.AspNetCore.ApiExplorer;
 
 /// <summary>
 /// details see：https://github.com/dotnet/aspnetcore/blob/main/src/Mvc/Mvc.Core/src/ApplicationModels/ControllerActionDescriptorProvider.cs
