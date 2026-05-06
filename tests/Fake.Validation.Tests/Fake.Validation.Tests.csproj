@@ -9,7 +9,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\Fake.Validation\Fake.Validation.csproj" />
-        <ProjectReference Include="..\AFakeTestEntry\AFakeTestEntry.csproj"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkPackageVersion)"/>
     </ItemGroup>
     

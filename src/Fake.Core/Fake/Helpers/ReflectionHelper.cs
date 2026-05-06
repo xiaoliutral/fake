@@ -120,7 +120,6 @@ public static class ReflectionHelper
         return GetAttributes<TAttribute>(memberInfo, inherit, includeDeclaringType).FirstOrDefault() ?? defaultValue;
     }
 
-
     /// <summary>
     /// 获取给定成员指定特性集合
     /// </summary>

@@ -8,9 +8,6 @@ namespace Microsoft.AspNetCore.Builder;
 
 public static class FakeApplicationBuilderExtensions
 {
-    public const string FakeExceptionHandlingMiddlewareMarker = nameof(FakeExceptionHandlingMiddlewareMarker);
-    public const string FakeRequestLocalizationMiddlewareMarker = nameof(FakeRequestLocalizationMiddlewareMarker);
-
     public static void InitializeApplication(this IApplicationBuilder app)
     {
         ThrowHelper.ThrowIfNull(app, nameof(app));
@@ -48,19 +45,5 @@ public static class FakeApplicationBuilderExtensions
 
         app.Properties[marker] = true;
         return false;
-    }
-    
-    public static IApplicationBuilder UseFakeExceptionHandling(this IApplicationBuilder app)
-    {
-        return app.VerifyMiddlewareAreRegistered(FakeExceptionHandlingMiddlewareMarker)
-            ? app
-            : app.UseMiddleware<FakeExceptionHandlingMiddleware>();
-    }
-    
-    public static IApplicationBuilder UseFakeRequestLocalization(this IApplicationBuilder app)
-    {
-        return app.VerifyMiddlewareAreRegistered(FakeRequestLocalizationMiddlewareMarker)
-            ? app
-            : app.UseMiddleware<FakeRequestLocalizationMiddleware>();
     }
 }

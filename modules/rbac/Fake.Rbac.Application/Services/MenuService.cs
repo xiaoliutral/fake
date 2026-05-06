@@ -12,18 +12,18 @@ namespace Fake.Rbac.Application.Services;
 
 [Authorize]
 [ApiExplorerSettings(GroupName = "RBAC")]
-public class MenuService : ApplicationService, IMenuService
+public class MenuService : ApplicationService
 {
     private readonly IMenuRepository _menuRepository;
     private readonly IUserRepository _userRepository;
     private readonly IObjectMapper _objectMapper;
-    private readonly IUserService _userService;
+    private readonly UserService _userService;
 
     public MenuService(
         IMenuRepository menuRepository,
         IUserRepository userRepository,
         IObjectMapper objectMapper,
-        IUserService userService)
+        UserService userService)
     {
         _menuRepository = menuRepository;
         _userRepository = userRepository;

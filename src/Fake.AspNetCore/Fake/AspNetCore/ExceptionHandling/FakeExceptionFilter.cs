@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Fake.AspNetCore.ExceptionHandling;
 
-public class FakeExceptionFilter(ILogger<FakeExceptionFilter> logger) : IAsyncExceptionFilter
+public class FakeExceptionFilter(ILogger<FakeExceptionFilter> logger) : IAsyncExceptionFilter, IFakeFilter
 {
     public virtual async Task OnExceptionAsync(ExceptionContext context)
     {
@@ -16,7 +16,7 @@ public class FakeExceptionFilter(ILogger<FakeExceptionFilter> logger) : IAsyncEx
         context.ExceptionHandled = true; // Handled!
     }
 
-    private bool ShouldHandle(ExceptionContext context)
+    protected virtual bool ShouldHandle(ExceptionContext context)
     {
         if (context.ExceptionHandled) return false;
 
@@ -31,6 +31,15 @@ public class FakeExceptionFilter(ILogger<FakeExceptionFilter> logger) : IAsyncEx
     protected virtual async Task HandleAndWrapExceptionAsync(ExceptionContext context)
     {
         var httpContext = context.HttpContext;
+        var exceptionHandlingOptions = httpContext.RequestServices
+            .GetRequiredService<IOptions<FakeExceptionHandlingOptions>>()
+            .Value;
+        
+        if (exceptionHandlingOptions.ShouldLogException(context.Exception))
+        {
+            logger.LogException(context.Exception);
+        }
+        
         await httpContext.RequestServices.GetRequiredService<IExceptionNotifier>()
             .NotifyAsync(new ExceptionNotificationContext(context.Exception, httpContext.RequestServices));
 
@@ -46,19 +55,11 @@ public class FakeExceptionFilter(ILogger<FakeExceptionFilter> logger) : IAsyncEx
                 logger.LogWarning("Exception occurred, but response has already started!");
             }
             var statusCodeFinder = httpContext.RequestServices.GetRequiredService<IHttpExceptionStatusCodeFinder>();
-            var exceptionHandlingOptions = httpContext.RequestServices
-                .GetRequiredService<IOptions<FakeExceptionHandlingOptions>>()
-                .Value;
+            
             var exceptionToErrorInfoConverter = httpContext.RequestServices
                 .GetRequiredService<IException2ResponseConverter>();
             var remoteServiceErrorInfo =
                 exceptionToErrorInfoConverter.Convert(context.Exception, exceptionHandlingOptions);
-
-            if (exceptionHandlingOptions.ShouldLogException(context.Exception))
-            {
-                var logLevel = context.Exception.GetLogLevel();
-                logger.LogException(context.Exception, logLevel);
-            }
             
             context.HttpContext.Response.StatusCode = (int)statusCodeFinder.Find(httpContext, context.Exception);
             context.Result = new ObjectResult(remoteServiceErrorInfo);

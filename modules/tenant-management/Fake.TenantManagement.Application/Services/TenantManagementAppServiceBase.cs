@@ -7,6 +7,6 @@ public abstract class TenantManagementAppServiceBase : ApplicationService
 {
     protected TenantManagementAppServiceBase()
     {
-        LocalizationResource = typeof(FakeTenantManagementResource);
+        LocalizationResource = typeof(FakeTenantManagementDomainResource);
     }
 }

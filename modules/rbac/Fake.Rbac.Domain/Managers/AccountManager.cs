@@ -1,6 +1,7 @@
 using Fake.Domain;
 using Fake.Domain.Exceptions;
 using Fake.Helpers;
+using Fake.Rbac.Domain.Localization;
 using Fake.Rbac.Domain.UserAggregate;
 using Microsoft.Extensions.Logging;
 
@@ -46,13 +47,13 @@ public class AccountManager : DomainService
 
         if (user == null)
         {
-            throw new DomainException("用户不存在或密码错误");
+            throw new DomainException(FakeRbacDomainResource.UserNotExistsOrPwdErr);
         }
 
         var encryptedPassword = MD5Helper.GeneratePassword(password, user.EncryptPassword.Salt);
         if (!user.EncryptPassword.Password.Equals(encryptedPassword))
         {
-            throw new DomainException("用户不存在或密码错误");
+            throw new DomainException(FakeRbacDomainResource.UserNotExistsOrPwdErr);
         }
 
         return user;

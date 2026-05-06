@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 namespace Fake.AspNetCore.UnitOfWork;
 
 public class FakeUnitOfWorkActionFilter(IUnitOfWorkHelper unitOfWorkHelper, IUnitOfWorkManager unitOfWorkManager)
-    : IAsyncActionFilter
+    : IAsyncActionFilter, IFakeFilter
 {
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {

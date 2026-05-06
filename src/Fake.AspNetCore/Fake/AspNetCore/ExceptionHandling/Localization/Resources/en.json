@@ -1,0 +1,14 @@
+{
+  "culture": "en",
+  "texts": {
+    "400": "Bussiness Error",
+    "401": "Unauthorized",
+    "403": "Forbidden",
+    "404": "Page not found",
+    "409": "The data you have submitted has already been changed by another user. Discard your changes and try again.",
+    "500": "Internal Server Error",
+    "InternalServerError": "An internal error occurred on the server, please contact the administrator.",
+    "DbConcurrencyError": "The data you have submitted has already been changed by another user. Discard your changes and try again.",
+    "EntityNotFoundError": "There is no entity {0} with id = {1}!"
+  }
+}

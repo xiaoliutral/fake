@@ -6,7 +6,12 @@ namespace Fake.ExceptionHandling;
 public interface ILocalizeErrorMessage
 {
     /// <summary>
+    /// 错误码
+    /// </summary>
+    public string ErrorCode { get; set; }
+    
+    /// <summary>
     /// 本地化参数
     /// </summary>
-    public object[]? LocalizeLocalizeArguments { get; set; }
+    public object[]? LocalizeArguments { get; set; }
 }

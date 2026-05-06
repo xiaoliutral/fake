@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using Fake.Collections;
+﻿using Fake.Collections;
 using Fake.Localization.Contributors;
 
 namespace Fake.Localization;
@@ -17,18 +16,13 @@ public class FakeLocalizationOptions
     public Type? DefaultResourceType { get; set; }
 
     /// <summary>
-    /// 默认异常资源类型，若无则取默认资源类型
-    /// </summary>
-    public Type? DefaultErrorResourceType { get; set; }
-
-    /// <summary>
     /// 本地化贡献者（倒序）
     /// </summary>
     public ITypeList<ILocalizationResourceContributor> GlobalContributors { get; } =
         new TypeList<ILocalizationResourceContributor>();
 
     /// <summary>
-    /// 尝试用默认culture的parent culture找
+    /// 尝试用当前culture的parent culture找
     /// </summary>
     public bool TryGetFromParentCulture { get; set; } = false;
 
@@ -36,21 +30,19 @@ public class FakeLocalizationOptions
     /// 尝试从本地化资源default culture找
     /// </summary>
     public bool TryGetFromDefaultCulture { get; set; } = true;
+
+    /// <summary>
+    /// 错误命名空间-资源映射
+    /// </summary>
+    public Dictionary<string, Type> ErrorCodeNamespaceMappings { get; } = [];
     
-    public IDictionary<Assembly, Type> AssemblyResources { get; } = new Dictionary<Assembly, Type>();
-
-    public void AddAssemblyResource(
-        Type resourceType,
-        params Assembly[] assemblies)
+    /// <summary>
+    /// 添加错误码-资源映射，存在则替换
+    /// </summary>
+    /// <param name="errorCodeNamespace">异常码命名空间</param>
+    /// <param name="resourceType">异常资源类型</param>
+    public void MapErrorCodeNamespace(string errorCodeNamespace, Type resourceType)
     {
-        if (assemblies.IsNullOrEmpty())
-        {
-            assemblies = [resourceType.Assembly];
-        }
-
-        foreach (var assembly in assemblies)
-        {
-            AssemblyResources[assembly] = resourceType;
-        }
+        ErrorCodeNamespaceMappings[errorCodeNamespace] = resourceType;
     }
 }

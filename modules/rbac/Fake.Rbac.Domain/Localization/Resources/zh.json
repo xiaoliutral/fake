@@ -1,0 +1,6 @@
+{
+  "culture": "zh",
+  "texts": {
+    "Fake.Rbac.Domain:UserNotExistsOrPwdErr": "用户不存在或密码错误"
+  }
+}

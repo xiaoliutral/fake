@@ -58,4 +58,23 @@ public static class FakeCollectionExtensions
 
         return addedItems;
     }
+    
+    /// <summary>
+    /// 移除符合条件的
+    /// </summary>
+    /// <param name="source"></param>
+    /// <param name="predicate"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    public static IList<T> Remove<T>(this ICollection<T> source, Func<T, bool> predicate)
+    {
+        var items = source.Where(predicate).ToList();
+
+        foreach (var item in items)
+        {
+            source.Remove(item);
+        }
+
+        return items;
+    }
 }

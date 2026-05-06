@@ -12,12 +12,7 @@ public class DefaultAttributeValidationResultProvider(
     public virtual ValidationResult? GetOrDefault(ValidationAttribute validationAttribute, object? validatingObject,
         ValidationContext validationContext)
     {
-        var resourceSource = localizationOptions.Value
-            .AssemblyResources.GetOrDefault(validationContext.ObjectType.Assembly);
-        if (resourceSource == null)
-        {
-            return validationAttribute.GetValidationResult(validatingObject, validationContext);
-        }
+        var stringLocalizer = stringLocalizerFactory.Create(validationContext.ObjectType);
 
         if (validationAttribute.ErrorMessage == null)
         {
@@ -26,7 +21,7 @@ public class DefaultAttributeValidationResultProvider(
 
         if (validationAttribute.ErrorMessage != null)
         {
-            validationAttribute.ErrorMessage = stringLocalizerFactory.Create(resourceSource)[validationAttribute.ErrorMessage];
+            validationAttribute.ErrorMessage = stringLocalizer[validationAttribute.ErrorMessage];
         }
 
         return validationAttribute.GetValidationResult(validatingObject, validationContext);

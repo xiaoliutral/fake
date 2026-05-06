@@ -5,7 +5,6 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkPackageVersion)"/>
         <ProjectReference Include="..\..\src\Fake.ObjectMapping.Mapster\Fake.ObjectMapping.Mapster.csproj"/>
-        <ProjectReference Include="..\AFakeTestEntry\AFakeTestEntry.csproj"/>
         <ProjectReference Include="..\Fake.ObjectMapping.Tests\Fake.ObjectMapping.Tests.csproj"/>
     </ItemGroup>
 

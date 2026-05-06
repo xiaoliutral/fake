@@ -13,23 +13,23 @@ namespace Fake.Rbac.Application.Jwt;
 /// <summary>
 /// JWT 服务实现
 /// </summary>
-public class JwtService(IOptions<JwtOptions> jwtOptions, IUserService userService) : IJwtService, ITransientDependency
+public class JwtService(IOptions<FakeJwtOptions> jwtOptions, UserService userService) : IJwtService, ITransientDependency
 {
-    private readonly JwtOptions _jwtOptions = jwtOptions.Value;
+    private readonly FakeJwtOptions _fakeJwtOptions = jwtOptions.Value;
 
     public virtual string GenerateAccessToken(List<Claim> claims)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecretKey));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_fakeJwtOptions.SecretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         claims.Add(new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
         claims.Add(new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64));
 
         var token = new JwtSecurityToken(
-            issuer: _jwtOptions.Issuer,
-            audience: _jwtOptions.Audience,
+            issuer: _fakeJwtOptions.Issuer,
+            audience: _fakeJwtOptions.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_jwtOptions.ExpiryInMinutes),
+            expires: DateTime.UtcNow.AddMinutes(_fakeJwtOptions.ExpiryInMinutes),
             signingCredentials: credentials
         );
 
@@ -38,17 +38,17 @@ public class JwtService(IOptions<JwtOptions> jwtOptions, IUserService userServic
 
     public virtual string GenerateRefreshToken(List<Claim> claims)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecretKey));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_fakeJwtOptions.SecretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         claims.Add(new("token_type", "refresh"));
         claims.Add(new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
 
         var token = new JwtSecurityToken(
-            issuer: _jwtOptions.Issuer,
-            audience: _jwtOptions.Audience,
+            issuer: _fakeJwtOptions.Issuer,
+            audience: _fakeJwtOptions.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(_jwtOptions.RefreshExpiryInDays),
+            expires: DateTime.UtcNow.AddDays(_fakeJwtOptions.RefreshExpiryInDays),
             signingCredentials: credentials
         );
 
@@ -57,7 +57,7 @@ public class JwtService(IOptions<JwtOptions> jwtOptions, IUserService userServic
 
     public virtual string? ValidateRefreshToken(string refreshToken)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SecretKey));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_fakeJwtOptions.SecretKey));
         var tokenHandler = new JwtSecurityTokenHandler();
 
         var validationParameters = new TokenValidationParameters
@@ -66,10 +66,10 @@ public class JwtService(IOptions<JwtOptions> jwtOptions, IUserService userServic
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = _jwtOptions.Issuer,
-            ValidAudience = _jwtOptions.Audience,
+            ValidIssuer = _fakeJwtOptions.Issuer,
+            ValidAudience = _fakeJwtOptions.Audience,
             IssuerSigningKey = key,
-            ClockSkew = TimeSpan.FromMinutes(_jwtOptions.ClockSkewMinutes)
+            ClockSkew = TimeSpan.FromMinutes(_fakeJwtOptions.ClockSkewMinutes)
         };
 
         var principal = tokenHandler.ValidateToken(refreshToken, validationParameters, out var validatedToken);
@@ -86,7 +86,7 @@ public class JwtService(IOptions<JwtOptions> jwtOptions, IUserService userServic
 
     public virtual int GetExpiresInSeconds()
     {
-        return _jwtOptions.ExpiryInMinutes * 60;
+        return _fakeJwtOptions.ExpiryInMinutes * 60;
     }
 
     public virtual async Task<List<Claim>> GenerateClaimsByUserIdAsync(Guid userId, CancellationToken cancellationToken)

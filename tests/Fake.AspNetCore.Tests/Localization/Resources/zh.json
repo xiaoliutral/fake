@@ -1,6 +1,6 @@
 {
   "culture": "zh",
   "texts": {
-    "Hi": "你好"
+    "Fake.AspNetCore.Tests:Hi": "你好,{0}"
   }
 }

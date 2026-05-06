@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Fake.Validation;
 
-public class FakeValidationException: FakeException, IHasLogLevel, IHasExceptionLog
+public class FakeValidationException : FakeException, IHasLogLevel, IHasExceptionLog
 {
     public LogLevel LogLevel { get; set; } = LogLevel.Warning;
 
@@ -22,7 +22,7 @@ public class FakeValidationException: FakeException, IHasLogLevel, IHasException
         : base(message)
     {
     }
-    
+
     public FakeValidationException(string message, IList<ValidationResult> validationErrors)
         : base(message)
     {

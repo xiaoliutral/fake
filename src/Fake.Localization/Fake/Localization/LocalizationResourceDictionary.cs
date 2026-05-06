@@ -1,11 +1,14 @@
-﻿namespace Fake.Localization;
+﻿using System.Reflection;
+
+namespace Fake.Localization;
 
 /// <summary>
 /// 本地化资源字典 资源名称：资源
 /// </summary>
 public class LocalizationResourceDictionary : Dictionary<string, LocalizationResourceBase>
 {
-    private readonly Dictionary<Type, LocalizationResourceBase?> _resourcesByTypes = new();
+    private readonly Dictionary<Type, LocalizationResourceBase> _resourcesByTypes = new();
+    private readonly Dictionary<Assembly, LocalizationResourceBase> _resourcesByAssemblies = new();
 
     public LocalizationResource Add<TLocalizationResource>(string? defaultCultureName = null)
     {
@@ -24,6 +27,10 @@ public class LocalizationResourceDictionary : Dictionary<string, LocalizationRes
 
         this[resourceName] = resource;
         _resourcesByTypes[resourceType] = resource;
+        foreach (var assembly in resource.RedirectResourceAssemblies)
+        {
+            _resourcesByAssemblies.TryAdd(assembly, resource);
+        }
 
         return resource;
     }
@@ -70,6 +77,7 @@ public class LocalizationResourceDictionary : Dictionary<string, LocalizationRes
 
     public LocalizationResourceBase? GetOrDefault(Type resourceType)
     {
-        return _resourcesByTypes.GetOrDefault(resourceType);
+        var res = _resourcesByTypes.GetOrDefault(resourceType);
+        return res ?? _resourcesByAssemblies.GetOrDefault(resourceType.Assembly);
     }
 }

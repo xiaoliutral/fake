@@ -1,4 +1,4 @@
-using Fake.AspNetCore.ApiConventions;
+using Fake.AspNetCore.ApplicationServiceConventions;
 using Fake.Modularity;
 
 namespace Fake.AspNetCore;

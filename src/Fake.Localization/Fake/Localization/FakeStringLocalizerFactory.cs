@@ -22,9 +22,12 @@ public class FakeStringLocalizerFactory(
     {
         var resource = _options.Resources.GetOrDefault(resourceType);
 
-        if (resource == null) return innerFactory.Create(resourceType);
+        if (resource == null)
+        {
+            return innerFactory.Create(resourceType);
+        }
 
-        return CreateStringLocalizer(resource, true);
+        return CreateStringLocalizer(resource!, true);
     }
 
     public IStringLocalizer Create(string baseName, string location)

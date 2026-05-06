@@ -23,7 +23,7 @@ public abstract class SugarDbContext<TDbContext> where TDbContext : SugarDbConte
     protected GuidGeneratorBase GuidGenerator => ServiceProvider.GetRequiredService<GuidGeneratorBase>();
     protected LongIdGeneratorBase LongIdGenerator => ServiceProvider.GetRequiredService<LongIdGeneratorBase>();
     protected ILocalEventBus LocalEventBus => ServiceProvider.GetRequiredService<ILocalEventBus>();
-    protected IAuditPropertySetter AuditPropertySetter => ServiceProvider.GetRequiredService<IAuditPropertySetter>();
+    protected IEntityAuditPropertySetter EntityAuditPropertySetter => ServiceProvider.GetRequiredService<IEntityAuditPropertySetter>();
     protected IDataFilter DataFilter => ServiceProvider.GetRequiredService<IDataFilter>();
 
     protected ILogger<SugarDbContext<TDbContext>> Logger =>
@@ -160,10 +160,10 @@ public abstract class SugarDbContext<TDbContext> where TDbContext : SugarDbConte
             switch (entityInfo.OperationType)
             {
                 case DataFilterType.UpdateByObject:
-                    AuditPropertySetter.SetModificationProperties(entity);
+                    EntityAuditPropertySetter.SetModificationProperties(entity);
                     break;
                 case DataFilterType.InsertByObject:
-                    AuditPropertySetter.SetCreationProperties(entity);
+                    EntityAuditPropertySetter.SetCreationProperties(entity);
                     break;
                 case DataFilterType.DeleteByObject:
                     break;

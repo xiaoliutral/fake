@@ -1,6 +1,5 @@
 using Fake.Castle.DynamicProxy;
 using Fake.DependencyInjection;
-using Fake.Logging;
 
 namespace Fake.Core.Tests.DynamicProxy;
 
@@ -18,4 +17,9 @@ public class SimpleInterceptionTargetClass : ICanLog, ITransientDependency, ISim
         await Task.Delay(5);
         Logs.Add("ExitDoItAsync");
     }
+}
+
+public interface ICanLog
+{
+    List<string> Logs { get; }
 }

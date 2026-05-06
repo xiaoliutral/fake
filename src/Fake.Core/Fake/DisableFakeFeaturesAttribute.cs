@@ -1,5 +1,6 @@
 namespace Fake;
 
+[AttributeUsage(AttributeTargets.Class)]
 public class DisableFakeFeaturesAttribute : Attribute
 {
     /// <summary>
@@ -15,5 +16,5 @@ public class DisableFakeFeaturesAttribute : Attribute
     /// <summary>
     /// 禁用所有Fake过滤器
     /// </summary>
-    public bool DisableMvcFilters { get; set; } = true;
+    public bool DisableFilters { get; set; } = true;
 }

@@ -1,46 +1,15 @@
-﻿using Fake.AspNetCore.ExceptionHandling;
-using Fake.AspNetCore.UnitOfWork;
-using Fake.AspNetCore.Validation;
-using Fake.Modularity;
-using Fake.UnitOfWork;
-using Microsoft.AspNetCore.Mvc.Filters;
+﻿using Fake.AspNetCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Localization;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
 public static class FakeFilterServiceCollectionExtensions
 {
     public static IServiceCollection AddFakeFilter<TFilter>(this IServiceCollection services,
-        ServiceLifetime lifetime = ServiceLifetime.Transient) where TFilter : class, IFilterMetadata
+        ServiceLifetime lifetime = ServiceLifetime.Transient) where TFilter : class, IFakeFilter
     {
         services.TryAdd(new ServiceDescriptor(typeof(TFilter), typeof(TFilter), lifetime));
         services.Configure<MvcOptions>(options => { options.Filters.AddService<TFilter>(); });
         return services;
-    }
-
-    public static IServiceCollection AddFakeExceptionFilter(this IServiceCollection services,
-        Action<FakeExceptionHandlingOptions>? action = null)
-    {
-        services.AddFakeFilter<FakeExceptionFilter>();
-        services.Configure<FakeExceptionHandlingOptions>(options =>
-        {
-            options.OutputStackTrace = services.GetInstanceOrNull<IWebHostEnvironment>()?.IsDevelopment() ?? false;
-            action?.Invoke(options);
-        });
-
-        return services;
-    }
-
-    public static IServiceCollection AddFakeValidationActionFilter(this IServiceCollection services)
-    {
-        services.TryAddTransient(typeof(IStringLocalizer<>), typeof(StringLocalizer<>));
-        return services.AddFakeFilter<FakeValidationActionFilter>();
-    }
-
-    public static IServiceCollection AddFakeUnitOfWorkActionFilter(this IServiceCollection services)
-    {
-        FakeModuleHelper.EnsureDependsOn<FakeUnitOfWorkModule>();
-        return services.AddFakeFilter<FakeUnitOfWorkActionFilter>();
     }
 }

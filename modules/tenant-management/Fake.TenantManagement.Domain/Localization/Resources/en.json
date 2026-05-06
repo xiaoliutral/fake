@@ -1,7 +1,7 @@
 {
   "culture": "en",
   "texts": {
-    "Fake.TenantManagement:DuplicateTenantName": "Tenant name already exist: {Name}",
+    "Fake.TenantManagement:TenantNameDuplicate": "Tenant name already exist: {Name}",
     "Fake.TenantManagement:TenantNotExists": "Tenant not exist：{Id}"
   }
 }

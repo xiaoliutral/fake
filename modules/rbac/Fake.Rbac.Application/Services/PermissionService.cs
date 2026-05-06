@@ -9,13 +9,13 @@ namespace Fake.Rbac.Application.Services;
 
 [Authorize]
 [ApiExplorerSettings(GroupName = "RBAC")]
-public class PermissionService : ApplicationService, IPermissionService
+public class PermissionService : ApplicationService
 {
-    private readonly IUserService _userService;
+    private readonly UserService _userService;
     private readonly IMenuRepository _menuRepository;
 
     public PermissionService(
-        IUserService userService,
+        UserService userService,
         IMenuRepository menuRepository)
     {
         _userService = userService;

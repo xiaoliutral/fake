@@ -1,5 +1,3 @@
-using Fake.Modularity;
-
 namespace Fake.Localization;
 
 public sealed class LocalizationResource : LocalizationResourceBase
@@ -16,17 +14,33 @@ public sealed class LocalizationResource : LocalizationResourceBase
         ThrowHelper.ThrowIfNull(resourceType, nameof(resourceType));
         ResourceType = resourceType;
         AddInheritedResourceTypes();
+        AddResourceAssemblies();
+    }
+
+    private void AddResourceAssemblies()
+    {
+        var attributes = ResourceType
+            .GetCustomAttributes(true)
+            .OfType<RedirectAssemblyAttribute>();
+
+        foreach (var attribute in attributes)
+        {
+            foreach (var inheritedResourceType in attribute.Assemblies)
+            {
+                RedirectResourceAssemblies.TryAdd(inheritedResourceType);
+            }
+        }
     }
 
     private void AddInheritedResourceTypes()
     {
-        var descriptors = ResourceType
+        var attributes = ResourceType
             .GetCustomAttributes(true)
             .OfType<InheritResourceAttribute>();
 
-        foreach (var descriptor in descriptors)
+        foreach (var attribute in attributes)
         {
-            foreach (var inheritedResourceType in descriptor.ResourceTypes)
+            foreach (var inheritedResourceType in attribute.ResourceTypes)
             {
                 InheritedResourceNames.TryAdd(LocalizationResourceNameAttribute.GetName(inheritedResourceType));
             }

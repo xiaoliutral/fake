@@ -15,7 +15,7 @@ namespace Fake.Rbac.Application.Services;
 
 [Authorize]
 [ApiExplorerSettings(GroupName = "RBAC")]
-public class RoleService : ApplicationService, IRoleService
+public class RoleService : ApplicationService
 {
     private readonly IRoleRepository _roleRepository;
     private readonly IUserRepository _userRepository;

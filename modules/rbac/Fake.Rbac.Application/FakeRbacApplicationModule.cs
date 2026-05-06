@@ -1,6 +1,10 @@
 using Fake.AspNetCore;
+using Fake.AspNetCore.Authentication;
+using Fake.Localization;
 using Fake.Modularity;
 using Fake.ObjectMapping.AutoMapper;
+using Fake.Rbac.Domain.Localization;
+using Fake.VirtualFileSystem;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Fake.Rbac.Application;

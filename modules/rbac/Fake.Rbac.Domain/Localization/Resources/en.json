@@ -1,0 +1,6 @@
+{
+  "culture": "en",
+  "texts": {
+    "Fake.Rbac.Domain:UserNotExistsOrPwdErr": "User does not exist or password is incorrect"
+  }
+}

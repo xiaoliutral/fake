@@ -13,7 +13,7 @@ namespace SimpleAdmin.Api;
 /// 自定义simple-admin auth jwt service
 /// </summary>
 [Dependency(Replace = true)]
-public class SimpleJwtService(IOptions<JwtOptions> jwtOptions, IUserService userService, FakeRbacDbContext rbacDbContext)
+public class SimpleJwtService(IOptions<FakeJwtOptions> jwtOptions, UserService userService, FakeRbacDbContext rbacDbContext)
     : JwtService(jwtOptions, userService)
 {
     public override async Task<List<Claim>> GenerateClaimsByUserIdAsync(Guid userId,

@@ -8,7 +8,7 @@ using Fake.Modularity;
 using Microsoft.Extensions.DependencyInjection;
 
 [DependsOn(typeof(FakeAutofacModule))]
-[DependsOn(typeof(FakeDomainDrivenDesignModule))]
+[DependsOn(typeof(FakeDddDomainModule))]
 public class FakeAppTestModule : FakeModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)

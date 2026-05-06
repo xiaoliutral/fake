@@ -4,12 +4,16 @@
     <Import Project="../../../configureawait.props"/>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\..\src\Fake.DomainDrivenDesign\Fake.DomainDrivenDesign.csproj" />
+      <ProjectReference Include="..\..\..\src\Fake.Ddd.Domain\Fake.Ddd.Domain.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Localization\Resources\" />
       <Folder Include="Managers\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Include="Localization\Resources\en.json" />
+      <EmbeddedResource Include="Localization\Resources\zh.json" />
     </ItemGroup>
 
 </Project>

@@ -1,6 +1,5 @@
 ﻿using Fake.DependencyInjection;
 using Fake.DynamicProxy;
-using Fake.Logging;
 
 namespace Fake.Core.Tests.DynamicProxy;
 

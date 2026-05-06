@@ -12,3 +12,15 @@ public class FakeRequestLocalizationMiddleware : FakeMiddleware, ITransientDepen
         await next.Invoke(context);
     }
 }
+
+public static class FakeRequestLocalizationMiddlewareExtensions
+{
+    public const string FakeRequestLocalizationMiddlewareMarker = nameof(FakeRequestLocalizationMiddlewareMarker);
+       
+    public static IApplicationBuilder UseFakeRequestLocalization(this IApplicationBuilder app)
+    {
+        return app.VerifyMiddlewareAreRegistered(FakeRequestLocalizationMiddlewareMarker)
+            ? app
+            : app.UseMiddleware<FakeRequestLocalizationMiddleware>();
+    }
+}

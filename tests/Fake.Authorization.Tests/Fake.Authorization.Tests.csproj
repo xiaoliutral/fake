@@ -7,7 +7,6 @@
         <ProjectReference Include="..\..\src\Fake.Authorization\Fake.Authorization.csproj"/>
         <ProjectReference Include="..\..\src\Fake.Autofac\Fake.Autofac.csproj"/>
         <ProjectReference Include="..\..\src\Fake.Testing\Fake.Testing.csproj"/>
-        <ProjectReference Include="..\AFakeTestEntry\AFakeTestEntry.csproj"/>
     </ItemGroup>
 
 </Project>

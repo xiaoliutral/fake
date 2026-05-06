@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Fake.AspNetCore.Validation;
 
-public class FakeValidationActionFilter : IAsyncActionFilter
+public class FakeValidationActionFilter : IAsyncActionFilter, IFakeFilter
 {
     public virtual async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {

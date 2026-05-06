@@ -15,7 +15,7 @@ public class OrganizationService(
     IOrganizationRepository organizationRepository,
     IUserRepository userRepository,
     IObjectMapper objectMapper)
-    : ApplicationService, IOrganizationService
+    : ApplicationService
 {
     public async Task<OrganizationDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {

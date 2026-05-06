@@ -32,7 +32,7 @@ public abstract class EfCoreDbContext<TDbContext>(DbContextOptions<TDbContext> o
 
     protected IFakeClock FakeClock => ServiceProvider.GetRequiredService<IFakeClock>();
     protected ILocalEventBus LocalEventBus => ServiceProvider.GetRequiredService<ILocalEventBus>();
-    protected IAuditPropertySetter AuditPropertySetter => ServiceProvider.GetRequiredService<IAuditPropertySetter>();
+    protected IEntityAuditPropertySetter EntityAuditPropertySetter => ServiceProvider.GetRequiredService<IEntityAuditPropertySetter>();
     protected IEntityChangeHelper EntityChangeHelper => ServiceProvider.GetRequiredService<IEntityChangeHelper>();
     protected IDataFilter DataFilter => ServiceProvider.GetRequiredService<IDataFilter>();
 
@@ -186,7 +186,7 @@ public abstract class EfCoreDbContext<TDbContext>(DbContextOptions<TDbContext> o
                 {
                     // tips: 这里必須重置entity状态，设置完软删审计后会跳转到Modified状态
                     entry.Reload();
-                    AuditPropertySetter.SetSoftDeleteProperty(entity);
+                    EntityAuditPropertySetter.SetSoftDeleteProperty(entity);
                 }
 
                 break;
@@ -194,7 +194,7 @@ public abstract class EfCoreDbContext<TDbContext>(DbContextOptions<TDbContext> o
                 // 只要有一个属性被修改了，且值不由数据库生成
                 if (entry.Properties.Any(p => p is { IsModified: true, Metadata.ValueGenerated: ValueGenerated.Never }))
                 {
-                    AuditPropertySetter.SetModificationProperties(entity);
+                    EntityAuditPropertySetter.SetModificationProperties(entity);
                 }
 
                 break;
@@ -206,8 +206,8 @@ public abstract class EfCoreDbContext<TDbContext>(DbContextOptions<TDbContext> o
                     aggregate.ConcurrencyStamp = SimpleGuidGenerator.Instance.Generate();
                 }
 
-                AuditPropertySetter.SetCreationProperties(entity);
-                AuditPropertySetter.SetModificationProperties(entity);
+                EntityAuditPropertySetter.SetCreationProperties(entity);
+                EntityAuditPropertySetter.SetModificationProperties(entity);
                 break;
             default:
                 throw new ArgumentOutOfRangeException();

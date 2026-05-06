@@ -10,7 +10,8 @@ public class VirtualFileProviderList : List<IFileProvider>
     private const string ResourceName = "Microsoft.Extensions.FileProviders.Embedded.Manifest.xml";
 
     /// <summary>
-    /// 添加程序集中指定根目录下的所有嵌入资源。（构建类型是：EmbeddedResource）
+    /// 添加程序集中指定根目录下的所有嵌入资源。
+    ///     important: 确保资源文件-properties-build action: EmbeddedResource
     /// </summary>
     /// <param name="root">虚拟根目录</param>
     /// <typeparam name="TModule"></typeparam>

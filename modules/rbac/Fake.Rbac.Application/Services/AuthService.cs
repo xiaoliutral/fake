@@ -22,13 +22,13 @@ namespace Fake.Rbac.Application.Services;
 [ApiExplorerSettings(GroupName = "RBAC")]
 public class AuthService(
     AccountManager accountManager,
-    IUserService userService,
-    IMenuService menuService,
+    UserService userService,
+    MenuService menuService,
     IObjectMapper objectMapper,
     IJwtService jwtService,
     IUserRepository userRepository,
     IWebHostEnvironment webHostEnvironment)
-    : ApplicationService, IAuthService
+    : ApplicationService
 {
     [AllowAnonymous]
     public virtual async Task<LoginResultDto> LoginAsync(string account, string password, CancellationToken cancellationToken = default)

@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Fake.TenantManagement.Domain;
 
-[DependsOn(typeof(FakeDomainDrivenDesignModule))]
+[DependsOn(typeof(FakeDddDomainModule))]
 public class FakeTenantManagementDomainModule : FakeModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
@@ -19,8 +19,9 @@ public class FakeTenantManagementDomainModule : FakeModule
 
         context.Services.Configure<FakeLocalizationOptions>(options =>
         {
-            options.Resources.Add<FakeTenantManagementResource>("zh")
+            options.Resources.Add<FakeTenantManagementDomainResource>("zh")
                 .LoadVirtualJson("/Localization/Resources");
+            options.MapErrorCodeNamespace("Fake.TenantManagement.Domain", typeof(FakeTenantManagementDomainResource));
         });
     }
 }

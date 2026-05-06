@@ -4,11 +4,6 @@
     <Import Project="../../configureawait.props"/>
 
     <ItemGroup>
-        <PackageReference Include="Grpc.AspNetCore" Version="2.55.0"/>
-        <PackageReference Include="SkyApm.Diagnostics.Grpc" Version="2.1.0"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <ProjectReference Include="..\Fake.AspNetCore\Fake.AspNetCore.csproj"/>
         <ProjectReference Include="..\Fake.Autofac\Fake.Autofac.csproj"/>
         <ProjectReference Include="..\Fake.Testing\Fake.Testing.csproj"/>

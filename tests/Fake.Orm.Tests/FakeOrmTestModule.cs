@@ -9,7 +9,7 @@ using Fake.SyncEx;
 using Microsoft.Extensions.DependencyInjection;
 
 [DependsOn(typeof(FakeAutofacModule))]
-[DependsOn(typeof(FakeDomainDrivenDesignModule))]
+[DependsOn(typeof(FakeDddDomainModule))]
 public class FakeOrmTestModule : FakeModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)

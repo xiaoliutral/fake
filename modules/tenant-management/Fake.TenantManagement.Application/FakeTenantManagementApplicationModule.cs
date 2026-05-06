@@ -1,5 +1,4 @@
-﻿using Fake.AspNetCore;
-using Fake.AspNetCore.Mvc;
+﻿using Fake.Ddd.Application;
 using Fake.Modularity;
 using Fake.ObjectMapping.AutoMapper;
 using Fake.TenantManagement.Domain;
@@ -9,6 +8,7 @@ namespace Fake.TenantManagement.Application;
 
 [DependsOn(typeof(FakeObjectMappingAutoMapperModule))]
 [DependsOn(typeof(FakeTenantManagementDomainModule))]
+[DependsOn(typeof(FakeDddApplicationModule))]
 public class FakeTenantManagementApplicationModule : FakeModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)

@@ -17,8 +17,8 @@ public class SqlSugarRepository<TDbContext, TEntity> : ISqlSugarRepository<TDbCo
     protected CancellationToken GetCancellationToken(CancellationToken cancellationToken = default) =>
         LazyServiceProvider.GetRequiredService<ICancellationTokenProvider>().FallbackToProvider(cancellationToken);
     
-    protected IAuditPropertySetter AuditPropertySetter =>
-        LazyServiceProvider.GetRequiredService<IAuditPropertySetter>();
+    protected IEntityAuditPropertySetter EntityAuditPropertySetter =>
+        LazyServiceProvider.GetRequiredService<IEntityAuditPropertySetter>();
 
     public async Task<ISqlSugarClient> GetDbContextAsync(CancellationToken cancellationToken = default)
     {
@@ -149,7 +149,7 @@ public class SqlSugarRepository<TDbContext, TEntity> : ISqlSugarRepository<TDbCo
         var ctx = await GetDbContextAsync(cancellationToken);
         if (entity is ISoftDelete)
         {
-            AuditPropertySetter.SetSoftDeleteProperty(entity);
+            EntityAuditPropertySetter.SetSoftDeleteProperty(entity);
             var update = ctx.Updateable(entity).UpdateColumns(nameof(ISoftDelete.IsDeleted));
 
             if (entity is IHasUpdateTime)
@@ -164,7 +164,7 @@ public class SqlSugarRepository<TDbContext, TEntity> : ISqlSugarRepository<TDbCo
 
             if (entity is IHasUpdateTime or IHasUpdateUserId)
             {
-                AuditPropertySetter.SetModificationProperties(entity);
+                EntityAuditPropertySetter.SetModificationProperties(entity);
             }
 
             await update.ExecuteCommandAsync(cancellationToken);
@@ -187,7 +187,7 @@ public class SqlSugarRepository<TDbContext, TEntity> : ISqlSugarRepository<TDbCo
 
             foreach (var entity in list)
             {
-                AuditPropertySetter.SetSoftDeleteProperty(entity);
+                EntityAuditPropertySetter.SetSoftDeleteProperty(entity);
 
                 if (entity is IHasUpdateTime)
                 {
@@ -201,7 +201,7 @@ public class SqlSugarRepository<TDbContext, TEntity> : ISqlSugarRepository<TDbCo
 
                 if (entity is IHasUpdateTime or IHasUpdateUserId)
                 {
-                    AuditPropertySetter.SetModificationProperties(entity);
+                    EntityAuditPropertySetter.SetModificationProperties(entity);
                 }
             }
             await update.ExecuteCommandAsync(cancellationToken);

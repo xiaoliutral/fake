@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 // ReSharper disable once CheckNamespace
 namespace Fake.SqlSugarCore;
 
-[DependsOn(typeof(FakeDomainDrivenDesignModule))]
+[DependsOn(typeof(FakeDddDomainModule))]
 public class FakeSqlSugarCoreModule : FakeModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)

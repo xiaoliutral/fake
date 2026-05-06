@@ -18,7 +18,7 @@ public class UserService(
     IRoleRepository roleRepository,
     IOrganizationRepository organizationRepository,
     IObjectMapper objectMapper)
-    : ApplicationService, IUserService
+    : ApplicationService
 {
     public async Task<UserDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {

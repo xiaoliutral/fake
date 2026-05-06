@@ -1,25 +1,24 @@
-﻿using Fake.AspNetCore.ApiConventions;
-using Fake.AspNetCore.ApiExplorer;
+﻿using Fake.AspNetCore.ApplicationServiceConventions;
 using Fake.AspNetCore.ExceptionHandling;
+using Fake.AspNetCore.ExceptionHandling.Localization;
 using Fake.AspNetCore.Http;
-using Fake.AspNetCore.Localization;
 using Fake.AspNetCore.Security.Claims;
+using Fake.AspNetCore.UnitOfWork;
+using Fake.AspNetCore.Validation;
 using Fake.AspNetCore.VirtualFileSystem;
 using Fake.Authorization;
-using Fake.DomainDrivenDesign;
+using Fake.Ddd.Application;
 using Fake.Localization;
 using Fake.Modularity;
 using Fake.Security.Claims;
 using Fake.VirtualFileSystem;
-using Microsoft.Extensions.Localization;
 
 // ReSharper disable once CheckNamespace
 namespace Fake.AspNetCore;
 
 [DependsOn(
-    typeof(FakeVirtualFileSystemModule),
     typeof(FakeAuthorizationModule),
-    typeof(FakeDomainDrivenDesignModule)
+    typeof(FakeDddApplicationModule)
 )]
 public class FakeAspNetCoreModule : FakeModule
 {
@@ -45,19 +44,15 @@ public class FakeAspNetCoreModule : FakeModule
         context.Services.Configure<FakeLocalizationOptions>(options =>
         {
             options.Resources.Add<FakeAspNetCoreErrorResource>("zh")
-                .LoadVirtualJson("/Localization");
+                .LoadVirtualJson("/ExceptionHandling/Localization/Resources");
         });
-
-        // Data Annotations
+        
         context.Services.AddMvc()
             .AddDataAnnotationsLocalization(options =>
             {
-                options.DataAnnotationLocalizerProvider = (type, factory) =>
-                {
-                    return factory.CreateDefaultOrNull() ?? factory.Create(type);
-                };
+                options.DataAnnotationLocalizerProvider = (type, factory) => factory.Create(type);
             });
-
+        
         ConfigureControllers(context);
     }
 
@@ -88,11 +83,22 @@ public class FakeAspNetCoreModule : FakeModule
              */
             .AddControllersAsServices();
 
-        // Add feature providers
+        
+        /*
+         * ApplicationPartManager
+            -> ControllerFeatureProvider 扫描 Controller 类型
+            -> ControllerActionDescriptorProvider
+            -> ApplicationModelFactory.CreateApplicationModel(controllerTypes)
+            -> IApplicationModelProvider.OnProvidersExecuting(...)
+               -> DefaultApplicationModelProvider 填充 ApplicationModel.Controllers
+            -> IApplicationModelProvider.OnProvidersExecuted(...)
+            -> MvcOptions.Conventions
+            -> ControllerActionDescriptorBuilder.Build(applicationModel)
+         */
         var partManager = context.Services.GetInstance<ApplicationPartManager>();
         var application = context.Services.GetInstance<IFakeApplication>();
         partManager.FeatureProviders.Add(new ApplicationServiceControllerFeatureProvider(application));
-        partManager.ApplicationParts.TryAdd(new AssemblyPart(typeof(FakeAspNetCoreModule).Assembly));
+        // partManager.ApplicationParts.TryAdd(new AssemblyPart(typeof(FakeAspNetCoreModule).Assembly));
 
         context.Services.AddTransient<IActionDescriptorProvider, ApplicationServiceActionDescriptorProvider>();
         context.Services.AddTransient<IApiDescriptionProvider, ApplicationServiceApiDescriptionProvider>();
