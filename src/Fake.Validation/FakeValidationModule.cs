@@ -42,16 +42,13 @@ public class FakeValidationModule : FakeModule
         context.Services.AddTransient<IObjectValidationContributor, DataAnnotationObjectValidationContributor>();
         context.Services.AddTransient<IAttributeValidationResultProvider, DefaultAttributeValidationResultProvider>();
         
-        Configure<FakeVirtualFileSystemOptions>(options =>
-        {
-            options.FileProviders.Add<FakeValidationModule>("Fake.Validation");
-        });
+        context.Services.AddFakeVirtualFileSystem<FakeValidationModule>();
 
         Configure<FakeLocalizationOptions>(options =>
         {
             options.Resources
                 .Add<FakeValidationResource>("zh")
-                .LoadVirtualJson("/Localization/Resources");
+                .AddVirtualJson("/Fake/Validation/Localization/Resources");
         });
     }
 

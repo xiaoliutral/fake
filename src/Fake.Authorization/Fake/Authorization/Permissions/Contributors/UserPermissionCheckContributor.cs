@@ -1,5 +1,9 @@
 ﻿namespace Fake.Authorization.Permissions.Contributors;
 
+/// <summary>
+/// 基于用户的权限检查
+/// </summary>
+/// <param name="permissionStore"></param>
 public class UserPermissionCheckContributor(IPermissionStore permissionStore)
     : PermissionCheckContributorBase(permissionStore)
 {

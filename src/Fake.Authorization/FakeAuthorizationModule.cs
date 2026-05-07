@@ -32,13 +32,13 @@ public class FakeAuthorizationModule : FakeModule
         context.Services.AddSingleton<IAuthorizationHandler, PermissionRequirementHandle>();
         context.Services.AddTransient<IAuthorizationPolicyProvider, FakeAuthorizationPolicyProvider>();
 
-        context.Services.AddFakeVirtualFileSystem<FakeAuthorizationModule>("/Fake/Authorization");
-
+        context.Services.AddFakeVirtualFileSystem<FakeAuthorizationModule>();
         context.Services.Configure<FakeLocalizationOptions>(options =>
         {
             options.Resources
                 .Add<FakeAuthorizationResource>("zh")
-                .LoadVirtualJson("/Localization");
+                .AddVirtualJson("/Fake/Authorization/Localization/Resources");
+            options.ErrorCodeNamespaceMappings.Add("Fake.Authorization", typeof(FakeAuthorizationResource));
         });
 
         context.Services.AddTransient<AuthorizationInterceptor>();

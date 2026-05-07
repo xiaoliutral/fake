@@ -1,12 +1,12 @@
 ﻿using System.Security.Claims;
-using Fake.Authorization.Services;
+using Fake.Authorization.Tests.Services;
 using Fake.IdGenerators.GuidGenerator;
 using Fake.Security.Claims;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using Xunit;
 
-namespace Fake.Authorization;
+namespace Fake.Authorization.Tests;
 
 public class AuthorizationTests : AuthorizationTestBase
 {

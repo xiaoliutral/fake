@@ -3,7 +3,7 @@ using Microsoft.Extensions.FileProviders;
 
 namespace Fake.VirtualFileSystem.Embedded;
 
-public class FakeEmbeddedFileProviderBase : InMemoryFileProviderBase
+public class FakeEmbeddedFileProvider : InMemoryFileProviderBase
 {
     protected virtual Assembly Assembly { get; }
 
@@ -12,7 +12,7 @@ public class FakeEmbeddedFileProviderBase : InMemoryFileProviderBase
     protected override IDictionary<string, IFileInfo> Files => _files.Value;
     private readonly Lazy<Dictionary<string, IFileInfo>> _files;
 
-    public FakeEmbeddedFileProviderBase(Assembly assembly, string? root = null)
+    public FakeEmbeddedFileProvider(Assembly assembly, string? root = null)
     {
         ThrowHelper.ThrowIfNull(assembly, nameof(assembly));
 
@@ -65,18 +65,16 @@ public class FakeEmbeddedFileProviderBase : InMemoryFileProviderBase
     {
         var lastModified = DateTimeOffset.UtcNow;
 
-        if (!string.IsNullOrEmpty(Assembly.Location))
+        if (string.IsNullOrEmpty(Assembly.Location)) return lastModified;
+        try
         {
-            try
-            {
-                lastModified = File.GetLastWriteTimeUtc(Assembly.Location);
-            }
-            catch (PathTooLongException)
-            {
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
+            lastModified = File.GetLastWriteTimeUtc(Assembly.Location);
+        }
+        catch (PathTooLongException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
         }
 
         return lastModified;
@@ -104,21 +102,23 @@ public class FakeEmbeddedFileProviderBase : InMemoryFileProviderBase
     private static void AddVirtualDirectoriesRecursively(Dictionary<string, IFileInfo> files, string directoryPath,
         DateTimeOffset lastModificationTime)
     {
-        if (files.ContainsKey(directoryPath))
+        while (true)
         {
-            return;
-        }
+            if (files.ContainsKey(directoryPath))
+            {
+                return;
+            }
 
-        files[directoryPath] = new VirtualDirectoryInfo(
-            directoryPath,
-            Path.GetFileName(directoryPath),
-            lastModificationTime
-        );
+            files[directoryPath] =
+                new VirtualDirectoryInfo(directoryPath, Path.GetFileName(directoryPath), lastModificationTime);
 
-        if (directoryPath.Contains("/"))
-        {
-            AddVirtualDirectoriesRecursively(files, directoryPath.Substring(0, directoryPath.LastIndexOf('/')),
-                lastModificationTime);
+            if (directoryPath.Contains('/'))
+            {
+                directoryPath = directoryPath[..directoryPath.LastIndexOf('/')];
+                continue;
+            }
+
+            break;
         }
     }
 }

@@ -1,5 +1,9 @@
 namespace Fake.Authorization.Permissions.Contributors;
 
+/// <summary>
+/// 基于角色的权限检查
+/// </summary>
+/// <param name="permissionStore"></param>
 public class RolePermissionCheckContributor(IPermissionStore permissionStore)
     : PermissionCheckContributorBase(permissionStore)
 {
@@ -10,7 +14,7 @@ public class RolePermissionCheckContributor(IPermissionStore permissionStore)
         ThrowHelper.ThrowIfNull(permission, nameof(permission));
 
         var roles = user?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray();
-        if (roles == null || !roles.Any()) return false;
+        if (roles == null || roles.Length == 0) return false;
 
         foreach (var role in roles.Distinct())
         {

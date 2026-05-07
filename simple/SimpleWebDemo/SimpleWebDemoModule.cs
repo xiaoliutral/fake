@@ -20,14 +20,12 @@ public class SimpleWebDemoModule : FakeModule
         context.Services.AddFakeSwaggerGen();
         context.Services.AddFakeAspNetCoreAuditing();
 
-        context.Services.Configure<FakeVirtualFileSystemOptions>(options =>
-        {
-            options.FileProviders.Add<SimpleWebDemoModule>("SimpleWebDemo");
-        });
+        context.Services.AddFakeVirtualFileSystem<SimpleWebDemoModule>();
+        
         context.Services.Configure<FakeLocalizationOptions>(options =>
         {
             options.Resources.Add<SimpleWebDemoResource>("zh")
-                .LoadVirtualJson("/Localization/Resources");
+                .AddVirtualJson("/SimpleWebDemo/Localization/Resources");
         });
     }
 

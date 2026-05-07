@@ -12,7 +12,7 @@ public class SimpleService : ApplicationService
     [HttpGet]
     public virtual void AuthorizationException()
     {
-        throw new FakeAuthorizationException("授权失败");
+        
     }
 
     [HttpGet("ex")]

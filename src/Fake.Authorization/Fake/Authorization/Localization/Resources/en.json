@@ -1,0 +1,7 @@
+{
+  "culture": "en",
+  "texts": {
+    "Fake.Authorization:010001": "Failed to authenticate, please log in first!",
+    "Fake.Authorization:010002": "Authorization failed! Given policy has not granted."
+  }
+}

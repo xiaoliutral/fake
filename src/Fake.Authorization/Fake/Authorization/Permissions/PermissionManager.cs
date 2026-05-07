@@ -43,12 +43,10 @@ public class PermissionManager(IEnumerable<IPermissionDefiner> permissionDefiner
         Dictionary<string, PermissionDto> permissions,
         PermissionDto permissionDto)
     {
-        if (permissions.ContainsKey(permissionDto.Name))
+        if (!permissions.TryAdd(permissionDto.Name, permissionDto))
         {
             throw new FakeException("Duplicate permissionDto name: " + permissionDto.Name);
         }
-
-        permissions[permissionDto.Name] = permissionDto;
 
         foreach (var child in permissionDto.Children)
         {

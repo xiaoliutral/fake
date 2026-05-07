@@ -1,6 +1,7 @@
-﻿using Fake.DependencyInjection;
+﻿using Fake.Authorization.Permissions;
+using Fake.DependencyInjection;
 
-namespace Fake.Authorization.Permissions;
+namespace Fake.Authorization.Tests.Permissions;
 
 public class FakePermissionDefiner : IPermissionDefiner, ITransientDependency
 {

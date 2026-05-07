@@ -16,15 +16,12 @@ public class FakeAspNetCoreTestModule : FakeModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        context.Services.Configure<FakeVirtualFileSystemOptions>(options =>
-        {
-            options.FileProviders.Add<FakeAspNetCoreTestModule>("Fake.AspNetCore.Tests");
-        });
+        context.Services.AddFakeVirtualFileSystem<FakeAspNetCoreTestModule>("Fake.AspNetCore.Tests");
         
         context.Services.Configure<FakeLocalizationOptions>(options =>
         {
             options.Resources.Add<LocalizationTestResource>("zh")
-                .LoadVirtualJson("/Localization/Resources");
+                .AddVirtualJson("/Localization/Resources");
             options.DefaultResourceType = typeof(LocalizationTestResource);
             options.MapErrorCodeNamespace("Fake.AspNetCore.Tests", typeof(LocalizationTestResource));
         });

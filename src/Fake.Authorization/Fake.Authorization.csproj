@@ -3,7 +3,6 @@
     <Import Project="../../configureawait.props"/>
 
     <ItemGroup>
-        <ProjectReference Include="..\Fake.Core\Fake.Core.csproj"/>
         <ProjectReference Include="..\Fake.Security\Fake.Security.csproj"/>
         <ProjectReference Include="..\Fake.Localization\Fake.Localization.csproj"/>
     </ItemGroup>
@@ -11,7 +10,7 @@
         <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="$(MicrosoftAspNetCorePackageVersion)"/>
     </ItemGroup>
     <ItemGroup>
-        <EmbeddedResource Include="Fake\Authorization\Localization\*"/>
+        <EmbeddedResource Include="Fake\Authorization\Localization\Resources\*.json"/>
     </ItemGroup>
 
 </Project>

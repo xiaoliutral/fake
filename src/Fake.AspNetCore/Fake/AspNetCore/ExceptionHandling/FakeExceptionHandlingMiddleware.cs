@@ -9,7 +9,8 @@ namespace Fake.AspNetCore.ExceptionHandling;
 /// <summary>
 /// 异常处理中间件
 /// </summary>
-public class FakeExceptionHandlingMiddleware(ILogger<FakeExceptionHandlingMiddleware> logger) : FakeMiddleware, ITransientDependency
+public class FakeExceptionHandlingMiddleware(ILogger<FakeExceptionHandlingMiddleware> logger)
+    : FakeMiddleware, ITransientDependency
 {
     public override async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
@@ -35,33 +36,26 @@ public class FakeExceptionHandlingMiddleware(ILogger<FakeExceptionHandlingMiddle
         await httpContext.RequestServices.GetRequiredService<IExceptionNotifier>()
             .NotifyAsync(new ExceptionNotificationContext(exception, httpContext.RequestServices));
 
-        if (exception is FakeAuthorizationException authorizationException)
-        {
-            await httpContext.RequestServices.GetRequiredService<IAuthorizationExceptionHandler>()
-                .HandleAsync(authorizationException, httpContext);
-        }
-        else
-        {
-            var statusCodeFinder = httpContext.RequestServices.GetRequiredService<IHttpExceptionStatusCodeFinder>();
-            var errorInfoConverter = httpContext.RequestServices.GetRequiredService<IException2ResponseConverter>();
-            var exceptionHandlingOptions = httpContext.RequestServices
-                .GetRequiredService<IOptions<FakeExceptionHandlingOptions>>().Value;
-            var jsonSerializer = httpContext.RequestServices.GetRequiredService<IFakeJsonSerializer>();
 
-            var errorModel = errorInfoConverter.Convert(exception, exceptionHandlingOptions);
-            
-            if (exceptionHandlingOptions.ShouldLogException(exception))
-            {
-                var logLevel = exception.GetLogLevel();
-                logger.LogException(exception, logLevel);
-            }
+        var statusCodeFinder = httpContext.RequestServices.GetRequiredService<IHttpExceptionStatusCodeFinder>();
+        var errorInfoConverter = httpContext.RequestServices.GetRequiredService<IException2ResponseConverter>();
+        var exceptionHandlingOptions = httpContext.RequestServices
+            .GetRequiredService<IOptions<FakeExceptionHandlingOptions>>().Value;
+        var jsonSerializer = httpContext.RequestServices.GetRequiredService<IFakeJsonSerializer>();
 
-            httpContext.Response.Clear();
-            httpContext.Response.StatusCode = (int)statusCodeFinder.Find(httpContext, exception);
-            httpContext.Response.Headers.Append("Content-Type", "application/json");
-            httpContext.Response.OnStarting(ClearCacheHeaders, httpContext.Response);
-            await httpContext.Response.WriteAsync(jsonSerializer.Serialize(errorModel));
+        var errorModel = errorInfoConverter.Convert(exception, exceptionHandlingOptions);
+
+        if (exceptionHandlingOptions.ShouldLogException(exception))
+        {
+            var logLevel = exception.GetLogLevel();
+            logger.LogException(exception, logLevel);
         }
+
+        httpContext.Response.Clear();
+        httpContext.Response.StatusCode = (int)statusCodeFinder.Find(httpContext, exception);
+        httpContext.Response.Headers.Append("Content-Type", "application/json");
+        httpContext.Response.OnStarting(ClearCacheHeaders, httpContext.Response);
+        await httpContext.Response.WriteAsync(jsonSerializer.Serialize(errorModel));
     }
 
     static readonly Func<object, Task> ClearCacheHeaders = state =>
@@ -80,6 +74,7 @@ public class FakeExceptionHandlingMiddleware(ILogger<FakeExceptionHandlingMiddle
 public static class FakeExceptionHandlingMiddlewareExtensions
 {
     public const string FakeExceptionHandlingMiddlewareMarker = nameof(FakeExceptionHandlingMiddlewareMarker);
+
     public static IApplicationBuilder UseFakeExceptionHandling(this IApplicationBuilder app)
     {
         return app.VerifyMiddlewareAreRegistered(FakeExceptionHandlingMiddlewareMarker)

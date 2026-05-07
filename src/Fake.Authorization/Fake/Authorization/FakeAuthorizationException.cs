@@ -1,20 +1,13 @@
-﻿namespace Fake.Authorization;
+﻿using Fake.ExceptionHandling;
+using Fake.Logging;
+using Microsoft.Extensions.Logging;
 
-[Serializable]
-public class FakeAuthorizationException : FakeException
+namespace Fake.Authorization;
+
+public class FakeAuthorizationException(string errorCode = "", params object[] localizeArguments)
+    : FakeException(errorCode), IHasLogLevel, IHasLocalization
 {
-    public FakeAuthorizationException()
-    {
-    }
-
-    public FakeAuthorizationException(string message)
-        : base(message)
-    {
-    }
-
-
-    public FakeAuthorizationException(string? message, Exception? innerException)
-        : base(message, innerException)
-    {
-    }
+    public string ErrorCode { get; set; } = errorCode;
+    public object[]? LocalizeArguments { get; set; } = localizeArguments;
+    public LogLevel LogLevel { get; set; } = LogLevel.Warning;
 }

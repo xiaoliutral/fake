@@ -28,6 +28,10 @@ public class AuthorizationInterceptor(
         if (policy == null) return;
 
         if (currentPrincipalAccessor.Principal == null) return;
+        if (currentPrincipalAccessor.Principal.Identity?.IsAuthenticated == false)
+        {
+            throw new FakeAuthorizationException(FakeAuthorizationResource.NotPassedAuthentication);
+        }
 
         // to requirement handler
         var res = await authorizationService.AuthorizeAsync(
@@ -38,7 +42,7 @@ public class AuthorizationInterceptor(
 
         if (!res.Succeeded)
         {
-            throw new FakeAuthorizationException(localizer[FakeAuthorizationResource.GivenPolicyHasNotGranted]);
+            throw new FakeAuthorizationException(FakeAuthorizationResource.GivenPolicyHasNotGranted);
         }
     }
 

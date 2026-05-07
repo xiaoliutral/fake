@@ -1,5 +1,8 @@
 ﻿namespace Fake.Authorization;
 
+/// <summary>
+/// 免授权
+/// </summary>
 public class PassThroughAuthorizationService : IAuthorizationService
 {
     public Task<AuthorizationResult> AuthorizeAsync(ClaimsPrincipal user, object? resource,

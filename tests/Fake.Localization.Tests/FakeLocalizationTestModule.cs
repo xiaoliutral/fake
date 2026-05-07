@@ -12,23 +12,20 @@ public class FakeLocalizationTestModule : FakeModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        context.Services.Configure<FakeVirtualFileSystemOptions>(options =>
-        {
-            options.FileProviders.Add<FakeLocalizationTestModule>("Fake.Localization.Tests");
-        });
+        context.Services.AddFakeVirtualFileSystem<FakeLocalizationTestModule>("Fake.Localization.Tests");
 
         context.Services.Configure<FakeLocalizationOptions>(options =>
         {
             options.DefaultResourceType = typeof(LocalizationTestResource);
             
             options.Resources.Add<LocalizationTestResource>("zh")
-                .LoadVirtualJson("/Localization/Resources");
+                .AddVirtualJson("/Localization/Resources");
 
             options.Resources.Add("LocalizationTestCountryNames", "zh")
-                .LoadVirtualJson("/Localization/Resources/CountryNames");
+                .AddVirtualJson("/Localization/Resources/CountryNames");
 
             options.Resources.Add<LocalizationTestValidationResource>("zh")
-                .LoadVirtualJson("/Localization/Resources/Validation");
+                .AddVirtualJson("/Localization/Resources/Validation");
         });
     }
 }

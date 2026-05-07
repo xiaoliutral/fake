@@ -99,12 +99,10 @@ public abstract class VirtualFileLocalizationResourceContributorBase(string virt
                 container = CreateLocalizedStringContainer(fileContent, path);
             }
 
-            if (localizedStringContainers.ContainsKey(container.CultureName))
+            if (!localizedStringContainers.TryAdd(container.CultureName, container))
             {
                 throw new FakeException($"已经存在Culture为：{container.CultureName}的本地化文件 {container.Path}");
             }
-
-            localizedStringContainers[container.CultureName] = container;
         }
 
         return localizedStringContainers;

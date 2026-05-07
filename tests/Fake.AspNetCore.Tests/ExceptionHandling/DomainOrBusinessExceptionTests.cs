@@ -57,7 +57,8 @@ public class DomainOrBusinessExceptionTests : AspNetCoreTestBase
     [Fact]
     public async Task 测试授权异常()
     {
-        await GetResponseAsStringAsync("/api/simple/authorization-exception", HttpStatusCode.Unauthorized);
+        var res = await GetResponseAsStringAsync("/api/simple/authorization-exception", HttpStatusCode.Unauthorized);
+        _testOutputHelper.WriteLine(res);
     }
 
     [Fact]

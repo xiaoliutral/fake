@@ -36,9 +36,7 @@ public class VirtualFileProvider : IVirtualFileProvider
 
     private CompositeFileProvider CreateCompositeFileProvider(IDynamicFileProvider dynamicFileProvider)
     {
-        var allVirtualFileProviders = new List<IFileProvider>();
-
-        allVirtualFileProviders.Add(dynamicFileProvider);
+        var allVirtualFileProviders = new List<IFileProvider> { dynamicFileProvider };
 
         // Notes：
         //   这里翻转顺序非常关键，如果两个模块将文件添加到相同的虚拟路径(如my-path/my-file.css)

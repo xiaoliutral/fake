@@ -1,7 +1,6 @@
 ﻿using Fake.Modularity;
 using Fake.Testing;
 
-// ReSharper disable once CheckNamespace
 namespace Fake.Authorization.Tests;
 
 [DependsOn(typeof(FakeAuthorizationModule))]

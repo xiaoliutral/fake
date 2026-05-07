@@ -20,7 +20,7 @@ public static class LocalizationResourceBaseExtensions
         return localizationResource;
     }
 
-    public static TLocalizationResource LoadVirtualJson<TLocalizationResource>(
+    public static TLocalizationResource AddVirtualJson<TLocalizationResource>(
         this TLocalizationResource localizationResource, string virtualPath)
         where TLocalizationResource : LocalizationResourceBase
     {

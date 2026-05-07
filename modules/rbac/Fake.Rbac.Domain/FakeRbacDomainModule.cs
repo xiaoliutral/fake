@@ -14,13 +14,12 @@ public class FakeRbacDomainModule : FakeModule
         // 注册权限定义提供器
         context.Services.AddSingleton<IPermissionDefinitionProvider, RbacPermissionDefinitionProvider>();
 
-        context.Services.Configure<FakeVirtualFileSystemOptions>(options =>
-        {
-            options.FileProviders.Add<FakeRbacDomainModule>();
-        });
+        context.Services.AddFakeVirtualFileSystem<FakeRbacDomainModule>();
+        
         Configure<FakeLocalizationOptions>(options =>
         {
-            options.Resources.Add<FakeRbacDomainResource>().LoadVirtualJson("Localization/Resources");
+            options.Resources.Add<FakeRbacDomainResource>()
+                .AddVirtualJson("/Fake/Rbac/Domain/Localization/Resources");
             options.MapErrorCodeNamespace("Fake.Rbac.Domain", typeof(FakeRbacDomainResource));
         });
     }

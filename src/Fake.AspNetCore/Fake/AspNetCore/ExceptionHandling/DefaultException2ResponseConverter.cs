@@ -17,12 +17,13 @@ public class DefaultException2ResponseConverter(
     IStringLocalizer<FakeAspNetCoreErrorResource> l) : IException2ResponseConverter, ITransientDependency
 {
     protected FakeLocalizationOptions LocalizationOptions = localizationOptions.Value;
+
     public virtual ApplicationExceptionResponse Convert(Exception exception, FakeExceptionHandlingOptions options)
     {
         var errorInfo = new ApplicationExceptionResponse(exception.Message);
 
         LocalizeErrorMessage(exception, errorInfo);
-        
+
         if (errorInfo.Message.IsNullOrEmpty())
         {
             errorInfo.Message = l[FakeAspNetCoreErrorResource.InternalServerError];
@@ -53,7 +54,7 @@ public class DefaultException2ResponseConverter(
                 errorInfo.Message = fakeValidationException.ValidationErrors.Select(x => x.ErrorMessage)
                     .JoinAsString("\n");
                 break;
-            case ILocalizeErrorMessage localizeErrorMessage:
+            case IHasLocalization localizeErrorMessage:
             {
                 if (!localizeErrorMessage.ErrorCode.Contains(':')) break;
                 var errorNamespace = localizeErrorMessage.ErrorCode.Split(':').First();

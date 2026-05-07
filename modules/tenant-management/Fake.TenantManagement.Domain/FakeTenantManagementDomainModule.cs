@@ -12,15 +12,12 @@ public class FakeTenantManagementDomainModule : FakeModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        context.Services.Configure<FakeVirtualFileSystemOptions>(options =>
-        {
-            options.FileProviders.Add<FakeTenantManagementDomainModule>();
-        });
+        context.Services.AddFakeVirtualFileSystem<FakeTenantManagementDomainModule>();
 
         context.Services.Configure<FakeLocalizationOptions>(options =>
         {
             options.Resources.Add<FakeTenantManagementDomainResource>("zh")
-                .LoadVirtualJson("/Localization/Resources");
+                .AddVirtualJson("/Fake/TenantManagement/Domain/Localization/Resources");
             options.MapErrorCodeNamespace("Fake.TenantManagement.Domain", typeof(FakeTenantManagementDomainResource));
         });
     }

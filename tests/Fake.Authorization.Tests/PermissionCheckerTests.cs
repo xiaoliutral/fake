@@ -1,4 +1,5 @@
 ﻿using Fake.Authorization.Permissions;
+using Fake.Authorization.Tests;
 using Shouldly;
 using Xunit;
 

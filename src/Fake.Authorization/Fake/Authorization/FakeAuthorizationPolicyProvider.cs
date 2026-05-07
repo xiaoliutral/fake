@@ -14,7 +14,7 @@ public class FakeAuthorizationPolicyProvider(
         var policy = await base.GetPolicyAsync(policyName);
         if (policy != null) return policy;
 
-        // map form permission: policyName is permission name
+        // policyName => permissionName
         var permission = await permissionManager.GetOrNullAsync(policyName);
 
         if (permission == null) return null;

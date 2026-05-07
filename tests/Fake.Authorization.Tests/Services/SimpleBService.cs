@@ -1,7 +1,7 @@
 ﻿using Fake.DependencyInjection;
 using Microsoft.AspNetCore.Authorization;
 
-namespace Fake.Authorization.Services;
+namespace Fake.Authorization.Tests.Services;
 
 [Authorize]
 public class SimpleBService : ITransientDependency

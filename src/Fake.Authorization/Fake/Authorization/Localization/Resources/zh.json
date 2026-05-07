@@ -1,0 +1,7 @@
+{
+  "culture": "zh",
+  "texts": {
+    "Fake.Authorization:010001": "未通过鉴权，请先登录！",
+    "Fake.Authorization:010002": "授权失败！给定的策略尚未授予"
+  }
+}

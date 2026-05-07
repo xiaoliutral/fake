@@ -21,15 +21,12 @@ public class FakeLocalizationModule : FakeModule
 
         context.Services.TryAddTransient(typeof(IStringLocalizer<>), typeof(StringLocalizer<>));
 
-        context.Services.Configure<FakeVirtualFileSystemOptions>(options =>
-        {
-            options.FileProviders.Add<FakeLocalizationModule>("Fake.Localization");
-        });
+        context.Services.AddFakeVirtualFileSystem<FakeLocalizationModule>();
 
         context.Services.Configure<FakeLocalizationOptions>(options =>
         {
             options.Resources.Add<FakeLocalizationResource>("zh")
-                .LoadVirtualJson("/Resources");
+                .AddVirtualJson("/Fake/Localization/Resources");
         });
     }
 }

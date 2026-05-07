@@ -4,16 +4,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Fake.Application;
 
-public class BusinessException : FakeException, IHasLogLevel, ILocalizeErrorMessage
+public class BusinessException(string errorCode = "", params object[] localizeArguments)
+    : FakeException(errorCode), IHasLogLevel, IHasLocalization
 {
-    public BusinessException(string errorCode, params object[] localizeArguments) : base(errorCode)
-    {
-        ErrorCode = errorCode;
-        LocalizeArguments = localizeArguments;
-    }
-    
     public LogLevel LogLevel { get; set; } = LogLevel.Warning;
 
-    public string ErrorCode { get; set; }
-    public object[]? LocalizeArguments { get; set; }
+    public string ErrorCode { get; set; } = errorCode;
+    public object[]? LocalizeArguments { get; set; } = localizeArguments;
 }

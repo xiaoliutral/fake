@@ -1,10 +1,11 @@
 ﻿using System.Security.Claims;
-using Fake.Authorization.Tests;
 using Fake.IdGenerators.GuidGenerator;
 using Fake.Security.Claims;
 using Fake.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+
+namespace Fake.Authorization.Tests;
 
 public class AuthorizationTestBase : ApplicationTest<FakeAuthorizationTestModule>
 {

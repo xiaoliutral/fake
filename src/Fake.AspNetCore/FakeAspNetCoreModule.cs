@@ -29,7 +29,6 @@ public class FakeAspNetCoreModule : FakeModule
 
         context.Services.AddObjectAccessor<IApplicationBuilder>();
 
-        context.Services.AddTransient<IAuthorizationExceptionHandler, DefaultAuthorizationExceptionHandler>();
         context.Services.AddTransient<IHttpClientInfoProvider, HttpClientInfoProvider>();
 
         context.Services.AddAuthorization();
@@ -37,14 +36,11 @@ public class FakeAspNetCoreModule : FakeModule
         context.Services.AddSingleton<IAspNetCoreFileProvider, AspNetCoreFileProvider>();
         context.Services.Configure<FakeAspNetCoreFileOptions>(_ => { });
 
-        context.Services.Configure<FakeVirtualFileSystemOptions>(options =>
-        {
-            options.FileProviders.Add<FakeAspNetCoreModule>("Fake.AspNetCore");
-        });
+        context.Services.AddFakeVirtualFileSystem<FakeAspNetCoreModule>();
         context.Services.Configure<FakeLocalizationOptions>(options =>
         {
             options.Resources.Add<FakeAspNetCoreErrorResource>("zh")
-                .LoadVirtualJson("/ExceptionHandling/Localization/Resources");
+                .AddVirtualJson("/Fake/AspNetCore/ExceptionHandling/Localization/Resources");
         });
         
         context.Services.AddMvc()

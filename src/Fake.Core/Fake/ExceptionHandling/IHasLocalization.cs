@@ -3,7 +3,7 @@ namespace Fake.ExceptionHandling;
 /// <summary>
 /// 使用本地化错误消息，异常message将被尝试本地化
 /// </summary>
-public interface ILocalizeErrorMessage
+public interface IHasLocalization
 {
     /// <summary>
     /// 错误码
