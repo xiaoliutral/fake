@@ -33,7 +33,7 @@ public class DataFilter(IServiceProvider serviceProvider) : IDataFilter
         var filter = _filters.GetOrAdd(
             typeof(TFilter),
             valueFactory: () => serviceProvider.GetRequiredService<IDataFilter<TFilter>>());
-        return filter.To<IDataFilter<TFilter>>();
+        return filter.Is<IDataFilter<TFilter>>();
     }
 }
 

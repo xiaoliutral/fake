@@ -9,6 +9,6 @@ public class ThreadCurrentPrincipalAccessor : AbstractCurrentPrincipalAccessor
 {
     protected override ClaimsPrincipal? GetClaimsPrincipal()
     {
-        return Thread.CurrentPrincipal?.As<ClaimsPrincipal>();
+        return Thread.CurrentPrincipal?.Is<ClaimsPrincipal>();
     }
 }

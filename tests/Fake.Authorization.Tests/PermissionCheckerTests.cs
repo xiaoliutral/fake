@@ -1,9 +1,8 @@
 ﻿using Fake.Authorization.Permissions;
-using Fake.Authorization.Tests;
 using Shouldly;
 using Xunit;
 
-namespace Fake.Authorization;
+namespace Fake.Authorization.Tests;
 
 public class PermissionCheckerTests : AuthorizationTestBase
 {

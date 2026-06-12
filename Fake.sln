@@ -21,7 +21,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solution items", "solution 
 		.space.kts = .space.kts
 		common.props = common.props
 		common.test.props = common.test.props
-		common.toolkit.props = common.toolkit.props
 		configureawait.props = configureawait.props
 		Directory.Build.props = Directory.Build.props
 		Fake.sln.DotSettings = Fake.sln.DotSettings
@@ -31,10 +30,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solution items", "solution 
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fake.AspNetCore", "src\Fake.AspNetCore\Fake.AspNetCore.csproj", "{57E821A6-AE7A-40E4-9C32-23A26E90102E}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "toolkit", "toolkit", "{A2A27924-EED0-4A13-B7F2-949F11F9F9B6}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fake.ReplaceFileName", "toolkit\Fake.ReplaceFileName\Fake.ReplaceFileName.csproj", "{26293D9D-5A8A-4438-8446-192C9A1E3727}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fake.Castle", "src\Fake.Castle\Fake.Castle.csproj", "{E2CA82E6-F762-4208-8ABC-CF464404FED2}"
 EndProject
@@ -188,8 +183,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fake.TenantManagement.Domai
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fake.TenantManagement.Infrastructure", "modules\tenant-management\Fake.TenantManagement.Infrastructure\Fake.TenantManagement.Infrastructure.csproj", "{647982C1-E629-4507-9E4E-64C0D071E5A2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fake.SugarTool", "toolkit\Fake.SugarTool\Fake.SugarTool.csproj", "{4D136285-239E-4BF0-AEB7-C0A3650B55E9}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "prompt", "prompt", "{03CD838C-2F89-4484-9561-E25798CAEE40}"
 	ProjectSection(SolutionItems) = preProject
 		.cursor\rules\backend.mdc = .cursor\rules\backend.mdc
@@ -243,10 +236,6 @@ Global
 		{57E821A6-AE7A-40E4-9C32-23A26E90102E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{57E821A6-AE7A-40E4-9C32-23A26E90102E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{57E821A6-AE7A-40E4-9C32-23A26E90102E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{26293D9D-5A8A-4438-8446-192C9A1E3727}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{26293D9D-5A8A-4438-8446-192C9A1E3727}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{26293D9D-5A8A-4438-8446-192C9A1E3727}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{26293D9D-5A8A-4438-8446-192C9A1E3727}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E2CA82E6-F762-4208-8ABC-CF464404FED2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E2CA82E6-F762-4208-8ABC-CF464404FED2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E2CA82E6-F762-4208-8ABC-CF464404FED2}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -457,10 +446,6 @@ Global
 		{647982C1-E629-4507-9E4E-64C0D071E5A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{647982C1-E629-4507-9E4E-64C0D071E5A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{647982C1-E629-4507-9E4E-64C0D071E5A2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4D136285-239E-4BF0-AEB7-C0A3650B55E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4D136285-239E-4BF0-AEB7-C0A3650B55E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4D136285-239E-4BF0-AEB7-C0A3650B55E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4D136285-239E-4BF0-AEB7-C0A3650B55E9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{960F57B4-5DB1-47AC-9B10-6E9DB57968DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{960F57B4-5DB1-47AC-9B10-6E9DB57968DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{960F57B4-5DB1-47AC-9B10-6E9DB57968DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -492,7 +477,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{B37055D3-4031-4FF1-9668-926D0431BCCE} = {AC56DAD8-C5AB-4E41-A280-1BCC08A2BE60}
-		{26293D9D-5A8A-4438-8446-192C9A1E3727} = {A2A27924-EED0-4A13-B7F2-949F11F9F9B6}
 		{E2CA82E6-F762-4208-8ABC-CF464404FED2} = {AC56DAD8-C5AB-4E41-A280-1BCC08A2BE60}
 		{18CD3533-6778-46E1-B175-448D15543F8C} = {310D0E30-AC20-44C8-B0A2-155C880ED934}
 		{CF5FE6C5-FE2C-4824-9AEC-E4E48D6D5E62} = {AC56DAD8-C5AB-4E41-A280-1BCC08A2BE60}
@@ -564,7 +548,6 @@ Global
 		{B2854FE1-8AC0-43BA-AF34-CDD4DD497F4A} = {9B0136A5-6060-4910-AD0E-1716D8F9A5BF}
 		{2C9851D7-B8FC-4A0B-8F50-BBF76C7DAD61} = {6D836B7B-F7A0-4639-B034-15217B7A4FCB}
 		{647982C1-E629-4507-9E4E-64C0D071E5A2} = {6D836B7B-F7A0-4639-B034-15217B7A4FCB}
-		{4D136285-239E-4BF0-AEB7-C0A3650B55E9} = {A2A27924-EED0-4A13-B7F2-949F11F9F9B6}
 		{03CD838C-2F89-4484-9561-E25798CAEE40} = {39FED9F7-23E6-43A4-B478-B914A2E805D0}
 		{960F57B4-5DB1-47AC-9B10-6E9DB57968DA} = {AC56DAD8-C5AB-4E41-A280-1BCC08A2BE60}
 		{9179764A-91DD-4A64-AA26-86C442D93BC2} = {E1ACF4B8-6A90-43C1-89E3-94E7897B703C}

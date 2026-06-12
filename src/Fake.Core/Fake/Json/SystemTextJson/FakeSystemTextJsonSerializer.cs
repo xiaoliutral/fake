@@ -4,15 +4,9 @@ using Microsoft.Extensions.Options;
 
 namespace Fake.Json.SystemTextJson;
 
-public class FakeSystemTextJsonSerializer : IFakeJsonSerializer
+public class FakeSystemTextJsonSerializer(IOptions<JsonSerializerOptions> options) : IFakeJsonSerializer
 {
     private static readonly ConcurrentDictionary<object, JsonSerializerOptions> OptionsCache = new();
-    private readonly JsonSerializerOptions _options;
-
-    public FakeSystemTextJsonSerializer(IOptions<JsonSerializerOptions> options)
-    {
-        _options = options.Value;
-    }
 
     public string Serialize(object obj, bool camelCase = true, bool indented = false)
     {
@@ -58,10 +52,10 @@ public class FakeSystemTextJsonSerializer : IFakeJsonSerializer
     {
         return OptionsCache.GetOrAdd(new
         {
-            camelCase, indented, _options
+            camelCase, indented, options.Value
         }, _ =>
         {
-            var settings = new JsonSerializerOptions(_options);
+            var settings = new JsonSerializerOptions(options.Value);
 
             if (camelCase)
             {

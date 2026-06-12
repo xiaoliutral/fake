@@ -298,7 +298,7 @@ public abstract class EfCoreDbContext<TDbContext>(DbContextOptions<TDbContext> o
         {
             var propertyType = property.PropertyInfo!.PropertyType;
             var converterType = typeof(FakeEnumerationValueConverter<>).MakeGenericType(propertyType);
-            var converterInstance = ReflectionHelper.CreateInstance(converterType, [null]).To<ValueConverter>();
+            var converterInstance = ReflectionHelper.CreateInstance(converterType, [null])!.Is<ValueConverter>();
             modelBuilder.Entity(entityType).Property(property.Name).HasConversion(converterInstance);
         }
 

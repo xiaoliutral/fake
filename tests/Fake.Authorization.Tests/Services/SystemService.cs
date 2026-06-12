@@ -5,7 +5,7 @@ namespace Fake.Authorization.Tests.Services;
 
 public class SystemService : ITransientDependency
 {
-    [Authorize]
+    [Authorize("system")]
     public virtual Task DoSomethingAsync()
     {
         return Task.CompletedTask;

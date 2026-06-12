@@ -1,4 +1,6 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.ComponentModel;
+using System.Globalization;
+using System.Runtime.CompilerServices;
 using Fake;
 
 namespace System;
@@ -25,7 +27,7 @@ public static class FakeObjectExtensions
 
     #endregion
 
-
+    
     /// <summary>
     /// 将obj弱转为给定类型T，等价于obj as T
     /// </summary>
@@ -39,21 +41,41 @@ public static class FakeObjectExtensions
     }
 
     /// <summary>
-    /// 将obj强转为给定类型T，等价于obj is T
+    /// 将obj强转为给定类型T
     /// </summary>
     /// <param name="obj"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    /// <exception cref="FakeException">无法将对象强转为给定类型</exception>
+    /// <exception cref="InvalidCastException">无法将对象强转为给定类型</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T To<T>(this object? obj)
-        where T : class
+    public static T Is<T>(this object obj) where T : class
     {
-        if (obj is T t)
+        return (T)obj;
+    }
+    
+    /// <summary>
+    /// 将obj强转为给定类型T
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    /// <exception cref="InvalidCastException">无法将对象强转为给定类型</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T To<T>(this object obj) where T : struct
+    {
+        var targetType = typeof(T);
+        
+        // 处理 Nullable<T>
+        var underlyingType = Nullable.GetUnderlyingType(targetType);
+        var actualType = underlyingType ?? targetType;
+        
+        // Convert.ChangeType() 不支持把 string/object 转成 Guid
+        if (actualType == typeof(Guid))
         {
-            return t;
+            var value = Guid.Parse(obj.ToString()!);
+            return (T)(object)value;
         }
-
-        throw new FakeException($"无法将对象{obj?.GetType().FullName}强转为{typeof(T).FullName}");
+    
+        return (T)Convert.ChangeType(obj, typeof(T), CultureInfo.InvariantCulture);
     }
 }

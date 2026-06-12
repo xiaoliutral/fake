@@ -1,8 +1,10 @@
 ﻿using System.Linq.Expressions;
 using Fake.Application;
 using Fake.Application.Dtos;
+using Fake.Domain.Dtos;
 using Fake.Domain.Exceptions;
 using Fake.TenantManagement.Application.Contracts.Dtos;
+using Fake.TenantManagement.Application.Dtos;
 using Fake.TenantManagement.Domain.Localization;
 using Fake.TenantManagement.Domain.Services;
 using Fake.TenantManagement.Domain.TenantAggregate;
@@ -21,13 +23,13 @@ public class TenantAppService(ITenantRepository tenantRepository, TenantManagerD
         return ObjectMapper.Map<Tenant, TenantPagedItem>(existedTenant);
     }
 
-    public async Task<PagedResponse<TenantPagedItem>> GetPagedListAsync(GetTenantPagedRequest input)
+    public async Task<PagedResult<TenantPagedItem>> GetPagedListAsync(GetTenantPagedQuery input)
     {
         Expression<Func<Tenant, bool>> query = x => input.Name.IsNullOrWhiteSpace() ? default : x.Name.Contains(x.Name);
         var pagedList = await tenantRepository.GetPagedListAsync(query);
         var totalCount = await tenantRepository.CountAsync(query);
 
-        return new PagedResponse<TenantPagedItem>(
+        return new PagedResult<TenantPagedItem>(
             totalCount,
             ObjectMapper.Map<List<Tenant>, List<TenantPagedItem>>(pagedList)
         );

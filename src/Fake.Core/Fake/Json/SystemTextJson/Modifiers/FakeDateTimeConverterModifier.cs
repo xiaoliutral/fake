@@ -28,7 +28,7 @@ public class FakeDateTimeConverterModifier
         }
 
         foreach (var property in jsonTypeInfo.Properties
-                     .Where(x => x.PropertyType == typeof(DateTime))
+                     .Where(x => x.PropertyType == typeof(DateTime) || x.PropertyType == typeof(DateTime?))
                 )
         {
             // 如果属性上没有 DisableClockNormalizationAttribute 特性，则使用 DateTimeConverter
@@ -36,7 +36,9 @@ public class FakeDateTimeConverterModifier
                 !property.AttributeProvider.GetCustomAttributes(typeof(DisableClockNormalizationAttribute), false)
                     .Any())
             {
-                property.CustomConverter = _serviceProvider.GetRequiredService<DateTimeConverter>();
+                property.CustomConverter = property.PropertyType == typeof(DateTime)
+                    ? _serviceProvider.GetRequiredService<DateTimeConverter>()
+                    : _serviceProvider.GetRequiredService<NullableDateTimeConverter>();
             }
         }
     }

@@ -4,11 +4,15 @@
 
     <ItemGroup>
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.21" />
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.28"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.28" />
         <ProjectReference Include="..\Fake.Authorization\Fake.Authorization.csproj" />
         <ProjectReference Include="..\Fake.Ddd.Application\Fake.Ddd.Application.csproj" />
     </ItemGroup>
     <ItemGroup>
       <EmbeddedResource Include="Fake\AspNetCore\ExceptionHandling\Localization\Resources\*.json" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Fake\AspNetCore\Localization\Resources\" />
     </ItemGroup>
 </Project>

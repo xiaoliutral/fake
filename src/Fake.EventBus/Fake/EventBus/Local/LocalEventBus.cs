@@ -19,7 +19,7 @@ public class LocalEventBus(
         var eventHandler = _eventHandlers.GetOrAdd(@event.GetType(), eventType =>
         {
             var wrapper = ReflectionHelper.CreateInstance(typeof(EventHandlerWrapperImpl<>).MakeGenericType(eventType))
-                .To<EventHandlerWrapper>();
+                !.Is<EventHandlerWrapper>();
 
             if (wrapper == null)
             {

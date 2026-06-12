@@ -18,7 +18,7 @@ public static class ApplicationConfigureContextExtensions
     {
         // 在加载FakeAspNetCoreModule模块ConfigureServices时
         var app = context.ServiceProvider.GetRequiredService<ObjectAccessor<IApplicationBuilder>>().Value
-            ?.As<WebApplication>();
+            ?.Is<WebApplication>();
         ThrowHelper.ThrowIfNull(app, nameof(app), $"请检查host是否是通过{nameof(WebApplication)}创建");
         return app!;
     }

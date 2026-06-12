@@ -84,7 +84,7 @@ public class FakeStringLocalizerFactory(
         foreach (var contributor in _options.GlobalContributors)
         {
             resource.Contributors.Add(ReflectionHelper.CreateInstance(contributor)
-                .To<ILocalizationResourceContributor>());
+                !.Is<ILocalizationResourceContributor>());
         }
 
         var context = new LocalizationResourceInitializationContext(resource, serviceProvider);

@@ -74,7 +74,7 @@ public class OutboxEventLogEntry
 
     public OutboxEventLogEntry DeserializeJsonContent(Type type)
     {
-        IntegrationEvent = JsonSerializer.Deserialize(Content, type)?.As<Event>();
+        IntegrationEvent = JsonSerializer.Deserialize(Content, type)?.Is<Event>();
         return this;
     }
 

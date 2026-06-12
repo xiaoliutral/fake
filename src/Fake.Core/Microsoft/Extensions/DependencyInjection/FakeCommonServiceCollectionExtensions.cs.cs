@@ -40,7 +40,7 @@ public static class FakeCommonServiceCollectionExtensions
             ? serviceDecription.KeyedImplementationInstance
             : serviceDecription.ImplementationInstance;
 
-        return instance?.To<T>();
+        return instance?.Is<T>();
     }
 
     /// <summary>
@@ -109,7 +109,7 @@ public static class FakeCommonServiceCollectionExtensions
             .MakeGenericMethod(containerBuilderType)
             .Invoke(null, [services, null!]);
 
-        return serviceProvider!.To<IServiceProvider>();
+        return serviceProvider!.Is<IServiceProvider>();
     }
 
     public static IServiceProvider BuildServiceProviderFromFactory<TContainerBuilder>(

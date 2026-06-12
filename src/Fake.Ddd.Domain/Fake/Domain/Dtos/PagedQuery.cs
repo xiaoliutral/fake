@@ -1,9 +1,9 @@
-namespace Fake.Application.Dtos;
+namespace Fake.Domain.Dtos;
 
 /// <summary>
 /// 分页请求
 /// </summary>
-public class PagedRequest
+public class PagedQuery
 {
     /// <summary>
     /// 当前页码

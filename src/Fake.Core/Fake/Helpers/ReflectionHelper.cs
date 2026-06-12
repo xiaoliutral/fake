@@ -56,12 +56,12 @@ public static class ReflectionHelper
                 // importance：处理一元表达式-ex可空
                 case ExpressionType.Convert:
                 {
-                    memberExpression = propertySelector.Body.As<UnaryExpression>()?.Operand as MemberExpression;
+                    memberExpression = propertySelector.Body.Is<UnaryExpression>()?.Operand as MemberExpression;
                     break;
                 }
                 case ExpressionType.MemberAccess:
                 {
-                    memberExpression = propertySelector.Body.As<MemberExpression>();
+                    memberExpression = propertySelector.Body.Is<MemberExpression>();
                     break;
                 }
                 default:

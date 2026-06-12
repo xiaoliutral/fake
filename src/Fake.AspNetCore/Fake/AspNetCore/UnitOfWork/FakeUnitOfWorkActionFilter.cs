@@ -20,7 +20,7 @@ public class FakeUnitOfWorkActionFilter(IUnitOfWorkHelper unitOfWorkHelper, IUni
 
     protected virtual async Task HandleUnitOfWorkAction(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        var methodInfo = context.ActionDescriptor.To<ControllerActionDescriptor>().MethodInfo;
+        var methodInfo = context.ActionDescriptor.Is<ControllerActionDescriptor>().MethodInfo;
 
         if (!unitOfWorkHelper.IsUnitOfWorkMethod(methodInfo, out var unitOfWorkAttribute)) await next();
         else

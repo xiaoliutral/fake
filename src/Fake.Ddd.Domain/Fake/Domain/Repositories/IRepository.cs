@@ -31,7 +31,11 @@ public interface IRepository<TEntity> : IRepository where TEntity : class, IAggr
         Dictionary<string, bool>? sorting = null,
         CancellationToken cancellationToken = default);
 
-    Task<long> CountAsync(
+    Task<int> CountAsync(
+        Expression<Func<TEntity, bool>>? predicate = null,
+        CancellationToken cancellationToken = default);
+    
+    Task<long> CountLongAsync(
         Expression<Func<TEntity, bool>>? predicate = null,
         CancellationToken cancellationToken = default);
 

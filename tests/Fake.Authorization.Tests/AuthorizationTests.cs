@@ -61,6 +61,10 @@ public class AuthorizationTests : AuthorizationTestBase
     [Fact]
     async Task 基于Policy的授权()
     {
+        var claim = new Claim(ClaimTypes.NameIdentifier,
+            SimpleGuidGenerator.Instance.GenerateAsString());
+        using var _ = _currentPrincipalAccessor.Change(new ClaimsIdentity(new[] { claim }, "TestAuth"));
+
         await _userService.CreateAsync();
         await _userService.DeleteAsync();
 
@@ -76,7 +80,7 @@ public class AuthorizationTests : AuthorizationTestBase
         });
 
         var claim = new Claim(ClaimTypes.Role, "admin");
-        using var _ = _currentPrincipalAccessor.Change(claim);
+        using var _ = _currentPrincipalAccessor.Change(new ClaimsIdentity(new[] { claim }, "TestAuth"));
         await _systemService.ProtectedByRoleAsync();
     }
 

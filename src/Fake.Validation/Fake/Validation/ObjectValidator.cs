@@ -48,7 +48,7 @@ public class ObjectValidator(IOptions<FakeValidationOptions> options, IServiceSc
             foreach (var contributorType in _validationOptions.Contributors)
             {
                 var contributor = scope.ServiceProvider.GetRequiredService(contributorType)
-                    .To<IObjectValidationContributor>();
+                    .Is<IObjectValidationContributor>();
                 await contributor.AddErrorsAsync(context);
             }
         }

@@ -78,12 +78,14 @@ public class FakeCoreModule : FakeModule
     {
         context.Services.AddTransient<IFakeJsonSerializer, FakeSystemTextJsonSerializer>();
         context.Services.AddTransient<DateTimeConverter>();
+        context.Services.AddTransient<NullableDateTimeConverter>();
         context.Services.AddTransient<BooleanConverter>();
         context.Services.AddTransient<LongConverter>();
         context.Services.AddTransient<FakeDefaultJsonTypeInfoResolver>();
         context.Services.AddOptions<FakeSystemTextJsonModifiersOptions>()
             .Configure<IServiceProvider>((option, provider) =>
             {
+                // 按需使用datetime convert
                 option.Modifiers.Add(new FakeDateTimeConverterModifier().CreateModifyAction(provider));
             });
         context.Services.AddOptions<JsonSerializerOptions>()
@@ -103,7 +105,6 @@ public class FakeCoreModule : FakeModule
                 options.ReadCommentHandling = JsonCommentHandling.Skip;
                 options.AllowTrailingCommas = true;
 
-                options.Converters.Add(provider.GetRequiredService<DateTimeConverter>());
                 options.Converters.Add(provider.GetRequiredService<LongConverter>());
                 options.Converters.Add(provider.GetRequiredService<BooleanConverter>());
                 options.Converters.Add(new ObjectToInferredTypesConverter());

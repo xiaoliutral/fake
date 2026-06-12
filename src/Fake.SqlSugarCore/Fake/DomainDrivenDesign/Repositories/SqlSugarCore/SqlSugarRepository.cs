@@ -81,7 +81,17 @@ public class SqlSugarRepository<TDbContext, TEntity> : ISqlSugarRepository<TDbCo
         return await query.ToPageListAsync(pageIndex, pageSize, GetCancellationToken(cancellationToken));
     }
 
-    public virtual async Task<long> CountAsync(Expression<Func<TEntity, bool>>? predicate = null,
+    public virtual async Task<int> CountAsync(Expression<Func<TEntity, bool>>? predicate = null,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken = GetCancellationToken(cancellationToken);
+        var ctx = await GetDbContextAsync(cancellationToken);
+        return await ctx.Queryable<TEntity>()
+            .WhereIF(predicate != null, predicate)
+            .CountAsync(GetCancellationToken(cancellationToken));
+    }
+    
+    public virtual async Task<long> CountLongAsync(Expression<Func<TEntity, bool>>? predicate = null,
         CancellationToken cancellationToken = default)
     {
         cancellationToken = GetCancellationToken(cancellationToken);

@@ -24,6 +24,6 @@ public abstract class ValueObject
 
     public ValueObject Clone()
     {
-        return MemberwiseClone().To<ValueObject>();
+        return MemberwiseClone().Is<ValueObject>();
     }
 }

@@ -9,7 +9,7 @@ public class FluentObjectValidationContributor(IServiceProvider serviceProvider)
     public async Task AddErrorsAsync(ObjectValidationContext context)
     {
         var serviceType = typeof(IValidator<>).MakeGenericType(context.ValidatingObject.GetType());
-        var validator = serviceProvider.GetService(serviceType).As<IValidator>();
+        var validator = serviceProvider.GetService(serviceType).Is<IValidator>();
 
         if (validator == null) return;
         

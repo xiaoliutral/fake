@@ -6,16 +6,10 @@ using Microsoft.Extensions.Options;
 
 namespace Fake.Json.SystemTextJson.Converters;
 
-public class DateTimeConverter : JsonConverter<DateTime>
+public class DateTimeConverter(IFakeClock fakeClock, IOptions<FakeJsonSerializerOptions> options)
+    : JsonConverter<DateTime>
 {
-    private readonly IFakeClock _clock;
-    private readonly FakeJsonSerializerOptions _serializerOptions;
-
-    public DateTimeConverter(IFakeClock fakeClock, IOptions<FakeJsonSerializerOptions> options)
-    {
-        _clock = fakeClock;
-        _serializerOptions = options.Value;
-    }
+    private readonly FakeJsonSerializerOptions _serializerOptions = options.Value;
 
     public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -29,7 +23,7 @@ public class DateTimeConverter : JsonConverter<DateTime>
                     if (DateTime.TryParseExact(s, format, CultureInfo.CurrentUICulture, DateTimeStyles.None,
                             out var d1))
                     {
-                        return _clock.Normalize(d1);
+                        return fakeClock.Normalize(d1);
                     }
                 }
             }
@@ -41,7 +35,7 @@ public class DateTimeConverter : JsonConverter<DateTime>
 
         if (reader.TryGetDateTime(out var d2))
         {
-            return _clock.Normalize(d2);
+            return fakeClock.Normalize(d2);
         }
 
         throw new JsonException("无法从读取器中获取日期时间！");
@@ -51,11 +45,11 @@ public class DateTimeConverter : JsonConverter<DateTime>
     {
         if (_serializerOptions.OutputDateTimeFormat.IsNullOrWhiteSpace())
         {
-            writer.WriteStringValue(_clock.Normalize(value));
+            writer.WriteStringValue(fakeClock.Normalize(value));
         }
         else
         {
-            writer.WriteStringValue(_clock.Normalize(value)
+            writer.WriteStringValue(fakeClock.Normalize(value)
                 .ToString(_serializerOptions.OutputDateTimeFormat, CultureInfo.CurrentUICulture));
         }
     }

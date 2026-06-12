@@ -138,8 +138,19 @@ public class EfCoreRepository<TDbContext, TEntity> : IEfCoreRepository<TDbContex
             .Take(pageSize)
             .ToListAsync(cancellationToken);
     }
+    
+    public async Task<int> CountAsync(
+        Expression<Func<TEntity, bool>>? predicate = null,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken = GetCancellationToken(cancellationToken);
 
-    public async Task<long> CountAsync(
+        var query = await GetQueryableAsync(false, cancellationToken);
+
+        return await query.WhereIf(predicate != null, predicate).CountAsync(cancellationToken);
+    }
+
+    public async Task<long> CountLongAsync(
         Expression<Func<TEntity, bool>>? predicate = null,
         CancellationToken cancellationToken = default)
     {

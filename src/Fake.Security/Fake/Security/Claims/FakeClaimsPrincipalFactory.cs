@@ -29,7 +29,7 @@ public class FakeClaimsPrincipalFactory : IFakeClaimsPrincipalFactory
         foreach (var contributorType in _fakeClaimsPrincipalOptions.Contributors)
         {
             await scope.ServiceProvider.GetRequiredService(contributorType)
-                .To<IFakeClaimsPrincipalContributor>()
+                .Is<IFakeClaimsPrincipalContributor>()
                 .ContributeAsync(context);
         }
 
