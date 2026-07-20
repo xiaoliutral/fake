@@ -5,6 +5,7 @@ public class ChildUnitOfWork : IUnitOfWork
     public IServiceProvider ServiceProvider => _parent.ServiceProvider;
     public Guid Id => _parent.Id;
     public UnitOfWorkContext Context => _parent.Context;
+    public Dictionary<string, object> Items => _parent.Items;
     public bool IsDisposed => _parent.IsDisposed;
     public bool IsCompleted => _parent.IsCompleted;
     public IUnitOfWork? Outer => _parent.Outer;

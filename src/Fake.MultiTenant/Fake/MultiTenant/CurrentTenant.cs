@@ -1,8 +1,10 @@
+using Fake.DependencyInjection;
 using Fake.Threading;
 
 namespace Fake.MultiTenant;
 
-public class CurrentTenant(IAmbientScopeProvider<TenantInfo> ambientScopeProvider) : ICurrentTenant
+public class CurrentTenant(IAmbientScopeProvider<TenantInfo> ambientScopeProvider)
+    : ICurrentTenant, ITransientDependency
 {
     private const string CurrentTenantContextKey = "Fake.MultiTenant.CurrentTenantScope";
     private TenantInfo? Current => ambientScopeProvider.GetValue(CurrentTenantContextKey);

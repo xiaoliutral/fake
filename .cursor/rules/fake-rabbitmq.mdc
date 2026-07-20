@@ -1,0 +1,28 @@
+---
+description: Fake.RabbitMQ 模块与测试约定
+globs: src/Fake.RabbitMQ/**/*,tests/Fake.RabbitMQ.Tests/**/*
+alwaysApply: false
+---
+
+# Fake.RabbitMQ
+
+## 模块结构
+
+- 入口：`FakeRabbitMqModule`，配置节 `RabbitMQ` → `FakeRabbitMqOptions`
+- 连接池：`IRabbitMqConnectionPool` / `RabbitMqConnectionPool`（Singleton）
+- 通道池：`IRabbitMqChannelPool` / `RabbitMqChannelPool`（Singleton）
+- 通道访问：`Acquire` 返回 `IChannelAccessor`，**必须 using**；勿手动 `Dispose` 底层 `IModel`
+
+```csharp
+using var accessor = channelPool.Acquire("my-channel");
+accessor.Channel.BasicPublish(...);
+```
+
+## 测试约定
+
+- 项目：`tests/Fake.RabbitMQ.Tests`，导入 `common.test.props`
+- 测试模块：`[DependsOn(typeof(FakeTestingModule), typeof(FakeRabbitMqModule))]`
+- 集成测试：继承 `ApplicationTest<FakeRabbitMqTestModule>`，配置见 `appsettings.json`
+- 单元测试：NSubstitute mock `IConnection`/`IModel`，不依赖真实 Broker
+- 命名空间：`Fake.RabbitMQ.Tests`
+- 包引用由 `common.test.props` 提供（xunit / Shouldly / NSubstitute / Fake.Testing），勿重复添加

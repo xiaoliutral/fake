@@ -6,6 +6,11 @@ public interface IUnitOfWork : IDatabaseApiContainer, ITransactionApiContainer, 
 
     UnitOfWorkContext Context { get; }
 
+    /// <summary>
+    /// 工作单元级扩展项（如缓存缓冲）
+    /// </summary>
+    Dictionary<string, object> Items { get; }
+
     public bool IsDisposed { get; }
 
     public bool IsCompleted { get; }

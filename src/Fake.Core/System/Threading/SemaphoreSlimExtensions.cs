@@ -24,6 +24,12 @@ public static class SemaphoreSlimExtensions
         return new DisposableWrapper(() => { });
     }
 
+    public static async Task<IDisposable> BeginScopeAsync(this SemaphoreSlim semaphoreSlim,
+        CancellationToken cancellationToken = default)
+    {
+        await semaphoreSlim.WaitAsync(cancellationToken);
+        return ReleaseInDispose(semaphoreSlim);
+    }
 
     private static IDisposable ReleaseInDispose(SemaphoreSlim semaphoreSlim)
     {

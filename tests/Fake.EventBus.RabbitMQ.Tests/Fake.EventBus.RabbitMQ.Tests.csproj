@@ -3,7 +3,7 @@
     <Import Project="..\..\common.test.props"/>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\Fake.RabbitMQ\Fake.RabbitMQ.csproj"/>
+        <ProjectReference Include="..\..\src\Fake.EventBus.RabbitMQ\Fake.EventBus.RabbitMQ.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

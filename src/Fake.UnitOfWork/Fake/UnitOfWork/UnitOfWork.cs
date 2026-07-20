@@ -14,6 +14,7 @@ public class UnitOfWork(
     public Guid Id { get; } = Guid.NewGuid();
     public IServiceProvider ServiceProvider { get; } = serviceProvider;
     public UnitOfWorkContext Context { get; private set; } = default!;
+    public Dictionary<string, object> Items { get; } = new();
     public bool IsDisposed { get; private set; }
     public bool IsCompleted { get; private set; }
     public IUnitOfWork? Outer { get; private set; }

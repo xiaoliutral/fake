@@ -23,7 +23,8 @@ public class FakeCamelCasePropertyNamesContractResolver: CamelCasePropertyNamesC
     {
         var property = base.CreateProperty(member, memberSerialization);
         
-        if ((property.PropertyType == typeof(DateTime) || property.PropertyType == typeof(DateTime?)) &&
+        if (property.Converter == null &&
+            (property.PropertyType == typeof(DateTime) || property.PropertyType == typeof(DateTime?)) &&
             ReflectionHelper.GetAttributeOrDefault<DisableClockNormalizationAttribute>(member) == null)
         {
             property.Converter = _dateTimeConverter;

@@ -1,0 +1,24 @@
+---
+description: Fake.EventBus.RabbitMQ 模块与测试约定
+globs: src/Fake.EventBus.RabbitMQ/**/*,tests/Fake.EventBus.RabbitMQ.Tests/**/*
+alwaysApply: false
+---
+
+# Fake.EventBus.RabbitMQ
+
+## 模块结构
+
+- 入口：`FakeEventBusRabbitMqModule`，依赖 `FakeEventBusModule` + `FakeRabbitMqModule`
+- 配置节：`RabbitMQ:EventBus` → `RabbitMqEventBusOptions`
+- 实现：`RabbitMqEventBus` 同时注册为 `IEventBus` / `IDistributedEventBus` / `IHostedService`
+- 订阅：`IEventHandler<T>`（`T : IntegrationEvent`）经 `OnServiceExposing` 写入 `EventBusSubscriptionOptions.EventTypes`
+- 路由：直连交换机，`eventType.Name` 作为 routingKey；队列默认 `{ApplicationName}.Queue`
+
+## 测试约定
+
+- 项目：`tests/Fake.EventBus.RabbitMQ.Tests`，导入 `common.test.props`
+- 测试模块：`[DependsOn(typeof(FakeTestingModule), typeof(FakeEventBusRabbitMqModule))]`
+- 单元/DI 测试：不启动消费者即可断言注册与配置
+- 发布/消费集成测试：先 `StartAsync`，配置见 `appsettings.json`
+- 命名空间：`Fake.EventBus.RabbitMQ.Tests`
+- 包引用由 `common.test.props` 提供，勿重复添加

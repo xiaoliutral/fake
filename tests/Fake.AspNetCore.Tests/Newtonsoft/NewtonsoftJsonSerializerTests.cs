@@ -5,6 +5,7 @@ using Fake.Timing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shouldly;
 using Xunit;
 
@@ -148,6 +149,19 @@ public class NewtonsoftJsonSerializerTests : AspNetCoreTestBase
     }
 
     [Fact]
+    public void DateTime序列化支持属性自定义格式()
+    {
+        var datetime = new CustomDateTimeFormatClass
+        {
+            Value = new DateTime(2021, 1, 1, 1, 1, 1)
+        };
+
+        var json = _jsonSerializer.Serialize(datetime);
+
+        json.ShouldBe("{\"value\":\"2021/01/01\"}");
+    }
+
+    [Fact]
     public void DisableClockNormalization属性不使用统一DateTime格式()
     {
         var datetime = new DisableClockNormalizationDatetimeClass
@@ -252,5 +266,19 @@ public class NewtonsoftJsonSerializerTests : AspNetCoreTestBase
     {
         [DisableClockNormalization]
         public DateTime Value { get; set; }
+    }
+
+    class CustomDateTimeFormatClass
+    {
+        [global::Newtonsoft.Json.JsonConverter(typeof(CustomDateTimeConverter))]
+        public DateTime Value { get; set; }
+    }
+
+    class CustomDateTimeConverter : IsoDateTimeConverter
+    {
+        public CustomDateTimeConverter()
+        {
+            DateTimeFormat = "yyyy/MM/dd";
+        }
     }
 }
