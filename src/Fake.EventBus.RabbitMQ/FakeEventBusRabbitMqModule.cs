@@ -18,10 +18,8 @@ public class FakeEventBusRabbitMqModule : FakeModule
                 {
                     var eventType = interfaceType.GenericTypeArguments[0];
 
-                    // Use keyed services to register multiple handlers for the same event type
-                    // the consumer can use IKeyedServiceProvider.GetKeyedService<IIntegrationEventHandler>(typeof(T)) to get all
-                    // handlers for the event type.
-                    exposingContext.ExposedServices.TryAdd(new ServiceIdentifier(eventType, typeof(IEventHandler)));
+                    // 暴露非 keyed 的 IEventHandler<T>，供 GetServices 解析订阅处理器
+                    exposingContext.ExposedServices.TryAdd(new ServiceIdentifier(interfaceType));
 
                     context.Services.Configure<EventBusSubscriptionOptions>(o =>
                     {
@@ -41,8 +39,10 @@ public class FakeEventBusRabbitMqModule : FakeModule
         var configuration = context.Services.GetConfiguration();
         context.Services.Configure<RabbitMqEventBusOptions>(configuration.GetSection("RabbitMQ:EventBus"));
 
-        context.Services.AddSingleton<IEventBus, RabbitMqEventBus>();
-        context.Services.AddSingleton<IDistributedEventBus, RabbitMqEventBus>();
-        context.Services.AddHostedService<RabbitMqEventBus>();
+        // 同一实例同时充当 IEventBus / IDistributedEventBus / IHostedService
+        context.Services.AddSingleton<RabbitMqEventBus>();
+        context.Services.AddSingleton<IEventBus>(sp => sp.GetRequiredService<RabbitMqEventBus>());
+        context.Services.AddSingleton<IDistributedEventBus>(sp => sp.GetRequiredService<RabbitMqEventBus>());
+        context.Services.AddHostedService(sp => sp.GetRequiredService<RabbitMqEventBus>());
     }
 }

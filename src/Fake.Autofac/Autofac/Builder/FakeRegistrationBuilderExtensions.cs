@@ -112,8 +112,11 @@ public static class FakeRegistrationBuilderExtensions
         {
             if (serviceRegistrationActionList.DisableClassInterceptors) return registrationBuilder;
 
-            (registrationBuilder as IRegistrationBuilder<TLimit, ConcreteReflectionActivatorData, TRegistrationStyle>)
-                .EnableClassInterceptors();
+            if (registrationBuilder is IRegistrationBuilder<TLimit, ConcreteReflectionActivatorData, TRegistrationStyle>
+                classRegistration)
+            {
+                classRegistration.EnableClassInterceptors();
+            }
         }
 
         foreach (var interceptor in interceptors)

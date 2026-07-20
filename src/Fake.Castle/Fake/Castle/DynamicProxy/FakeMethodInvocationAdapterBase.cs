@@ -6,11 +6,11 @@ namespace Fake.Castle.DynamicProxy;
 
 public abstract class FakeMethodInvocationAdapterBase : IFakeMethodInvocation
 {
-    public object[] Arguments => Invocation.Arguments;
+    public object[] Arguments => Invocation.Arguments!;
     private readonly Lazy<IReadOnlyDictionary<string, object>> _lazyArgumentsDictionary;
     public IReadOnlyDictionary<string, object> ArgumentsDictionary => _lazyArgumentsDictionary.Value;
-    public Type[] GenericArguments => Invocation.GenericArguments;
-    public object TargetObject => Invocation.InvocationTarget ?? Invocation.MethodInvocationTarget;
+    public Type[] GenericArguments => Invocation.GenericArguments ?? Type.EmptyTypes;
+    public object TargetObject => Invocation.InvocationTarget ?? Invocation.MethodInvocationTarget!;
     public MethodInfo Method => Invocation.MethodInvocationTarget ?? Invocation.Method;
     public object? ReturnValue { get; set; }
 
@@ -31,7 +31,7 @@ public abstract class FakeMethodInvocationAdapterBase : IFakeMethodInvocation
         var methodParameters = Method.GetParameters();
         for (var i = 0; i < methodParameters.Length; i++)
         {
-            dict[methodParameters[i].Name!] = Invocation.Arguments[i];
+            dict[methodParameters[i].Name!] = Invocation.Arguments[i]!;
         }
 
         return dict;

@@ -1,8 +1,10 @@
 ﻿using System.Reflection;
 using Autofac.Builder;
 using Fake;
+using Fake.DependencyInjection;
 using Fake.Modularity;
 using Microsoft.Extensions.DependencyInjection;
+using MsKeyedService = Microsoft.Extensions.DependencyInjection.KeyedService;
 
 namespace Autofac.Extensions.DependencyInjection;
 
@@ -25,6 +27,7 @@ public static class FakeRegistrationExtensions
             .As<IServiceProvider>()
             // hash结构，是的单个服务存在性验证从O(N) -> O(1)
             .As<IServiceProviderIsService>()
+            .As<IServiceProviderIsKeyedService>()
             // 使容器不释放实例
             .ExternallyOwned();
 
@@ -49,6 +52,14 @@ public static class FakeRegistrationExtensions
 
         foreach (var serviceDescriptor in services)
         {
+            // .NET 8 keyed service：非 keyed 的 ImplementationType/Factory/Instance 均为 null，
+            // 若不优先分支会把 null 传给 RegisterInstance。
+            if (serviceDescriptor.IsKeyedService)
+            {
+                RegisterKeyed(builder, serviceDescriptor, moduleContainer, registrationActionList);
+                continue;
+            }
+
             if (serviceDescriptor.ImplementationType != null)
             {
                 var serviceTypeInfo = serviceDescriptor.ServiceType.GetTypeInfo();
@@ -90,6 +101,68 @@ public static class FakeRegistrationExtensions
                     .ConfigureFakeConventions(moduleContainer, registrationActionList);
             }
         }
+    }
+
+    private static void RegisterKeyed(
+        ContainerBuilder builder,
+        ServiceDescriptor serviceDescriptor,
+        IModuleContainer moduleContainer,
+        ServiceRegistrationActionList registrationActionList)
+    {
+        var serviceKey = NormalizeServiceKey(serviceDescriptor.ServiceKey!);
+
+        if (serviceDescriptor.KeyedImplementationType != null)
+        {
+            var serviceTypeInfo = serviceDescriptor.ServiceType.GetTypeInfo();
+            if (serviceTypeInfo.IsGenericTypeDefinition)
+            {
+                builder.RegisterGeneric(serviceDescriptor.KeyedImplementationType)
+                    .Keyed(serviceKey, serviceDescriptor.ServiceType)
+                    .ConfigureLifecycle(serviceDescriptor.Lifetime)
+                    .ConfigureFakeConventions(moduleContainer, registrationActionList);
+            }
+            else
+            {
+                builder.RegisterType(serviceDescriptor.KeyedImplementationType)
+                    .Keyed(serviceKey, serviceDescriptor.ServiceType)
+                    .ConfigureLifecycle(serviceDescriptor.Lifetime)
+                    .ConfigureFakeConventions(moduleContainer, registrationActionList);
+            }
+        }
+        else if (serviceDescriptor.KeyedImplementationFactory != null)
+        {
+            var factory = serviceDescriptor.KeyedImplementationFactory;
+            var registration = RegistrationBuilder.ForDelegate(
+                    serviceDescriptor.ServiceType,
+                    (context, _) =>
+                    {
+                        var serviceProvider = context.Resolve<IServiceProvider>();
+                        return factory(serviceProvider, serviceKey)!;
+                    })
+                .Keyed(serviceKey, serviceDescriptor.ServiceType)
+                .ConfigureLifecycle(serviceDescriptor.Lifetime)
+                .ConfigureFakeConventions(moduleContainer, registrationActionList)
+                .CreateRegistration();
+
+            builder.RegisterComponent(registration);
+        }
+        else
+        {
+            builder.RegisterInstance(serviceDescriptor.KeyedImplementationInstance!)
+                .Keyed(serviceKey, serviceDescriptor.ServiceType)
+                .ConfigureLifecycle(serviceDescriptor.Lifetime)
+                .ConfigureFakeConventions(moduleContainer, registrationActionList);
+        }
+    }
+
+    private static object NormalizeServiceKey(object serviceKey)
+    {
+        if (serviceKey.Equals(MsKeyedService.AnyKey))
+        {
+            return Autofac.Core.KeyedService.AnyKey;
+        }
+
+        return serviceKey;
     }
 
     private static IRegistrationBuilder<object, TActivatorData, TRegistrationStyle> ConfigureLifecycle<TActivatorData,
