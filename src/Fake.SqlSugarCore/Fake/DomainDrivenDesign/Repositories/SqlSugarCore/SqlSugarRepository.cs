@@ -56,7 +56,11 @@ public class SqlSugarRepository<TDbContext, TEntity> : ISqlSugarRepository<TDbCo
     {
         cancellationToken = GetCancellationToken(cancellationToken);
         var ctx = await GetDbContextAsync(cancellationToken);
-        return await ctx.Queryable<TEntity>().WhereIF(predicate != null, predicate).ToListAsync(cancellationToken);
+
+        var query = ctx.Queryable<TEntity>().WhereIF(predicate != null, predicate);
+        query = ApplySorting(query, sorting);
+
+        return await query.ToListAsync(cancellationToken);
     }
 
     public virtual async Task<List<TEntity>> GetPagedListAsync(Expression<Func<TEntity, bool>>? predicate,
@@ -66,19 +70,28 @@ public class SqlSugarRepository<TDbContext, TEntity> : ISqlSugarRepository<TDbCo
         cancellationToken = GetCancellationToken(cancellationToken);
         var ctx = await GetDbContextAsync(cancellationToken);
 
-        var query = ctx.Queryable<TEntity>();
-
-        if (sorting != null)
-        {
-            var sortings = sorting.Select(x => new OrderByModel
-            {
-                FieldName = x.Key,
-                OrderByType = x.Value ? OrderByType.Asc : OrderByType.Desc
-            }).ToList();
-            query = query.OrderBy(sortings);
-        }
+        var query = ctx.Queryable<TEntity>().WhereIF(predicate != null, predicate);
+        query = ApplySorting(query, sorting);
 
         return await query.ToPageListAsync(pageIndex, pageSize, GetCancellationToken(cancellationToken));
+    }
+
+    private static ISugarQueryable<TEntity> ApplySorting(
+        ISugarQueryable<TEntity> query,
+        Dictionary<string, bool>? sorting)
+    {
+        if (sorting == null || sorting.Count == 0)
+        {
+            return query;
+        }
+
+        var sortings = sorting.Select(x => new OrderByModel
+        {
+            FieldName = x.Key,
+            OrderByType = x.Value ? OrderByType.Asc : OrderByType.Desc
+        }).ToList();
+
+        return query.OrderBy(sortings);
     }
 
     public virtual async Task<int> CountAsync(Expression<Func<TEntity, bool>>? predicate = null,

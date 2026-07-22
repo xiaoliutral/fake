@@ -156,9 +156,7 @@ public class RabbitMqEventBus(
         {
             try
             {
-                foreach (var handler in scope.ServiceProvider
-                             .GetServices(typeof(IEventHandler<>).MakeGenericType(eventType))
-                             .OfType<IEventHandler>())
+                foreach (var handler in scope.ServiceProvider.GetKeyedServices<IEventHandler>(eventType))
                 {
                     await handler.HandleAsync(@event);
                 }
