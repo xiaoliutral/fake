@@ -7,9 +7,4 @@
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="$(MicrosoftPackageVersion)"/>
     </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\Fake.MultiTenant\Fake.MultiTenant.csproj"/>
-        <ProjectReference Include="..\Fake.UnitOfWork\Fake.UnitOfWork.csproj"/>
-    </ItemGroup>
-
 </Project>

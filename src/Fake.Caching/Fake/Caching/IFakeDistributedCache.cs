@@ -3,157 +3,64 @@ using Microsoft.Extensions.Caching.Distributed;
 namespace Fake.Caching;
 
 /// <summary>
-/// 类型化分布式缓存，键默认为 <see cref="string"/>。
+/// Fake 顶级分布式缓存抽象。键为 <see cref="string"/>，值类型由方法泛型参数指定。
 /// </summary>
-public interface IFakeDistributedCache<TCacheItem> : IFakeDistributedCache<TCacheItem, string>
-    where TCacheItem : class
+public interface IFakeDistributedCache
 {
-    IFakeDistributedCache<TCacheItem, string> InternalCache { get; }
-}
-
-/// <summary>
-/// 类型化分布式缓存（Fake 顶级缓存抽象）。
-/// </summary>
-/// <typeparam name="TCacheItem">缓存项类型</typeparam>
-/// <typeparam name="TCacheKey">缓存键类型</typeparam>
-public interface IFakeDistributedCache<TCacheItem, TCacheKey>
-    where TCacheItem : class
-{
-    TCacheItem? Get(
-        TCacheKey key,
-        bool? hideErrors = null,
-        bool considerUow = false
-    );
-
-    KeyValuePair<TCacheKey, TCacheItem?>[] GetMany(
-        IEnumerable<TCacheKey> keys,
-        bool? hideErrors = null,
-        bool considerUow = false
-    );
-
-    Task<KeyValuePair<TCacheKey, TCacheItem?>[]> GetManyAsync(
-        IEnumerable<TCacheKey> keys,
-        bool? hideErrors = null,
-        bool considerUow = false,
+    Task<TCacheItem?> GetAsync<TCacheItem>(
+        string key,
         CancellationToken token = default
-    );
+    ) where TCacheItem : class;
 
-    Task<TCacheItem?> GetAsync(
-        TCacheKey key,
-        bool? hideErrors = null,
-        bool considerUow = false,
+    Task<KeyValuePair<string, TCacheItem?>[]> GetManyAsync<TCacheItem>(
+        IEnumerable<string> keys,
         CancellationToken token = default
-    );
+    ) where TCacheItem : class;
 
-    TCacheItem? GetOrAdd(
-        TCacheKey key,
-        Func<TCacheItem> factory,
-        Func<DistributedCacheEntryOptions>? optionsFactory = null,
-        bool? hideErrors = null,
-        bool considerUow = false
-    );
-
-    Task<TCacheItem?> GetOrAddAsync(
-        TCacheKey key,
+    Task<TCacheItem?> GetOrAddAsync<TCacheItem>(
+        string key,
         Func<Task<TCacheItem>> factory,
         Func<DistributedCacheEntryOptions>? optionsFactory = null,
-        bool? hideErrors = null,
-        bool considerUow = false,
         CancellationToken token = default
-    );
+    ) where TCacheItem : class;
 
-    KeyValuePair<TCacheKey, TCacheItem?>[] GetOrAddMany(
-        IEnumerable<TCacheKey> keys,
-        Func<IEnumerable<TCacheKey>, List<KeyValuePair<TCacheKey, TCacheItem>>> factory,
+    Task<KeyValuePair<string, TCacheItem?>[]> GetOrAddManyAsync<TCacheItem>(
+        IEnumerable<string> keys,
+        Func<IEnumerable<string>, Task<List<KeyValuePair<string, TCacheItem>>>> factory,
         Func<DistributedCacheEntryOptions>? optionsFactory = null,
-        bool? hideErrors = null,
-        bool considerUow = false
-    );
-
-    Task<KeyValuePair<TCacheKey, TCacheItem?>[]> GetOrAddManyAsync(
-        IEnumerable<TCacheKey> keys,
-        Func<IEnumerable<TCacheKey>, Task<List<KeyValuePair<TCacheKey, TCacheItem>>>> factory,
-        Func<DistributedCacheEntryOptions>? optionsFactory = null,
-        bool? hideErrors = null,
-        bool considerUow = false,
         CancellationToken token = default
-    );
+    ) where TCacheItem : class;
 
-    void Set(
-        TCacheKey key,
+    Task SetAsync<TCacheItem>(
+        string key,
         TCacheItem value,
         DistributedCacheEntryOptions? options = null,
-        bool? hideErrors = null,
-        bool considerUow = false
-    );
+        CancellationToken token = default
+    ) where TCacheItem : class;
 
-    Task SetAsync(
-        TCacheKey key,
-        TCacheItem value,
+    Task SetManyAsync<TCacheItem>(
+        IEnumerable<KeyValuePair<string, TCacheItem>> items,
         DistributedCacheEntryOptions? options = null,
-        bool? hideErrors = null,
-        bool considerUow = false,
         CancellationToken token = default
-    );
+    ) where TCacheItem : class;
 
-    void SetMany(
-        IEnumerable<KeyValuePair<TCacheKey, TCacheItem>> items,
-        DistributedCacheEntryOptions? options = null,
-        bool? hideErrors = null,
-        bool considerUow = false
-    );
-
-    Task SetManyAsync(
-        IEnumerable<KeyValuePair<TCacheKey, TCacheItem>> items,
-        DistributedCacheEntryOptions? options = null,
-        bool? hideErrors = null,
-        bool considerUow = false,
+    Task RefreshAsync<TCacheItem>(
+        string key,
         CancellationToken token = default
-    );
+    ) where TCacheItem : class;
 
-    void Refresh(
-        TCacheKey key,
-        bool? hideErrors = null
-    );
-
-    Task RefreshAsync(
-        TCacheKey key,
-        bool? hideErrors = null,
+    Task RefreshManyAsync<TCacheItem>(
+        IEnumerable<string> keys,
         CancellationToken token = default
-    );
+    ) where TCacheItem : class;
 
-    void RefreshMany(
-        IEnumerable<TCacheKey> keys,
-        bool? hideErrors = null);
-
-    Task RefreshManyAsync(
-        IEnumerable<TCacheKey> keys,
-        bool? hideErrors = null,
-        CancellationToken token = default);
-
-    void Remove(
-        TCacheKey key,
-        bool? hideErrors = null,
-        bool considerUow = false
-    );
-
-    Task RemoveAsync(
-        TCacheKey key,
-        bool? hideErrors = null,
-        bool considerUow = false,
+    Task RemoveAsync<TCacheItem>(
+        string key,
         CancellationToken token = default
-    );
+    ) where TCacheItem : class;
 
-    void RemoveMany(
-        IEnumerable<TCacheKey> keys,
-        bool? hideErrors = null,
-        bool considerUow = false
-    );
-
-    Task RemoveManyAsync(
-        IEnumerable<TCacheKey> keys,
-        bool? hideErrors = null,
-        bool considerUow = false,
+    Task RemoveManyAsync<TCacheItem>(
+        IEnumerable<string> keys,
         CancellationToken token = default
-    );
+    ) where TCacheItem : class;
 }

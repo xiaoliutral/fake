@@ -1,1581 +1,303 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
-using Fake.ExceptionHandling;
-using Fake.MultiTenant;
+using System.Text;
+using Fake.Json;
 using Fake.Threading;
-using Fake.UnitOfWork;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Options;
 
 namespace Fake.Caching;
 
 /// <summary>
-/// Represents a distributed cache of <typeparamref name="TCacheItem" /> type.
+/// 分布式缓存实现。值类型由方法泛型参数指定。
 /// </summary>
-/// <typeparam name="TCacheItem">The type of cache item being cached.</typeparam>
-public class FakeDistributedCache<TCacheItem> : 
-    IFakeDistributedCache<TCacheItem>
-    where TCacheItem : class
+public class FakeDistributedCache : IFakeDistributedCache
 {
-    public IFakeDistributedCache<TCacheItem, string> InternalCache { get; }
-
-    public FakeDistributedCache(IFakeDistributedCache<TCacheItem, string> internalCache)
-    {
-        InternalCache = internalCache;
-    }
-
-    public TCacheItem? Get(string key, bool? hideErrors = null, bool considerUow = false)
-    {
-        return InternalCache.Get(key, hideErrors, considerUow);
-    }
-
-    public KeyValuePair<string, TCacheItem?>[] GetMany(IEnumerable<string> keys, bool? hideErrors = null, bool considerUow = false)
-    {
-        return InternalCache.GetMany(keys, hideErrors, considerUow);
-    }
-
-    public Task<KeyValuePair<string, TCacheItem?>[]> GetManyAsync(IEnumerable<string> keys, bool? hideErrors = null, bool considerUow = false, CancellationToken token = default)
-    {
-        return InternalCache.GetManyAsync(keys, hideErrors, considerUow, token);
-    }
-
-    public Task<TCacheItem?> GetAsync(string key, bool? hideErrors = null, bool considerUow = false, CancellationToken token = default)
-    {
-        return InternalCache.GetAsync(key, hideErrors, considerUow, token);
-    }
-
-    public TCacheItem? GetOrAdd(string key, Func<TCacheItem> factory, Func<DistributedCacheEntryOptions>? optionsFactory = null, bool? hideErrors = null, bool considerUow = false)
-    {
-        return InternalCache.GetOrAdd(key, factory, optionsFactory, hideErrors, considerUow);
-    }
-
-    public Task<TCacheItem?> GetOrAddAsync(string key, Func<Task<TCacheItem>> factory, Func<DistributedCacheEntryOptions>? optionsFactory = null, bool? hideErrors = null, bool considerUow = false, CancellationToken token = default)
-    {
-        return InternalCache.GetOrAddAsync(key, factory, optionsFactory, hideErrors, considerUow, token);
-    }
-
-    public KeyValuePair<string, TCacheItem?>[] GetOrAddMany(IEnumerable<string> keys, Func<IEnumerable<string>, List<KeyValuePair<string, TCacheItem>>> factory, Func<DistributedCacheEntryOptions>? optionsFactory = null, bool? hideErrors = null, bool considerUow = false)
-    {
-        return InternalCache.GetOrAddMany(keys, factory, optionsFactory, hideErrors, considerUow);
-    }
-
-    public Task<KeyValuePair<string, TCacheItem?>[]> GetOrAddManyAsync(IEnumerable<string> keys, Func<IEnumerable<string>, Task<List<KeyValuePair<string, TCacheItem>>>> factory, Func<DistributedCacheEntryOptions>? optionsFactory = null, bool? hideErrors = null, bool considerUow = false, CancellationToken token = default)
-    {
-        return InternalCache.GetOrAddManyAsync(keys, factory, optionsFactory, hideErrors, considerUow, token);
-    }
-
-    public void Set(string key, TCacheItem value, DistributedCacheEntryOptions? options = null, bool? hideErrors = null, bool considerUow = false)
-    {
-        InternalCache.Set(key, value, options, hideErrors, considerUow);
-    }
-
-    public Task SetAsync(string key, TCacheItem value, DistributedCacheEntryOptions? options = null, bool? hideErrors = null, bool considerUow = false, CancellationToken token = default)
-    {
-        return InternalCache.SetAsync(key, value, options, hideErrors, considerUow, token);
-    }
-
-    public void SetMany(IEnumerable<KeyValuePair<string, TCacheItem>> items, DistributedCacheEntryOptions? options = null, bool? hideErrors = null, bool considerUow = false)
-    {
-        InternalCache.SetMany(items, options, hideErrors, considerUow);
-    }
-
-    public Task SetManyAsync(IEnumerable<KeyValuePair<string, TCacheItem>> items, DistributedCacheEntryOptions? options = null, bool? hideErrors = null, bool considerUow = false, CancellationToken token = default)
-    {
-        return InternalCache.SetManyAsync(items, options, hideErrors, considerUow, token);
-    }
-
-    public void Refresh(string key, bool? hideErrors = null)
-    {
-        InternalCache.Refresh(key, hideErrors);
-    }
-
-    public Task RefreshAsync(string key, bool? hideErrors = null, CancellationToken token = default)
-    {
-        return InternalCache.RefreshAsync(key, hideErrors, token);
-    }
-
-    public void RefreshMany(IEnumerable<string> keys, bool? hideErrors = null)
-    {
-        InternalCache.RefreshMany(keys, hideErrors);
-    }
-
-    public Task RefreshManyAsync(IEnumerable<string> keys, bool? hideErrors = null, CancellationToken token = default)
-    {
-        return InternalCache.RefreshManyAsync(keys, hideErrors, token);
-    }
-
-    public void Remove(string key, bool? hideErrors = null, bool considerUow = false)
-    {
-        InternalCache.Remove(key, hideErrors, considerUow);
-    }
-
-    public Task RemoveAsync(string key, bool? hideErrors = null, bool considerUow = false, CancellationToken token = default)
-    {
-        return InternalCache.RemoveAsync(key, hideErrors, considerUow, token);
-    }
-
-    public void RemoveMany(IEnumerable<string> keys, bool? hideErrors = null, bool considerUow = false)
-    {
-        InternalCache.RemoveMany(keys, hideErrors, considerUow);
-    }
-
-    public Task RemoveManyAsync(IEnumerable<string> keys, bool? hideErrors = null, bool considerUow = false,
-        CancellationToken token = default)
-    {
-        return InternalCache.RemoveManyAsync(keys, hideErrors, considerUow, token);
-    }
-}
-
-/// <summary>
-/// Represents a distributed cache of <typeparamref name="TCacheItem" /> type.
-/// Uses a generic cache key type of <typeparamref name="TCacheKey" /> type.
-/// </summary>
-/// <typeparam name="TCacheItem">The type of cache item being cached.</typeparam>
-/// <typeparam name="TCacheKey">The type of cache key being used.</typeparam>
-public class FakeDistributedCache<TCacheItem, TCacheKey> : IFakeDistributedCache<TCacheItem, TCacheKey>
-    where TCacheItem : class
-    where TCacheKey : notnull
-{
-    public const string UowCacheName = "FakeDistributedCache";
-
-    public ILogger<FakeDistributedCache<TCacheItem, TCacheKey>> Logger { get; set; }
-
-    protected string CacheName { get; set; } = default!;
-
-    protected bool IgnoreMultiTenancy { get; set; }
-
-    protected IDistributedCache Cache { get; }
-
-    protected ICancellationTokenProvider CancellationTokenProvider { get; }
-
-    protected IFakeDistributedCacheSerializer Serializer { get; }
-
-    protected IFakeDistributedCacheKeyNormalizer KeyNormalizer { get; }
-
-    protected IServiceScopeFactory ServiceScopeFactory { get; }
-
-    protected IUnitOfWorkManager UnitOfWorkManager { get; }
-
-    protected SemaphoreSlim SyncSemaphore { get; }
-
-    protected DistributedCacheEntryOptions DefaultCacheOptions = default!;
-
-    private readonly FakeDistributedCacheOptions _distributedCacheOption;
+    private readonly FakeDistributedCacheOptions _options;
+    private readonly IDistributedCache _cache;
+    private readonly ICancellationTokenProvider _cancellationTokenProvider;
+    private readonly IFakeJsonSerializer _jsonSerializer;
+    private readonly SemaphoreSlim _syncSemaphore;
 
     public FakeDistributedCache(
-        IOptions<FakeDistributedCacheOptions> distributedCacheOption,
+        IOptions<FakeDistributedCacheOptions> options,
         IDistributedCache cache,
         ICancellationTokenProvider cancellationTokenProvider,
-        IFakeDistributedCacheSerializer serializer,
-        IFakeDistributedCacheKeyNormalizer keyNormalizer,
-        IServiceScopeFactory serviceScopeFactory,
-        IUnitOfWorkManager unitOfWorkManager)
+        IFakeJsonSerializer jsonSerializer)
     {
-        _distributedCacheOption = distributedCacheOption.Value;
-        Cache = cache;
-        CancellationTokenProvider = cancellationTokenProvider;
-        Logger = NullLogger<FakeDistributedCache<TCacheItem, TCacheKey>>.Instance;
-        Serializer = serializer;
-        KeyNormalizer = keyNormalizer;
-        ServiceScopeFactory = serviceScopeFactory;
-        UnitOfWorkManager = unitOfWorkManager;
-
-        SyncSemaphore = new SemaphoreSlim(1, 1);
-
-        SetDefaultOptions();
+        _options = options.Value;
+        _cache = cache;
+        _cancellationTokenProvider = cancellationTokenProvider;
+        _jsonSerializer = jsonSerializer;
+        _syncSemaphore = new SemaphoreSlim(1, 1);
     }
 
-    protected virtual string NormalizeKey(TCacheKey key)
+    public virtual async Task<TCacheItem?> GetAsync<TCacheItem>(
+        string key,
+        CancellationToken token = default)
+        where TCacheItem : class
     {
-        return KeyNormalizer.NormalizeKey(
-            new FakeDistributedCacheKeyNormalizeArgs(
-                key.ToString()!,
-                CacheName,
-                IgnoreMultiTenancy
-            )
-        );
+        var cachedBytes = await _cache.GetAsync(
+            NormalizeKey(key),
+            _cancellationTokenProvider.FallbackToProvider(token));
+
+        return ToCacheItem<TCacheItem>(cachedBytes);
     }
 
-    protected virtual DistributedCacheEntryOptions GetDefaultCacheEntryOptions()
-    {
-        foreach (var configure in _distributedCacheOption.CacheConfigurators)
-        {
-            var options = configure.Invoke(CacheName);
-            if (options != null)
-            {
-                return options;
-            }
-        }
-
-        return _distributedCacheOption.GlobalCacheEntryOptions;
-    }
-
-    protected virtual void SetDefaultOptions()
-    {
-        CacheName = CacheNameAttribute.GetCacheName(typeof(TCacheItem));
-
-        //IgnoreMultiTenancy
-        IgnoreMultiTenancy = typeof(TCacheItem).IsDefined(typeof(IgnoreMultiTenancyAttribute), true);
-
-        //Configure default cache entry options
-        DefaultCacheOptions = GetDefaultCacheEntryOptions();
-    }
-
-    /// <summary>
-    /// Gets a cache item with the given key. If no cache item is found for the given key then returns null.
-    /// </summary>
-    /// <param name="key">The key of cached item to be retrieved from the cache.</param>
-    /// <param name="hideErrors">Indicates to throw or hide the exceptions for the distributed cache.</param>
-    /// <param name="considerUow">This will store the cache in the current unit of work until the end of the current unit of work does not really affect the cache.</param>
-    /// <returns>The cache item, or null.</returns>
-    public virtual TCacheItem? Get(
-        TCacheKey key,
-        bool? hideErrors = null,
-        bool considerUow = false)
-    {
-        hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-        if (ShouldConsiderUow(considerUow))
-        {
-            var value = GetUnitOfWorkCache().GetOrDefault(key)?.GetUnRemovedValueOrNull();
-            if (value != null)
-            {
-                return value;
-            }
-        }
-
-        byte[]? cachedBytes;
-
-        try
-        {
-            cachedBytes = Cache.Get(NormalizeKey(key));
-        }
-        catch (Exception ex)
-        {
-            if (hideErrors == true)
-            {
-                HandleException(ex);
-                return null;
-            }
-
-            throw;
-        }
-
-        return ToCacheItem(cachedBytes);
-    }
-
-    public virtual KeyValuePair<TCacheKey, TCacheItem?>[] GetMany(
-        IEnumerable<TCacheKey> keys,
-        bool? hideErrors = null,
-        bool considerUow = false)
+    public virtual async Task<KeyValuePair<string, TCacheItem?>[]> GetManyAsync<TCacheItem>(
+        IEnumerable<string> keys,
+        CancellationToken token = default)
+        where TCacheItem : class
     {
         var keyArray = keys.ToArray();
-
-        var cacheSupportsMultipleItems = Cache as ICacheSupportsMultipleItems;
-        if (cacheSupportsMultipleItems == null)
+        if (_cache is not ICacheSupportsMultipleItems multi)
         {
-            return GetManyFallback(
-                keyArray,
-                hideErrors,
-                considerUow
-            );
+            return await GetManyFallbackAsync<TCacheItem>(keyArray, token);
         }
 
-        var notCachedKeys = new List<TCacheKey>();
-        var cachedValues = new List<KeyValuePair<TCacheKey, TCacheItem?>>();
-        if (ShouldConsiderUow(considerUow))
-        {
-            var uowCache = GetUnitOfWorkCache();
-            foreach (var key in keyArray)
-            {
-                var value = uowCache.GetOrDefault(key)?.GetUnRemovedValueOrNull();
-                if (value != null)
-                {
-                    cachedValues.Add(new KeyValuePair<TCacheKey, TCacheItem?>(key, value));
-                }
-            }
+        var cachedBytes = await multi.GetManyAsync(
+            keyArray.Select(NormalizeKey),
+            _cancellationTokenProvider.FallbackToProvider(token));
 
-            notCachedKeys = keyArray.Except(cachedValues.Select(x => x.Key)).ToList();
-            if (!notCachedKeys.Any())
-            {
-                return cachedValues.ToArray();
-            }
-        }
-
-        hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-        byte[]?[] cachedBytes;
-
-        var readKeys = notCachedKeys.Any() ? notCachedKeys.ToArray() : keyArray;
-        try
-        {
-            cachedBytes = cacheSupportsMultipleItems.GetMany(readKeys.Select(NormalizeKey));
-        }
-        catch (Exception ex)
-        {
-            if (hideErrors == true)
-            {
-                HandleException(ex);
-                return ToCacheItemsWithDefaultValues(keyArray);
-            }
-
-            throw;
-        }
-
-        return cachedValues.Concat(ToCacheItems(cachedBytes, readKeys)).ToArray();
+        return ToCacheItems<TCacheItem>(cachedBytes, keyArray);
     }
 
-    protected virtual KeyValuePair<TCacheKey, TCacheItem?>[] GetManyFallback(
-        TCacheKey[] keys,
-        bool? hideErrors = null,
-        bool considerUow = false)
-    {
-        hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-        try
-        {
-            return keys
-                .Select(key => new KeyValuePair<TCacheKey, TCacheItem?>(
-                        key,
-                        Get(key, false, considerUow)
-                    )
-                ).ToArray();
-        }
-        catch (Exception ex)
-        {
-            if (hideErrors == true)
-            {
-                HandleException(ex);
-                return ToCacheItemsWithDefaultValues(keys);
-            }
-
-            throw;
-        }
-    }
-
-    public virtual async Task<KeyValuePair<TCacheKey, TCacheItem?>[]> GetManyAsync(
-        IEnumerable<TCacheKey> keys,
-        bool? hideErrors = null,
-        bool considerUow = false,
-        CancellationToken token = default)
-    {
-        var keyArray = keys.ToArray();
-
-        var cacheSupportsMultipleItems = Cache as ICacheSupportsMultipleItems;
-        if (cacheSupportsMultipleItems == null)
-        {
-            return await GetManyFallbackAsync(
-                keyArray,
-                hideErrors,
-                considerUow,
-                token
-            );
-        }
-
-        var notCachedKeys = new List<TCacheKey>();
-        var cachedValues = new List<KeyValuePair<TCacheKey, TCacheItem?>>();
-        if (ShouldConsiderUow(considerUow))
-        {
-            var uowCache = GetUnitOfWorkCache();
-            foreach (var key in keyArray)
-            {
-                var value = uowCache.GetOrDefault(key)?.GetUnRemovedValueOrNull();
-                if (value != null)
-                {
-                    cachedValues.Add(new KeyValuePair<TCacheKey, TCacheItem?>(key, value));
-                }
-            }
-
-            notCachedKeys = keyArray.Except(cachedValues.Select(x => x.Key)).ToList();
-            if (!notCachedKeys.Any())
-            {
-                return cachedValues.ToArray();
-            }
-        }
-
-        hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-        byte[]?[] cachedBytes;
-
-        var readKeys = notCachedKeys.Any() ? notCachedKeys.ToArray() : keyArray;
-
-        try
-        {
-            cachedBytes = await cacheSupportsMultipleItems.GetManyAsync(
-                readKeys.Select(NormalizeKey),
-                CancellationTokenProvider.FallbackToProvider(token)
-            );
-        }
-        catch (Exception ex)
-        {
-            if (hideErrors == true)
-            {
-                await HandleExceptionAsync(ex);
-                return ToCacheItemsWithDefaultValues(keyArray);
-            }
-
-            throw;
-        }
-
-        return cachedValues.Concat(ToCacheItems(cachedBytes, readKeys)).ToArray();
-    }
-
-    protected virtual async Task<KeyValuePair<TCacheKey, TCacheItem?>[]> GetManyFallbackAsync(
-        TCacheKey[] keys,
-        bool? hideErrors = null,
-        bool considerUow = false,
-        CancellationToken token = default)
-    {
-        hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-        try
-        {
-            var result = new List<KeyValuePair<TCacheKey, TCacheItem?>>();
-
-            foreach (var key in keys)
-            {
-                result.Add(new KeyValuePair<TCacheKey, TCacheItem?>(
-                    key,
-                    await GetAsync(key, false, considerUow, token: token))
-                );
-            }
-
-            return result.ToArray();
-        }
-        catch (Exception ex)
-        {
-            if (hideErrors == true)
-            {
-                await HandleExceptionAsync(ex);
-                return ToCacheItemsWithDefaultValues(keys);
-            }
-
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Gets a cache item with the given key. If no cache item is found for the given key then returns null.
-    /// </summary>
-    /// <param name="key">The key of cached item to be retrieved from the cache.</param>
-    /// <param name="hideErrors">Indicates to throw or hide the exceptions for the distributed cache.</param>
-    /// <param name="considerUow">This will store the cache in the current unit of work until the end of the current unit of work does not really affect the cache.</param>
-    /// <param name="token">The <see cref="T:System.Threading.CancellationToken" /> for the task.</param>
-    /// <returns>The cache item, or null.</returns>
-    public virtual async Task<TCacheItem?> GetAsync(
-        TCacheKey key,
-        bool? hideErrors = null,
-        bool considerUow = false,
-        CancellationToken token = default)
-    {
-        hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-        if (ShouldConsiderUow(considerUow))
-        {
-            var value = GetUnitOfWorkCache().GetOrDefault(key)?.GetUnRemovedValueOrNull();
-            if (value != null)
-            {
-                return value;
-            }
-        }
-
-        byte[]? cachedBytes;
-
-        try
-        {
-            cachedBytes = await Cache.GetAsync(
-                NormalizeKey(key),
-                CancellationTokenProvider.FallbackToProvider(token)
-            );
-        }
-        catch (Exception ex)
-        {
-            if (hideErrors == true)
-            {
-                await HandleExceptionAsync(ex);
-                return null;
-            }
-
-            throw;
-        }
-
-        if (cachedBytes == null)
-        {
-            return null;
-        }
-
-        return Serializer.Deserialize<TCacheItem>(cachedBytes);
-    }
-
-    /// <summary>
-    /// Gets or Adds a cache item with the given key. If no cache item is found for the given key then adds a cache item
-    /// provided by <paramref name="factory" /> delegate and returns the provided cache item.
-    /// </summary>
-    /// <param name="key">The key of cached item to be retrieved from the cache.</param>
-    /// <param name="factory">The factory delegate is used to provide the cache item when no cache item is found for the given <paramref name="key" />.</param>
-    /// <param name="optionsFactory">The cache options for the factory delegate.</param>
-    /// <param name="hideErrors">Indicates to throw or hide the exceptions for the distributed cache.</param>
-    /// <param name="considerUow">This will store the cache in the current unit of work until the end of the current unit of work does not really affect the cache.</param>
-    /// <returns>The cache item.</returns>
-    public virtual TCacheItem? GetOrAdd(
-        TCacheKey key,
-        Func<TCacheItem> factory,
-        Func<DistributedCacheEntryOptions>? optionsFactory = null,
-        bool? hideErrors = null,
-        bool considerUow = false)
-    {
-        var value = Get(key, hideErrors, considerUow);
-        if (value != null)
-        {
-            return value;
-        }
-
-        using (SyncSemaphore.BeginScope())
-        {
-            value = Get(key, hideErrors, considerUow);
-            if (value != null)
-            {
-                return value;
-            }
-
-            value = factory();
-
-            if (ShouldConsiderUow(considerUow))
-            {
-                var uowCache = GetUnitOfWorkCache();
-                if (uowCache.TryGetValue(key, out var item))
-                {
-                    item.SetValue(value);
-                }
-                else
-                {
-                    uowCache.Add(key, new UnitOfWorkCacheItem<TCacheItem>(value));
-                }
-            }
-
-            Set(key, value, optionsFactory?.Invoke(), hideErrors, considerUow);
-        }
-
-        return value;
-    }
-
-    /// <summary>
-    /// Gets or Adds a cache item with the given key. If no cache item is found for the given key then adds a cache item
-    /// provided by <paramref name="factory" /> delegate and returns the provided cache item.
-    /// </summary>
-    /// <param name="key">The key of cached item to be retrieved from the cache.</param>
-    /// <param name="factory">The factory delegate is used to provide the cache item when no cache item is found for the given <paramref name="key" />.</param>
-    /// <param name="optionsFactory">The cache options for the factory delegate.</param>
-    /// <param name="hideErrors">Indicates to throw or hide the exceptions for the distributed cache.</param>
-    /// <param name="considerUow">This will store the cache in the current unit of work until the end of the current unit of work does not really affect the cache.</param>
-    /// <param name="token">The <see cref="T:System.Threading.CancellationToken" /> for the task.</param>
-    /// <returns>The cache item.</returns>
-    public virtual async Task<TCacheItem?> GetOrAddAsync(
-        TCacheKey key,
+    public virtual async Task<TCacheItem?> GetOrAddAsync<TCacheItem>(
+        string key,
         Func<Task<TCacheItem>> factory,
         Func<DistributedCacheEntryOptions>? optionsFactory = null,
-        bool? hideErrors = null,
-        bool considerUow = false,
         CancellationToken token = default)
+        where TCacheItem : class
     {
-        token = CancellationTokenProvider.FallbackToProvider(token);
-        var value = await GetAsync(key, hideErrors, considerUow, token);
+        token = _cancellationTokenProvider.FallbackToProvider(token);
+
+        var value = await GetAsync<TCacheItem>(key, token);
         if (value != null)
         {
             return value;
         }
 
-        using (await SyncSemaphore.BeginScopeAsync(token))
+        using (await _syncSemaphore.BeginScopeAsync(token))
         {
-            value = await GetAsync(key, hideErrors, considerUow, token);
+            value = await GetAsync<TCacheItem>(key, token);
             if (value != null)
             {
                 return value;
             }
 
             value = await factory();
-
-            if (ShouldConsiderUow(considerUow))
+            if (value == null)
             {
-                var uowCache = GetUnitOfWorkCache();
-                if (uowCache.TryGetValue(key, out var item))
-                {
-                    item.SetValue(value);
-                }
-                else
-                {
-                    uowCache.Add(key, new UnitOfWorkCacheItem<TCacheItem>(value));
-                }
+                return null;
             }
 
-            await SetAsync(key, value, optionsFactory?.Invoke(), hideErrors, considerUow, token);
+            await SetAsync(key, value, optionsFactory?.Invoke(), token);
+            return value;
         }
-
-        return value;
     }
 
-    public KeyValuePair<TCacheKey, TCacheItem?>[] GetOrAddMany(
-        IEnumerable<TCacheKey> keys,
-        Func<IEnumerable<TCacheKey>, List<KeyValuePair<TCacheKey, TCacheItem>>> factory,
+    public virtual async Task<KeyValuePair<string, TCacheItem?>[]> GetOrAddManyAsync<TCacheItem>(
+        IEnumerable<string> keys,
+        Func<IEnumerable<string>, Task<List<KeyValuePair<string, TCacheItem>>>> factory,
         Func<DistributedCacheEntryOptions>? optionsFactory = null,
-        bool? hideErrors = null,
-        bool considerUow = false)
-    {
-
-        KeyValuePair<TCacheKey, TCacheItem?>[] result;
-        var keyArray = keys.ToArray();
-
-        var cacheSupportsMultipleItems = Cache as ICacheSupportsMultipleItems;
-        if (cacheSupportsMultipleItems == null)
-        {
-            result = GetManyFallback(
-                keyArray,
-                hideErrors,
-                considerUow
-            );
-        }
-        else
-        {
-            var notCachedKeys = new List<TCacheKey>();
-            var cachedValues = new List<KeyValuePair<TCacheKey, TCacheItem?>>();
-            if (ShouldConsiderUow(considerUow))
-            {
-                var uowCache = GetUnitOfWorkCache();
-                foreach (var key in keyArray)
-                {
-                    var value = uowCache.GetOrDefault(key)?.GetUnRemovedValueOrNull();
-                    if (value != null)
-                    {
-                        cachedValues.Add(new KeyValuePair<TCacheKey, TCacheItem?>(key, value));
-                    }
-                }
-
-                notCachedKeys = keyArray.Except(cachedValues.Select(x => x.Key)).ToList();
-                if (!notCachedKeys.Any())
-                {
-                    return cachedValues.ToArray();
-                }
-            }
-
-            hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-            byte[]?[] cachedBytes;
-
-            var readKeys = notCachedKeys.Any() ? notCachedKeys.ToArray() : keyArray;
-            try
-            {
-                cachedBytes = cacheSupportsMultipleItems.GetMany(readKeys.Select(NormalizeKey));
-            }
-            catch (Exception ex)
-            {
-                if (hideErrors == true)
-                {
-                    HandleException(ex);
-                    return ToCacheItemsWithDefaultValues(keyArray);
-                }
-
-                throw;
-            }
-
-            result = cachedValues.Concat(ToCacheItems(cachedBytes, readKeys)).ToArray();
-        }
-
-        if (result.All(x => x.Value != null))
-        {
-            return result!;
-        }
-
-        var missingKeys = new List<TCacheKey>();
-        var missingValuesIndex = new List<int>();
-        for (var i = 0; i < keyArray.Length; i++)
-        {
-            if (result[i].Value != null)
-            {
-                continue;
-            }
-
-            missingKeys.Add(keyArray[i]);
-            missingValuesIndex.Add(i);
-        }
-
-        var missingValues = factory.Invoke(missingKeys).ToArray();
-        var valueQueue = new Queue<KeyValuePair<TCacheKey, TCacheItem>>(missingValues);
-
-        SetMany(missingValues, optionsFactory?.Invoke(), hideErrors, considerUow);
-
-        foreach (var index in missingValuesIndex)
-        {
-            result[index] = valueQueue.Dequeue()!;
-        }
-
-        return result;
-    }
-
-
-    public async Task<KeyValuePair<TCacheKey, TCacheItem?>[]> GetOrAddManyAsync(
-        IEnumerable<TCacheKey> keys,
-        Func<IEnumerable<TCacheKey>, Task<List<KeyValuePair<TCacheKey, TCacheItem>>>> factory,
-        Func<DistributedCacheEntryOptions>? optionsFactory = null,
-        bool? hideErrors = null,
-        bool considerUow = false,
         CancellationToken token = default)
+        where TCacheItem : class
     {
-        KeyValuePair<TCacheKey, TCacheItem?>[] result;
         var keyArray = keys.ToArray();
-
-        var cacheSupportsMultipleItems = Cache as ICacheSupportsMultipleItems;
-        if (cacheSupportsMultipleItems == null)
-        {
-            result = await GetManyFallbackAsync(
-                keyArray,
-                hideErrors,
-                considerUow, token);
-        }
-        else
-        {
-            var notCachedKeys = new List<TCacheKey>();
-            var cachedValues = new List<KeyValuePair<TCacheKey, TCacheItem?>>();
-            if (ShouldConsiderUow(considerUow))
-            {
-                var uowCache = GetUnitOfWorkCache();
-                foreach (var key in keyArray)
-                {
-                    var value = uowCache.GetOrDefault(key)?.GetUnRemovedValueOrNull();
-                    if (value != null)
-                    {
-                        cachedValues.Add(new KeyValuePair<TCacheKey, TCacheItem?>(key, value));
-                    }
-                }
-
-                notCachedKeys = keyArray.Except(cachedValues.Select(x => x.Key)).ToList();
-                if (!notCachedKeys.Any())
-                {
-                    return cachedValues.ToArray();
-                }
-            }
-
-            hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-            byte[]?[] cachedBytes;
-
-            var readKeys = notCachedKeys.Any() ? notCachedKeys.ToArray() : keyArray;
-            try
-            {
-                cachedBytes = await cacheSupportsMultipleItems.GetManyAsync(readKeys.Select(NormalizeKey), token);
-            }
-            catch (Exception ex)
-            {
-                if (hideErrors == true)
-                {
-                    await HandleExceptionAsync(ex);
-                    return ToCacheItemsWithDefaultValues(keyArray);
-                }
-
-                throw;
-            }
-
-            result = cachedValues.Concat(ToCacheItems(cachedBytes, readKeys)).ToArray();
-        }
-
-        if (result.All(x => x.Value != null))
+        var result = await GetManyAsync<TCacheItem>(keyArray, token);
+        var missingKeys = result.Where(x => x.Value == null).Select(x => x.Key).ToList();
+        if (missingKeys.Count == 0)
         {
             return result;
         }
 
-        var missingKeys = new List<TCacheKey>();
-        var missingValuesIndex = new List<int>();
-        for (var i = 0; i < keyArray.Length; i++)
-        {
-            if (result[i].Value != null)
-            {
-                continue;
-            }
+        var missingValues = await factory(missingKeys);
+        var missingDict = missingValues.ToDictionary(x => x.Key, x => x.Value);
 
-            missingKeys.Add(keyArray[i]);
-            missingValuesIndex.Add(i);
+        if (missingValues.Count > 0)
+        {
+            await SetManyAsync(missingValues, optionsFactory?.Invoke(), token);
         }
 
-        var missingValues = (await factory.Invoke(missingKeys)).ToArray();
-        var valueQueue = new Queue<KeyValuePair<TCacheKey, TCacheItem>>(missingValues);
-
-        await SetManyAsync(missingValues, optionsFactory?.Invoke(), hideErrors, considerUow, token);
-
-        foreach (var index in missingValuesIndex)
-        {
-            result[index] = valueQueue.Dequeue()!;
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Sets the cache item value for the provided key.
-    /// </summary>
-    /// <param name="key">The key of cached item to be retrieved from the cache.</param>
-    /// <param name="value">The cache item value to set in the cache.</param>
-    /// <param name="options">The cache options for the value.</param>
-    /// <param name="hideErrors">Indicates to throw or hide the exceptions for the distributed cache.</param>
-    /// <param name="considerUow">This will store the cache in the current unit of work until the end of the current unit of work does not really affect the cache.</param>
-    public virtual void Set(
-        TCacheKey key,
-        TCacheItem value,
-        DistributedCacheEntryOptions? options = null,
-        bool? hideErrors = null,
-        bool considerUow = false)
-    {
-        void SetRealCache()
-        {
-            hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-            try
+        return keyArray
+            .Select(key =>
             {
-                Cache.Set(
-                    NormalizeKey(key),
-                    Serializer.Serialize(value),
-                    options ?? DefaultCacheOptions
-                );
-            }
-            catch (Exception ex)
-            {
-                if (hideErrors == true)
+                var existing = result.First(x => x.Key == key);
+                if (existing.Value != null)
                 {
-                    HandleException(ex);
-                    return;
+                    return existing;
                 }
 
-                throw;
-            }
-        }
-
-        if (ShouldConsiderUow(considerUow))
-        {
-            var uowCache = GetUnitOfWorkCache();
-            if (uowCache.TryGetValue(key, out _))
-            {
-                uowCache[key].SetValue(value);
-            }
-            else
-            {
-                uowCache.Add(key, new UnitOfWorkCacheItem<TCacheItem>(value));
-            }
-
-            UnitOfWorkManager.Current?.OnCompleted(() =>
-            {
-                SetRealCache();
-                return Task.CompletedTask;
-            });
-        }
-        else
-        {
-            SetRealCache();
-        }
+                return missingDict.TryGetValue(key, out var created)
+                    ? new KeyValuePair<string, TCacheItem?>(key, created)
+                    : new KeyValuePair<string, TCacheItem?>(key, null);
+            })
+            .ToArray();
     }
-    /// <summary>
-    /// Sets the cache item value for the provided key.
-    /// </summary>
-    /// <param name="key">The key of cached item to be retrieved from the cache.</param>
-    /// <param name="value">The cache item value to set in the cache.</param>
-    /// <param name="options">The cache options for the value.</param>
-    /// <param name="hideErrors">Indicates to throw or hide the exceptions for the distributed cache.</param>
-    /// <param name="considerUow">This will store the cache in the current unit of work until the end of the current unit of work does not really affect the cache.</param>
-    /// <param name="token">The <see cref="T:System.Threading.CancellationToken" /> for the task.</param>
-    /// <returns>The <see cref="T:System.Threading.Tasks.Task" /> indicating that the operation is asynchronous.</returns>
-    public virtual async Task SetAsync(
-        TCacheKey key,
+
+    public virtual Task SetAsync<TCacheItem>(
+        string key,
         TCacheItem value,
         DistributedCacheEntryOptions? options = null,
-        bool? hideErrors = null,
-        bool considerUow = false,
         CancellationToken token = default)
+        where TCacheItem : class
     {
-        async Task SetRealCache()
-        {
-            hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-            try
-            {
-                await Cache.SetAsync(
-                    NormalizeKey(key),
-                    Serializer.Serialize(value),
-                    options ?? DefaultCacheOptions,
-                    CancellationTokenProvider.FallbackToProvider(token)
-                );
-            }
-            catch (Exception ex)
-            {
-                if (hideErrors == true)
-                {
-                    await HandleExceptionAsync(ex);
-                    return;
-                }
-
-                throw;
-            }
-        }
-
-        if (ShouldConsiderUow(considerUow))
-        {
-            var uowCache = GetUnitOfWorkCache();
-            if (uowCache.TryGetValue(key, out _))
-            {
-                uowCache[key].SetValue(value);
-            }
-            else
-            {
-                uowCache.Add(key, new UnitOfWorkCacheItem<TCacheItem>(value));
-            }
-
-            UnitOfWorkManager.Current?.OnCompleted(SetRealCache);
-        }
-        else
-        {
-            await SetRealCache();
-        }
+        return _cache.SetAsync(
+            NormalizeKey(key),
+            Serialize(value),
+            options ?? GetDefaultCacheEntryOptions<TCacheItem>(),
+            _cancellationTokenProvider.FallbackToProvider(token));
     }
 
-    public void SetMany(
-        IEnumerable<KeyValuePair<TCacheKey, TCacheItem>> items,
+    public virtual async Task SetManyAsync<TCacheItem>(
+        IEnumerable<KeyValuePair<string, TCacheItem>> items,
         DistributedCacheEntryOptions? options = null,
-        bool? hideErrors = null,
-        bool considerUow = false)
+        CancellationToken token = default)
+        where TCacheItem : class
     {
-        var itemsArray = items.ToArray();
-
-        var cacheSupportsMultipleItems = Cache as ICacheSupportsMultipleItems;
-        if (cacheSupportsMultipleItems == null)
+        var itemArray = items.ToArray();
+        if (_cache is not ICacheSupportsMultipleItems multi)
         {
-            SetManyFallback(
-                itemsArray,
-                options,
-                hideErrors,
-                considerUow
-            );
-
+            await SetManyFallbackAsync(itemArray, options, token);
             return;
         }
 
-        void SetRealCache()
-        {
-            hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-            try
-            {
-                cacheSupportsMultipleItems.SetMany(
-                    ToRawCacheItems(itemsArray),
-                    options ?? DefaultCacheOptions
-                );
-            }
-            catch (Exception ex)
-            {
-                if (hideErrors == true)
-                {
-                    HandleException(ex);
-                    return;
-                }
-
-                throw;
-            }
-        }
-
-        if (ShouldConsiderUow(considerUow))
-        {
-            var uowCache = GetUnitOfWorkCache();
-
-            foreach (var pair in itemsArray)
-            {
-                if (uowCache.TryGetValue(pair.Key, out _))
-                {
-                    uowCache[pair.Key].SetValue(pair.Value);
-                }
-                else
-                {
-                    uowCache.Add(pair.Key, new UnitOfWorkCacheItem<TCacheItem>(pair.Value));
-                }
-            }
-
-            UnitOfWorkManager.Current?.OnCompleted(() =>
-            {
-                SetRealCache();
-                return Task.CompletedTask;
-            });
-        }
-        else
-        {
-            SetRealCache();
-        }
+        await multi.SetManyAsync(
+            ToRawCacheItems(itemArray),
+            options ?? GetDefaultCacheEntryOptions<TCacheItem>(),
+            _cancellationTokenProvider.FallbackToProvider(token));
     }
 
-    protected virtual void SetManyFallback(
-        KeyValuePair<TCacheKey, TCacheItem>[] items,
-        DistributedCacheEntryOptions? options = null,
-        bool? hideErrors = null,
-        bool considerUow = false)
-    {
-        hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-        try
-        {
-            foreach (var item in items)
-            {
-                Set(
-                    item.Key,
-                    item.Value,
-                    options,
-                    false,
-                    considerUow
-                );
-            }
-        }
-        catch (Exception ex)
-        {
-            if (hideErrors == true)
-            {
-                HandleException(ex);
-                return;
-            }
-
-            throw;
-        }
-    }
-
-    public virtual async Task SetManyAsync(
-        IEnumerable<KeyValuePair<TCacheKey, TCacheItem>> items,
-        DistributedCacheEntryOptions? options = null,
-        bool? hideErrors = null,
-        bool considerUow = false,
+    public virtual Task RefreshAsync<TCacheItem>(
+        string key,
         CancellationToken token = default)
+        where TCacheItem : class
     {
-        var itemsArray = items.ToArray();
+        return _cache.RefreshAsync(
+            NormalizeKey(key),
+            _cancellationTokenProvider.FallbackToProvider(token));
+    }
 
-        var cacheSupportsMultipleItems = Cache as ICacheSupportsMultipleItems;
-        if (cacheSupportsMultipleItems == null)
+    public virtual async Task RefreshManyAsync<TCacheItem>(
+        IEnumerable<string> keys,
+        CancellationToken token = default)
+        where TCacheItem : class
+    {
+        token = _cancellationTokenProvider.FallbackToProvider(token);
+        if (_cache is ICacheSupportsMultipleItems multi)
         {
-            await SetManyFallbackAsync(
-                itemsArray,
-                options,
-                hideErrors,
-                considerUow,
-                token
-            );
-
+            await multi.RefreshManyAsync(keys.Select(NormalizeKey), token);
             return;
         }
 
-        async Task SetRealCache()
+        foreach (var key in keys)
         {
-            hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-            try
-            {
-                await cacheSupportsMultipleItems.SetManyAsync(
-                    ToRawCacheItems(itemsArray),
-                    options ?? DefaultCacheOptions,
-                    CancellationTokenProvider.FallbackToProvider(token)
-                );
-            }
-            catch (Exception ex)
-            {
-                if (hideErrors == true)
-                {
-                    await HandleExceptionAsync(ex);
-                    return;
-                }
-
-                throw;
-            }
-        }
-
-        if (ShouldConsiderUow(considerUow))
-        {
-            var uowCache = GetUnitOfWorkCache();
-
-            foreach (var pair in itemsArray)
-            {
-                if (uowCache.TryGetValue(pair.Key, out _))
-                {
-                    uowCache[pair.Key].SetValue(pair.Value);
-                }
-                else
-                {
-                    uowCache.Add(pair.Key, new UnitOfWorkCacheItem<TCacheItem>(pair.Value));
-                }
-            }
-
-            UnitOfWorkManager.Current?.OnCompleted(SetRealCache);
-        }
-        else
-        {
-            await SetRealCache();
+            await _cache.RefreshAsync(NormalizeKey(key), token);
         }
     }
 
-    protected virtual async Task SetManyFallbackAsync(
-        KeyValuePair<TCacheKey, TCacheItem>[] items,
-        DistributedCacheEntryOptions? options = null,
-        bool? hideErrors = null,
-        bool considerUow = false,
+    public virtual Task RemoveAsync<TCacheItem>(
+        string key,
         CancellationToken token = default)
+        where TCacheItem : class
     {
-        hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-        try
-        {
-            foreach (var item in items)
-            {
-                await SetAsync(
-                    item.Key,
-                    item.Value,
-                    options,
-                    false,
-                    considerUow,
-                    token: token
-                );
-            }
-        }
-        catch (Exception ex)
-        {
-            if (hideErrors == true)
-            {
-                await HandleExceptionAsync(ex);
-                return;
-            }
-
-            throw;
-        }
+        return _cache.RemoveAsync(
+            NormalizeKey(key),
+            _cancellationTokenProvider.FallbackToProvider(token));
     }
 
-    /// <summary>
-    /// Refreshes the cache value of the given key, and resets its sliding expiration timeout.
-    /// </summary>
-    /// <param name="key">The key of cached item to be retrieved from the cache.</param>
-    /// <param name="hideErrors">Indicates to throw or hide the exceptions for the distributed cache.</param>
-    public virtual void Refresh(
-        TCacheKey key,
-        bool? hideErrors = null)
-    {
-        hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-        try
-        {
-            Cache.Refresh(NormalizeKey(key));
-        }
-        catch (Exception ex)
-        {
-            if (hideErrors == true)
-            {
-                HandleException(ex);
-                return;
-            }
-
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Refreshes the cache value of the given key, and resets its sliding expiration timeout.
-    /// </summary>
-    /// <param name="key">The key of cached item to be retrieved from the cache.</param>
-    /// <param name="hideErrors">Indicates to throw or hide the exceptions for the distributed cache.</param>
-    /// <param name="token">The <see cref="T:System.Threading.CancellationToken" /> for the task.</param>
-    /// <returns>The <see cref="T:System.Threading.Tasks.Task" /> indicating that the operation is asynchronous.</returns>
-    public virtual async Task RefreshAsync(
-        TCacheKey key,
-        bool? hideErrors = null,
+    public virtual async Task RemoveManyAsync<TCacheItem>(
+        IEnumerable<string> keys,
         CancellationToken token = default)
+        where TCacheItem : class
     {
-        hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-        try
-        {
-            await Cache.RefreshAsync(NormalizeKey(key), CancellationTokenProvider.FallbackToProvider(token));
-        }
-        catch (Exception ex)
-        {
-            if (hideErrors == true)
-            {
-                await HandleExceptionAsync(ex);
-                return;
-            }
-
-            throw;
-        }
-    }
-
-    public virtual void RefreshMany(
-        IEnumerable<TCacheKey> keys,
-        bool? hideErrors = null)
-    {
-        hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-        try
-        {
-            if (Cache is ICacheSupportsMultipleItems cacheSupportsMultipleItems)
-            {
-                cacheSupportsMultipleItems.RefreshMany(keys.Select(NormalizeKey));
-            }
-            else
-            {
-                foreach (var key in keys)
-                {
-                    Cache.Refresh(NormalizeKey(key));
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            if (hideErrors == true)
-            {
-                HandleException(ex);
-                return;
-            }
-
-            throw;
-        }
-    }
-
-    public virtual async Task RefreshManyAsync(
-        IEnumerable<TCacheKey> keys,
-        bool? hideErrors = null,
-        CancellationToken token = default)
-    {
-        hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-        try
-        {
-            if (Cache is ICacheSupportsMultipleItems cacheSupportsMultipleItems)
-            {
-                await cacheSupportsMultipleItems.RefreshManyAsync(keys.Select(NormalizeKey), token);
-            }
-            else
-            {
-                foreach (var key in keys)
-                {
-                    await Cache.RefreshAsync(NormalizeKey(key), token);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            if (hideErrors == true)
-            {
-                await HandleExceptionAsync(ex);
-                return;
-            }
-
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Removes the cache item for given key from cache.
-    /// </summary>
-    /// <param name="key">The key of cached item to be retrieved from the cache.</param>
-    /// <param name="considerUow">This will store the cache in the current unit of work until the end of the current unit of work does not really affect the cache.</param>
-    /// <param name="hideErrors">Indicates to throw or hide the exceptions for the distributed cache.</param>
-    public virtual void Remove(
-        TCacheKey key,
-        bool? hideErrors = null,
-        bool considerUow = false)
-    {
-        void RemoveRealCache()
-        {
-            hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-            try
-            {
-                Cache.Remove(NormalizeKey(key));
-            }
-            catch (Exception ex)
-            {
-                if (hideErrors == true)
-                {
-                    HandleException(ex);
-                    return;
-                }
-
-                throw;
-            }
-        }
-
-        if (ShouldConsiderUow(considerUow))
-        {
-            var uowCache = GetUnitOfWorkCache();
-            if (uowCache.TryGetValue(key, out _))
-            {
-                uowCache[key].RemoveValue();
-            }
-
-            UnitOfWorkManager.Current?.OnCompleted(() =>
-            {
-                RemoveRealCache();
-                return Task.CompletedTask;
-            });
-        }
-        else
-        {
-            RemoveRealCache();
-        }
-    }
-
-    /// <summary>
-    /// Removes the cache item for given key from cache.
-    /// </summary>
-    /// <param name="key">The key of cached item to be retrieved from the cache.</param>
-    /// <param name="hideErrors">Indicates to throw or hide the exceptions for the distributed cache.</param>
-    /// <param name="considerUow">This will store the cache in the current unit of work until the end of the current unit of work does not really affect the cache.</param>
-    /// <param name="token">The <see cref="T:System.Threading.CancellationToken" /> for the task.</param>
-    /// <returns>The <see cref="T:System.Threading.Tasks.Task" /> indicating that the operation is asynchronous.</returns>
-    public virtual async Task RemoveAsync(
-        TCacheKey key,
-        bool? hideErrors = null,
-        bool considerUow = false,
-        CancellationToken token = default)
-    {
-        async Task RemoveRealCache()
-        {
-            hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-            try
-            {
-                await Cache.RemoveAsync(NormalizeKey(key), CancellationTokenProvider.FallbackToProvider(token));
-            }
-            catch (Exception ex)
-            {
-                if (hideErrors == true)
-                {
-                    await HandleExceptionAsync(ex);
-                    return;
-                }
-
-                throw;
-            }
-        }
-
-        if (ShouldConsiderUow(considerUow))
-        {
-            var uowCache = GetUnitOfWorkCache();
-            if (uowCache.TryGetValue(key, out _))
-            {
-                uowCache[key].RemoveValue();
-            }
-
-            UnitOfWorkManager.Current?.OnCompleted(RemoveRealCache);
-        }
-        else
-        {
-            await RemoveRealCache();
-        }
-    }
-
-    public void RemoveMany(
-        IEnumerable<TCacheKey> keys,
-        bool? hideErrors = null,
-        bool considerUow = false)
-    {
+        token = _cancellationTokenProvider.FallbackToProvider(token);
         var keyArray = keys.ToArray();
-
-        if (Cache is ICacheSupportsMultipleItems cacheSupportsMultipleItems)
+        if (_cache is ICacheSupportsMultipleItems multi)
         {
-            void RemoveRealCache()
-            {
-                hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-                try
-                {
-                    cacheSupportsMultipleItems.RemoveMany(
-                        keyArray.Select(NormalizeKey)
-                    );
-                }
-                catch (Exception ex)
-                {
-                    if (hideErrors == true)
-                    {
-                        HandleException(ex);
-                        return;
-                    }
-
-                    throw;
-                }
-            }
-
-            if (ShouldConsiderUow(considerUow))
-            {
-                var uowCache = GetUnitOfWorkCache();
-
-                foreach (var key in keyArray)
-                {
-                    if (uowCache.TryGetValue(key, out _))
-                    {
-                        uowCache[key].RemoveValue();
-                    }
-                }
-
-                UnitOfWorkManager.Current?.OnCompleted(() =>
-                {
-                    RemoveRealCache();
-                    return Task.CompletedTask;
-                });
-            }
-            else
-            {
-                RemoveRealCache();
-            }
+            await multi.RemoveManyAsync(keyArray.Select(NormalizeKey), token);
+            return;
         }
-        else
+
+        foreach (var key in keyArray)
         {
-            foreach (var key in keyArray)
-            {
-                Remove(key, hideErrors, considerUow);
-            }
+            await _cache.RemoveAsync(NormalizeKey(key), token);
         }
     }
 
-    public async Task RemoveManyAsync(
-        IEnumerable<TCacheKey> keys,
-        bool? hideErrors = null,
-        bool considerUow = false,
-        CancellationToken token = default)
+    private async Task<KeyValuePair<string, TCacheItem?>[]> GetManyFallbackAsync<TCacheItem>(
+        string[] keys,
+        CancellationToken token)
+        where TCacheItem : class
     {
-        var keyArray = keys.ToArray();
-
-        if (Cache is ICacheSupportsMultipleItems cacheSupportsMultipleItems)
+        var result = new List<KeyValuePair<string, TCacheItem?>>();
+        foreach (var key in keys)
         {
-            async Task RemoveRealCache()
-            {
-                hideErrors = hideErrors ?? _distributedCacheOption.HideErrors;
-
-                try
-                {
-                    await cacheSupportsMultipleItems.RemoveManyAsync(
-                        keyArray.Select(NormalizeKey), token);
-                }
-                catch (Exception ex)
-                {
-                    if (hideErrors == true)
-                    {
-                        await HandleExceptionAsync(ex);
-                        return;
-                    }
-
-                    throw;
-                }
-            }
-
-            if (ShouldConsiderUow(considerUow))
-            {
-                var uowCache = GetUnitOfWorkCache();
-
-                foreach (var key in keyArray)
-                {
-                    if (uowCache.TryGetValue(key, out _))
-                    {
-                        uowCache[key].RemoveValue();
-                    }
-                }
-
-                UnitOfWorkManager.Current?.OnCompleted(RemoveRealCache);
-            }
-            else
-            {
-                await RemoveRealCache();
-            }
+            result.Add(new KeyValuePair<string, TCacheItem?>(
+                key,
+                await GetAsync<TCacheItem>(key, token)));
         }
-        else
-        {
-            foreach (var key in keyArray)
-            {
-                await RemoveAsync(key, hideErrors, considerUow, token);
-            }
-        }
+
+        return result.ToArray();
     }
 
-    protected virtual void HandleException(Exception ex)
+    private async Task SetManyFallbackAsync<TCacheItem>(
+        KeyValuePair<string, TCacheItem>[] items,
+        DistributedCacheEntryOptions? options,
+        CancellationToken token)
+        where TCacheItem : class
     {
-        _ = HandleExceptionAsync(ex);
-    }
-
-    protected virtual async Task HandleExceptionAsync(Exception ex)
-    {
-        Logger.LogException(ex, LogLevel.Warning);
-
-        using (var scope = ServiceScopeFactory.CreateScope())
+        foreach (var item in items)
         {
-            await scope.ServiceProvider
-                .GetRequiredService<IExceptionNotifier>()
-                .NotifyAsync(new ExceptionNotificationContext(ex, scope.ServiceProvider));
+            await SetAsync(item.Key, item.Value, options, token);
         }
     }
 
-    protected virtual KeyValuePair<TCacheKey, TCacheItem?>[] ToCacheItems(byte[]?[] itemBytes, TCacheKey[] itemKeys)
+    private string NormalizeKey(string key) => _options.KeyPrefix + key;
+
+    private DistributedCacheEntryOptions GetDefaultCacheEntryOptions<TCacheItem>() where TCacheItem : class
+    {
+        var cacheName = CacheNameAttribute.GetCacheName(typeof(TCacheItem));
+        foreach (var configure in _options.CacheConfigurators)
+        {
+            var entryOptions = configure.Invoke(cacheName);
+            if (entryOptions != null)
+            {
+                return entryOptions;
+            }
+        }
+
+        return _options.GlobalCacheEntryOptions;
+    }
+
+    private KeyValuePair<string, TCacheItem?>[] ToCacheItems<TCacheItem>(byte[]?[] itemBytes, string[] itemKeys)
+        where TCacheItem : class
     {
         if (itemBytes.Length != itemKeys.Length)
         {
             throw new FakeException("count of the item bytes should be same with the count of the given keys");
         }
 
-        var result = new List<KeyValuePair<TCacheKey, TCacheItem?>>();
-
+        var result = new KeyValuePair<string, TCacheItem?>[itemKeys.Length];
         for (var i = 0; i < itemKeys.Length; i++)
         {
-            result.Add(
-                new KeyValuePair<TCacheKey, TCacheItem?>(
-                    itemKeys[i],
-                    ToCacheItem(itemBytes[i])
-                )
-            );
+            result[i] = new KeyValuePair<string, TCacheItem?>(itemKeys[i], ToCacheItem<TCacheItem>(itemBytes[i]));
         }
 
-        return result.ToArray();
+        return result;
     }
 
-    protected virtual TCacheItem? ToCacheItem(byte[]? bytes)
-    {
-        if (bytes == null)
-        {
-            return null;
-        }
+    private TCacheItem? ToCacheItem<TCacheItem>(byte[]? bytes) where TCacheItem : class
+        => bytes == null ? null : _jsonSerializer.Deserialize<TCacheItem>(Encoding.UTF8.GetString(bytes));
 
-        return Serializer.Deserialize<TCacheItem>(bytes);
-    }
+    private byte[] Serialize<TCacheItem>(TCacheItem value) where TCacheItem : class
+        => Encoding.UTF8.GetBytes(_jsonSerializer.Serialize(value));
 
-
-    protected virtual KeyValuePair<string, byte[]>[] ToRawCacheItems(KeyValuePair<TCacheKey, TCacheItem>[] items)
+    private KeyValuePair<string, byte[]>[] ToRawCacheItems<TCacheItem>(KeyValuePair<string, TCacheItem>[] items)
+        where TCacheItem : class
     {
         return items
             .Select(i => new KeyValuePair<string, byte[]>(
-                    NormalizeKey(i.Key),
-                    Serializer.Serialize(i.Value)
-                )
-            ).ToArray();
-    }
-
-    private static KeyValuePair<TCacheKey, TCacheItem?>[] ToCacheItemsWithDefaultValues(TCacheKey[] keys)
-    {
-        return keys
-            .Select(key => new KeyValuePair<TCacheKey, TCacheItem?>(key, default))
+                NormalizeKey(i.Key),
+                Serialize(i.Value)))
             .ToArray();
-    }
-
-    protected virtual bool ShouldConsiderUow(bool considerUow)
-    {
-        return considerUow && UnitOfWorkManager.Current != null;
-    }
-
-    protected virtual string GetUnitOfWorkCacheKey()
-    {
-        return UowCacheName + CacheName;
-    }
-
-    protected virtual Dictionary<TCacheKey, UnitOfWorkCacheItem<TCacheItem>> GetUnitOfWorkCache()
-    {
-        if (UnitOfWorkManager.Current == null)
-        {
-            throw new FakeException($"There is no active UOW.");
-        }
-
-        return UnitOfWorkManager.Current.GetOrAddItem(GetUnitOfWorkCacheKey(),
-            key => new Dictionary<TCacheKey, UnitOfWorkCacheItem<TCacheItem>>());
     }
 }

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 namespace Fake.Caching.FreeRedis;
 
 /// <summary>
-/// FreeRedis 实现的 <see cref="IDistributedCache"/>，并支持批量操作以配合 <see cref="IFakeDistributedCache{TCacheItem}"/>。
+/// FreeRedis 实现的 <see cref="IDistributedCache"/>，并支持批量操作以配合 <see cref="IFakeDistributedCache"/>。
 /// 存储格式与官方 FreeRedis.DistributedCache 一致（Hash: absexp/sldexp/data）。
 /// </summary>
 [DisableServiceRegistration]

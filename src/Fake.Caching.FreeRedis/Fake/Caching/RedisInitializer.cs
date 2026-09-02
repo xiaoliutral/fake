@@ -17,7 +17,6 @@ public class RedisInitializer(IConfiguration configuration, IFakeJsonSerializer 
         var client = new RedisClient(options);
         client.Serialize = obj => jsonSerializer.Serialize(obj);
         client.Deserialize = (data, type) => jsonSerializer.Deserialize(data, type);
-
         return client;
     }
 }

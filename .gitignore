@@ -11,3 +11,5 @@ riderModule.iml
 Logs/
 
 node_modules/
+
+push.ps1

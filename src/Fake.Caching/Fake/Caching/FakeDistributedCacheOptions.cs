@@ -5,11 +5,6 @@ namespace Fake.Caching;
 public class FakeDistributedCacheOptions
 {
     /// <summary>
-    /// 分布式缓存异常时是否吞掉错误（默认 true）
-    /// </summary>
-    public bool HideErrors { get; set; } = true;
-
-    /// <summary>
     /// 缓存键全局前缀
     /// </summary>
     public string KeyPrefix { get; set; } = "";

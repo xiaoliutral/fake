@@ -26,14 +26,14 @@ public class FakeRedisCache : RedisCache, ICacheSupportsMultipleItems
     protected readonly static RedisValue[] HashMembersAbsoluteExpirationSlidingExpirationData;
     protected readonly static RedisValue[] HashMembersAbsoluteExpirationSlidingExpiration;
 
-    protected readonly static FieldInfo RedisDatabaseField;
-    protected readonly static MethodInfo ConnectMethod;
-    protected readonly static MethodInfo ConnectAsyncMethod;
-    protected readonly static MethodInfo MapMetadataMethod;
-    protected readonly static MethodInfo GetAbsoluteExpirationMethod;
-    protected readonly static MethodInfo GetExpirationInSecondsMethod;
-    protected readonly static MethodInfo OnRedisErrorMethod;
-    protected readonly static MethodInfo RecycleMethodInfo;
+    protected static readonly FieldInfo RedisDatabaseField;
+    protected static readonly MethodInfo ConnectMethod;
+    protected static readonly MethodInfo ConnectAsyncMethod;
+    protected static readonly MethodInfo MapMetadataMethod;
+    protected static readonly MethodInfo GetAbsoluteExpirationMethod;
+    protected static readonly MethodInfo GetExpirationInSecondsMethod;
+    protected static readonly MethodInfo OnRedisErrorMethod;
+    protected static readonly MethodInfo RecycleMethodInfo;
 
     protected RedisKey InstancePrefix { get; }
 
