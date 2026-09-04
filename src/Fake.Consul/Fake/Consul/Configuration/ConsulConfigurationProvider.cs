@@ -37,7 +37,7 @@ public class ConsulConfigurationProvider(IConsulClient consulClient, ConsulConfi
     {
         var result = await GetKvPairs(false, cancellationToken);
 
-        if (result is { StatusCode: HttpStatusCode.OK, Response: not null })
+        if (result is { StatusCode: HttpStatusCode.OK, Response.Value: not null })
         {
             Data = result.Response
                 .ConvertToConfig(source.Key, source.Parser)
