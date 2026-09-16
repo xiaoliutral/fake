@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../../../common.module.props"/>
+    <Import Project="../../../configureawait.props"/>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\src\Fake.EntityFrameworkCore\Fake.EntityFrameworkCore.csproj"/>
+        <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3"/>
+        <ProjectReference Include="..\Fake.FileManagement.Domain\Fake.FileManagement.Domain.csproj"/>
+    </ItemGroup>
+
+</Project>

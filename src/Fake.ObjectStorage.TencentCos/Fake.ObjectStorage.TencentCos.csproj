@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../../common.props"/>
+    <Import Project="../../configureawait.props"/>
+
+    <ItemGroup>
+        <PackageReference Include="Tencent.QCloud.Cos.Sdk" Version="5.4.51"/>
+        <PackageReference Include="Tencent.QCloud.Cos.Sts.Sdk" Version="3.0.5"/>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Fake.ObjectStorage\Fake.ObjectStorage.csproj"/>
+    </ItemGroup>
+
+</Project>

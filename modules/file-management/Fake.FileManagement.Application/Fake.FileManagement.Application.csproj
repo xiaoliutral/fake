@@ -1,23 +1,18 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
     <Import Project="../../../common.module.props"/>
     <Import Project="../../../configureawait.props"/>
-    
+
     <PropertyGroup>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="..\README.md" Pack="true" PackagePath="\"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <ProjectReference Include="..\..\..\src\Fake.AspNetCore\Fake.AspNetCore.csproj"/>
-        <ProjectReference Include="..\..\..\src\Fake.Autofac\Fake.Autofac.csproj"/>
-        <ProjectReference Include="..\..\..\src\Fake.EntityFrameworkCore\Fake.EntityFrameworkCore.csproj"/>
+        <ProjectReference Include="..\..\..\src\Fake.Ddd.Application\Fake.Ddd.Application.csproj"/>
         <ProjectReference Include="..\..\..\src\Fake.ObjectMapping.AutoMapper\Fake.ObjectMapping.AutoMapper.csproj"/>
         <ProjectReference Include="..\..\..\src\Fake.ObjectStorage\Fake.ObjectStorage.csproj"/>
-        <ProjectReference Include="..\Fake.Rbac.Domain\Fake.Rbac.Domain.csproj" />
-
-        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
+        <ProjectReference Include="..\Fake.FileManagement.Domain\Fake.FileManagement.Domain.csproj"/>
     </ItemGroup>
+
 </Project>

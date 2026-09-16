@@ -1,16 +1,17 @@
 using Fake.Application;
 using Fake.Domain.Exceptions;
 using Fake.ObjectMapping;
+using Fake.ObjectStorage;
 using Fake.Rbac.Application.Dtos.Auth;
 using Fake.Rbac.Application.Dtos.User;
 using Fake.Rbac.Application.Jwt;
 using Fake.Rbac.Domain.Managers;
 using Fake.Rbac.Domain.UserAggregate;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 
 namespace Fake.Rbac.Application.Services;
@@ -27,7 +28,7 @@ public class AuthService(
     IObjectMapper objectMapper,
     IJwtService jwtService,
     IUserRepository userRepository,
-    IWebHostEnvironment webHostEnvironment)
+    IObjectStorage objectStorage)
     : ApplicationService
 {
     [AllowAnonymous]
@@ -153,22 +154,12 @@ public class AuthService(
             throw new DomainException("文件大小不能超过10MB");
         }
         
-        // 创建上传目录
-        var uploadPath = Path.Combine(webHostEnvironment.WebRootPath ?? webHostEnvironment.ContentRootPath, "uploads", "avatars");
-        if (!Directory.Exists(uploadPath))
-        {
-            Directory.CreateDirectory(uploadPath);
-        }
-        
-        // 生成文件名
-        var fileName = $"{userId}_{DateTime.Now:yyyyMMddHHmmss}{extension}";
-        var filePath = Path.Combine(uploadPath, fileName);
-        
-        // 压缩并保存图片
-        using (var stream = file.OpenReadStream())
+        var objectKey = $"avatars/{userId}_{DateTime.Now:yyyyMMddHHmmss}.jpg";
+
+        await using var output = new MemoryStream();
+        await using (var stream = file.OpenReadStream())
         using (var image = await Image.LoadAsync(stream, cancellationToken))
         {
-            // 计算压缩后的尺寸，最大200x200
             var maxSize = 200;
             var width = image.Width;
             var height = image.Height;
@@ -187,25 +178,24 @@ public class AuthService(
                 }
             }
             
-            // 调整大小
             image.Mutate(x => x.Resize(width, height));
             
-            // 保存为JPEG格式，质量80%，确保文件小于1MB
-            await image.SaveAsJpegAsync(filePath, new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder
-            {
-                Quality = 80
-            }, cancellationToken);
+            await image.SaveAsJpegAsync(output, new JpegEncoder { Quality = 80 }, cancellationToken);
         }
+
+        output.Position = 0;
+        var saveResult = await objectStorage.SaveAsync(new ObjectStorageSaveArgs
+        {
+            ObjectKey = objectKey,
+            Content = output,
+            ContentType = "image/jpeg"
+        }, cancellationToken);
         
-        // 生成访问URL
-        var avatarUrl = $"/uploads/avatars/{fileName}";
-        
-        // 更新用户头像
         var user = await userRepository.FirstAsync(u => u.Id == userId, cancellationToken: cancellationToken);
-        user.UpdateAvatar(avatarUrl);
+        user.UpdateAvatar(saveResult.Url);
         await userRepository.UpdateAsync(user, cancellationToken: cancellationToken);
         await UnitOfWorkManager.Current!.SaveChangesAsync(cancellationToken);
         
-        return avatarUrl;
+        return saveResult.Url;
     }
 }

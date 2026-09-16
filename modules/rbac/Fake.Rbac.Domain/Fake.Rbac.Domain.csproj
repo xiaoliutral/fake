@@ -8,10 +8,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Managers\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <EmbeddedResource Include="Localization\Resources\en.json" />
       <EmbeddedResource Include="Localization\Resources\zh.json" />
     </ItemGroup>

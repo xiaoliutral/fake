@@ -10,11 +10,20 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Fake.Autofac\Fake.Autofac.csproj" />
     <ProjectReference Include="..\..\src\Fake.Consul\Fake.Consul.csproj" />
+    <ProjectReference Include="..\..\src\Fake.ObjectStorage.TencentCos\Fake.ObjectStorage.TencentCos.csproj" />
     <ProjectReference Include="..\..\src\Fake.Serilog\Fake.Serilog.csproj" />
     <ProjectReference Include="..\..\modules\rbac\Fake.Rbac.Application\Fake.Rbac.Application.csproj" />
     <ProjectReference Include="..\..\modules\rbac\Fake.Rbac.Infrastructure\Fake.Rbac.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\modules\file-management\Fake.FileManagement.Application\Fake.FileManagement.Application.csproj" />
+    <ProjectReference Include="..\..\modules\file-management\Fake.FileManagement.Infrastructure\Fake.FileManagement.Infrastructure.csproj" />
 
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="wwwroot\uploads\avatars\08de4226-3fd4-4a5c-83e5-70e164b15f2f_20260912143845.jpg" />
+    <_ContentIncludedByDefault Remove="wwwroot\uploads\avatars\08de4226-3fd4-4a5c-83e5-70e164b15f2f_20260912144839.jpg" />
+    <_ContentIncludedByDefault Remove="wwwroot\uploads\avatars\08de4226-3fd4-4a5c-83e5-70e164b15f2f_20260912144949.jpg" />
   </ItemGroup>
 
 </Project>

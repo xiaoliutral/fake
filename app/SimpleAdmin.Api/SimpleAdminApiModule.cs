@@ -6,6 +6,9 @@ using Fake.Rbac.Infrastructure;
 using Fake.AspNetCore.Auditing;
 using Fake.AspNetCore.ExceptionHandling;
 using Fake.AspNetCore.Swagger;
+using Fake.FileManagement.Application;
+using Fake.FileManagement.Infrastructure;
+using Fake.ObjectStorage;
 using Fake.Serilog;
 using Microsoft.AspNetCore.HttpOverrides;
 
@@ -15,7 +18,10 @@ namespace SimpleAdmin.Api;
     typeof(FakeAutofacModule),
     typeof(FakeRbacApplicationModule),
     typeof(FakeRbacInfrastructureModule),
-    typeof(FakeSerilogModule)
+    typeof(FakeFileManagementApplicationModule),
+    typeof(FakeFileManagementInfrastructureModule),
+    typeof(FakeSerilogModule),
+    typeof(FakeObjectStorageTencentCosModule)
 )]
 public class SimpleAdminApiModule : FakeModule
 {
@@ -26,12 +32,16 @@ public class SimpleAdminApiModule : FakeModule
         var services = context.Services;
         var configuration = context.Services.GetConfiguration();
 
-        // 配置动态 API - 扫描 RBAC 应用服务
+        // 配置动态 API - 扫描 RBAC / 文件管理应用服务
         services.Configure<FakeAspNetCoreMvcOptions>(options =>
         {
             options.ApplicationServices2Controller<FakeRbacApplicationModule>(settings =>
             {
                 settings.RootPath = "rbac";
+            });
+            options.ApplicationServices2Controller<FakeFileManagementApplicationModule>(settings =>
+            {
+                settings.RootPath = "files";
             });
         });
 

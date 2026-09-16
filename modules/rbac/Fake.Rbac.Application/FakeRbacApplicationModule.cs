@@ -1,10 +1,8 @@
 using Fake.AspNetCore;
 using Fake.AspNetCore.Authentication;
-using Fake.Localization;
 using Fake.Modularity;
 using Fake.ObjectMapping.AutoMapper;
-using Fake.Rbac.Domain.Localization;
-using Fake.VirtualFileSystem;
+using Fake.ObjectStorage;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Fake.Rbac.Application;
@@ -12,7 +10,8 @@ namespace Fake.Rbac.Application;
 [DependsOn(
     typeof(FakeAspNetCoreModule),
     typeof(FakeRbacDomainModule),
-    typeof(FakeObjectMappingAutoMapperModule)
+    typeof(FakeObjectMappingAutoMapperModule),
+    typeof(FakeObjectStorageModule)
 )]
 public class FakeRbacApplicationModule : FakeModule
 {
