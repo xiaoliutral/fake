@@ -8,6 +8,7 @@ public class FileManagementAutoMapperProfile : Profile
 {
     public FileManagementAutoMapperProfile()
     {
-        CreateMap<StoredFile, FileDto>();
+        CreateMap<StoredFile, FileDto>()
+            .ForMember(d => d.Url, opt => opt.Ignore());
     }
 }

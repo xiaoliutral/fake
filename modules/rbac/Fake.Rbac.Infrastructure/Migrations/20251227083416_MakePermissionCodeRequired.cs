@@ -10,6 +10,7 @@ namespace Fake.Rbac.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // 索引已在 InitialCreate 创建，这里只改列可空性
             migrationBuilder.AlterColumn<string>(
                 name: "PermissionCode",
                 table: "menu",
@@ -22,21 +23,11 @@ namespace Fake.Rbac.Infrastructure.Migrations
                 oldNullable: true)
                 .Annotation("MySql:CharSet", "utf8mb4")
                 .OldAnnotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_menu_PermissionCode",
-                table: "menu",
-                column: "PermissionCode",
-                unique: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_menu_PermissionCode",
-                table: "menu");
-
             migrationBuilder.AlterColumn<string>(
                 name: "PermissionCode",
                 table: "menu",

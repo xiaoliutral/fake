@@ -17,7 +17,8 @@ public class UserService(
     IUserRepository userRepository,
     IRoleRepository roleRepository,
     IOrganizationRepository organizationRepository,
-    IObjectMapper objectMapper)
+    IObjectMapper objectMapper,
+    AvatarUrlResolver avatarUrlResolver)
     : ApplicationService
 {
     public async Task<UserDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
@@ -45,6 +46,7 @@ public class UserService(
             dto.OrganizationName = org?.Name;
         }
 
+        dto.Avatar = await avatarUrlResolver.ResolveAsync(dto.Avatar, cancellationToken);
         return dto;
     }
 
@@ -109,7 +111,8 @@ public class UserService(
             {
                 dto.OrganizationName = orgName;
             }
-            
+
+            dto.Avatar = await avatarUrlResolver.ResolveAsync(dto.Avatar, cancellationToken);
             dtos.Add(dto);
         }
 
@@ -123,7 +126,13 @@ public class UserService(
             .Where(u => u.Roles.Any(ur => ur.RoleId == roleId))
             .ToListAsync(cancellationToken);
 
-        return objectMapper.Map<List<User>, List<UserSimpleDto>>(users);
+        var dtos = objectMapper.Map<List<User>, List<UserSimpleDto>>(users);
+        foreach (var dto in dtos)
+        {
+            dto.Avatar = await avatarUrlResolver.ResolveAsync(dto.Avatar, cancellationToken);
+        }
+
+        return dtos;
     }
 
     public async Task<UserDto> CreateAsync(UserCreateDto input, CancellationToken cancellationToken = default)
@@ -134,7 +143,8 @@ public class UserService(
             throw new DomainException($"账号已存在：{input.Account}");
         }
 
-        var user = new User(input.Name, input.Account, input.Password, input.Email, input.Avatar, input.OrganizationId);
+        var avatar = TryParseAvatarFileId(input.Avatar);
+        var user = new User(input.Name, input.Account, input.Password, input.Email, avatar, input.OrganizationId);
 
         // 分配角色
         if (input.RoleIds != null && input.RoleIds.Any())
@@ -156,7 +166,9 @@ public class UserService(
     {
         var user = await userRepository.FirstAsync(u => u.Id == id, cancellationToken: cancellationToken);
 
-        user.Update(input.Name, input.Email, input.Avatar, input.OrganizationId);
+        // Avatar 在 Get 中已解析为访问 URL；表单回写 URL 时忽略，仅接受 FileId
+        var avatarToSet = TryParseAvatarFileId(input.Avatar);
+        user.Update(input.Name, input.Email, avatarToSet, input.OrganizationId);
 
         await userRepository.UpdateAsync(user, cancellationToken: cancellationToken);
 
@@ -172,13 +184,38 @@ public class UserService(
         await userRepository.UpdateAsync(user, cancellationToken: cancellationToken);
     }
 
-    public async Task UpdateAvatarAsync(Guid id, string avatarUrl, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// 更新头像：传入 FileId（Guid 字符串），勿传签名 URL。
+    /// </summary>
+    public async Task UpdateAvatarAsync(Guid id, string avatarFileId, CancellationToken cancellationToken = default)
     {
+        var fileId = TryParseAvatarFileId(avatarFileId)
+                     ?? throw new DomainException("头像必须是有效的文件 Id");
+
         var user = await userRepository.FirstAsync(u => u.Id == id, cancellationToken: cancellationToken);
-
-        user.UpdateAvatar(avatarUrl);
-
+        user.UpdateAvatar(fileId);
         await userRepository.UpdateAsync(user, cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// 解析 FileId；访问 URL / 非法值返回 null（表示不改）。
+    /// </summary>
+    private static string? TryParseAvatarFileId(string? avatar)
+    {
+        if (string.IsNullOrWhiteSpace(avatar))
+        {
+            return null;
+        }
+
+        avatar = avatar.Trim();
+        if (avatar.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            avatar.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+            avatar.StartsWith('/'))
+        {
+            return null;
+        }
+
+        return Guid.TryParse(avatar, out _) ? avatar : null;
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)

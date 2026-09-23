@@ -5,6 +5,13 @@
 
 // 导出所有生成的类型和服务
 export * from './generated'
+export { FileApi } from './files'
+export type {
+  FileDto,
+  PresignUploadInput,
+  PresignUploadDto,
+  ConfirmUploadInput
+} from './files'
 
 // 配置 API
 import { OpenAPI } from './generated/core/OpenAPI'

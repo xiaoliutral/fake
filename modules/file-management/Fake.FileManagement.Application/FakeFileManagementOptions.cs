@@ -20,22 +20,30 @@ public class FakeFileManagementOptions
     ];
 
     /// <summary>
-    /// 签名 URL 默认有效期（秒）。仅当请求签名访问时使用。
+    /// 签名 URL 默认有效期（秒）。
     /// </summary>
     public int DefaultSignedUrlExpiresSeconds { get; set; } = 3600;
 
-    public Dictionary<string, FileCategoryOptions> Categories { get; set; } =
+    /// <summary>
+    /// GetAccessUrl 未显式传 expires 时，是否默认签发临时读签名。
+    /// </summary>
+    public bool SignUrlsByDefault { get; set; }
+
+    /// <summary>
+    /// 默认存储源名称（一期单源）。
+    /// </summary>
+    public string DefaultStorageSource { get; set; } = "default";
+
+    /// <summary>
+    /// 可选：按策略名覆盖大小/扩展名校验（不落库，仅上传时传入 policy 使用）。
+    /// </summary>
+    public Dictionary<string, FileUploadPolicyOptions> Policies { get; set; } =
         new(StringComparer.OrdinalIgnoreCase);
 }
 
-public class FileCategoryOptions
+public class FileUploadPolicyOptions
 {
     public long? MaxSizeBytes { get; set; }
 
     public string[]? AllowedExtensions { get; set; }
-
-    /// <summary>
-    /// 是否默认使用签名 URL。
-    /// </summary>
-    public bool UseSignedUrl { get; set; }
 }

@@ -6,7 +6,7 @@
         <a-card title="个人信息" :bordered="false">
           <div class="user-info">
             <div class="avatar-section">
-              <a-avatar :size="100" :src="getAvatarUrl(userInfo?.avatar)">
+              <a-avatar :size="100" :src="userInfo?.avatar || undefined">
                 <template #icon><user-outlined /></template>
               </a-avatar>
               <a-upload
@@ -128,14 +128,6 @@ import type { UploadProps } from 'ant-design-vue'
 
 const userStore = useUserStore()
 const userInfo = computed(() => userStore.userInfo)
-
-// 获取头像完整URL
-function getAvatarUrl(avatar: string | null | undefined): string | undefined {
-  if (!avatar) return undefined
-  if (avatar.startsWith('http')) return avatar
-  // 相对路径，通过 vite 代理访问
-  return avatar
-}
 
 // 用户名编辑
 const editingName = ref(false)

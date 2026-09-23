@@ -107,8 +107,7 @@ namespace Fake.Rbac.Infrastructure.Migrations
 
                     b.HasIndex("PId");
 
-                    b.HasIndex("PermissionCode")
-                        .IsUnique();
+                    b.HasIndex("PermissionCode");
 
                     b.ToTable("menu", (string)null);
                 });

@@ -3,7 +3,7 @@ using SimpleAdmin.Api;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Configuration.AddConsul("idwms/common", source => source.ReloadOnChange = true);
-builder.Configuration.AddConsul("idwms/admin", source => source.ReloadOnChange = true);
+builder.Configuration.AddConsul("idwms/dev", source => source.ReloadOnChange = true);
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)

@@ -153,10 +153,6 @@
           />
         </a-form-item>
 
-        <a-form-item label="头像" name="avatar">
-          <a-input v-model:value="formState.avatar" placeholder="请输入头像URL" />
-        </a-form-item>
-
         <a-form-item v-if="!isEdit" label="角色" name="roleIds">
           <a-select
             v-model:value="formState.roleIds"
@@ -370,13 +366,13 @@ async function handleModalOk() {
       const updateData: UserUpdateDto = {
         name: formState.name,
         email: formState.email,
-        avatar: formState.avatar,
         organizationId: formState.organizationId
       }
       await UserService.putRbacUserUpdate({ id: currentId.value, requestBody: updateData })
       message.success('更新成功')
     } else {
-      await UserService.postRbacUserCreate({ requestBody: formState })
+      const { avatar: _avatar, ...createBody } = formState
+      await UserService.postRbacUserCreate({ requestBody: createBody })
       message.success('创建成功')
     }
 

@@ -1,5 +1,4 @@
 using Fake.Application;
-using Fake.Domain.Exceptions;
 using Fake.FileManagement.Application.Dtos;
 using Fake.FileManagement.Domain.FileAggregate;
 using Fake.ObjectStorage;
@@ -12,8 +11,8 @@ using Microsoft.Extensions.Options;
 namespace Fake.FileManagement.Application.Services;
 
 /// <summary>
-/// 文件服务：统一上传、直传确认、查询、访问地址与删除。
-/// 业务表建议存 <see cref="FileDto.Id"/>（FileId），访问时再换临时 URL。
+/// 通用文件服务：元数据 + 对象存储。业务表只存 FileId，不在本模块挂业务外键。
+/// ObjectKey = FileId。
 /// </summary>
 [Authorize]
 [ApiExplorerSettings(GroupName = "FileManagement")]
@@ -26,74 +25,66 @@ public class FileService(
     private readonly FakeFileManagementOptions _options = options.Value;
 
     /// <summary>
-    /// 服务端转发上传并写入元数据（文件仍经业务服务器）。私有桶用户上传请优先用直传。
+    /// 服务端转发上传并写入 Available 元数据。
     /// </summary>
     public virtual async Task<FileDto> UploadAsync(
         IFormFile file,
-        string category,
-        string? bizType = null,
-        string? bizId = null,
+        string? policy = null,
         CancellationToken cancellationToken = default)
     {
         if (file == null || file.Length == 0)
         {
-            throw new DomainException("请选择要上传的文件");
+            throw new BusinessException("请选择要上传的文件");
         }
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(category);
-        category = category.Trim().ToLowerInvariant();
-
-        ValidateFile(file, category);
-
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        var objectKey = BuildObjectKey(category, extension);
+        ValidateFileMeta(file.FileName, file.ContentType, file.Length, policy);
 
         await using var stream = file.OpenReadStream();
         var saveResult = await objectStorage.SaveAsync(new ObjectStorageSaveArgs
         {
-            ObjectKey = objectKey,
+            ObjectKey = StoredFile.GenerateObjectKey(),
             Content = stream,
             ContentType = file.ContentType
         }, cancellationToken);
 
         var entity = new StoredFile(
-            objectKey: saveResult.ObjectKey,
             fileName: file.FileName,
-            category: category,
+            status: StoredFileStatus.Available,
             size: saveResult.Size ?? file.Length,
             contentType: string.IsNullOrWhiteSpace(file.ContentType) ? null : file.ContentType,
-            bizType: bizType,
-            bizId: bizId);
+            storageSource: _options.DefaultStorageSource);
 
         await storedFileRepository.InsertAsync(entity, cancellationToken: cancellationToken);
-        await UnitOfWorkManager.Current!.SaveChangesAsync(cancellationToken);
 
-        var dto = ObjectMapper.Map<StoredFile, FileDto>(entity);
-        dto.Url = saveResult.Url;
-        return dto;
+        return ToDto(entity, saveResult.Url);
     }
 
     /// <summary>
-    /// 签发预签名 PUT：前端直传对象存储，再调用 <see cref="ConfirmUploadAsync"/> 登记元数据。
+    /// 签发预签名 PUT，并创建 Pending 文件记录。直传完成后调用 Confirm。
     /// </summary>
     public virtual async Task<PresignUploadDto> PresignUploadAsync(
         PresignUploadInput input,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(input);
-        ArgumentException.ThrowIfNullOrWhiteSpace(input.Category);
         ArgumentException.ThrowIfNullOrWhiteSpace(input.FileName);
 
         if (!objectStorage.SupportsClientDirectUpload)
         {
-            throw new DomainException($"当前存储 Provider（{objectStorage.Name}）不支持前端直传");
+            throw new BusinessException($"当前存储 Provider（{objectStorage.Name}）不支持前端直传");
         }
 
-        var category = input.Category.Trim().ToLowerInvariant();
-        ValidateFileMeta(input.FileName, input.ContentType, size: null, category);
+        ValidateFileMeta(input.FileName, input.ContentType, size: null, input.Policy);
 
-        var extension = Path.GetExtension(input.FileName).ToLowerInvariant();
-        var objectKey = BuildObjectKey(category, extension);
+        var entity = new StoredFile(
+            fileName: input.FileName,
+            status: StoredFileStatus.Pending,
+            size: 0,
+            contentType: input.ContentType,
+            storageSource: _options.DefaultStorageSource);
+
+        await storedFileRepository.InsertAsync(entity, cancellationToken: cancellationToken);
+
         TimeSpan? expires = input.ExpiresSeconds is > 0
             ? TimeSpan.FromSeconds(input.ExpiresSeconds.Value)
             : null;
@@ -101,7 +92,7 @@ public class FileService(
         var ticket = await objectStorage.CreatePresignedUploadAsync(
             new ObjectStoragePresignUploadArgs
             {
-                ObjectKey = objectKey,
+                ObjectKey = entity.ObjectKey,
                 ContentType = input.ContentType,
                 Expires = expires
             },
@@ -109,36 +100,42 @@ public class FileService(
 
         return new PresignUploadDto
         {
-            ObjectKey = ticket.ObjectKey,
+            FileId = entity.Id,
             UploadUrl = ticket.UploadUrl,
             Method = ticket.Method,
             ContentType = ticket.ContentType,
-            Headers = ticket.Headers,
+            Headers = ticket.Headers is { Count: > 0 } ? ticket.Headers : null,
             ExpireAt = ticket.ExpireAt
         };
     }
 
     /// <summary>
-    /// 签发 STS 临时密钥：前端用官方 SDK 直传，再 Confirm。
+    /// 签发 STS，并创建 Pending 文件记录。直传完成后调用 Confirm。
     /// </summary>
     public virtual async Task<StsUploadDto> StsUploadAsync(
         StsUploadInput input,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(input);
-        ArgumentException.ThrowIfNullOrWhiteSpace(input.Category);
         ArgumentException.ThrowIfNullOrWhiteSpace(input.FileName);
 
         if (!objectStorage.SupportsClientDirectUpload)
         {
-            throw new DomainException($"当前存储 Provider（{objectStorage.Name}）不支持前端直传");
+            throw new BusinessException($"当前存储 Provider（{objectStorage.Name}）不支持前端直传");
         }
 
-        var category = input.Category.Trim().ToLowerInvariant();
-        ValidateFileMeta(input.FileName, contentType: null, size: null, category);
+        ValidateFileMeta(input.FileName, contentType: null, size: null, input.Policy);
 
-        var extension = Path.GetExtension(input.FileName).ToLowerInvariant();
-        var objectKey = BuildObjectKey(category, extension);
+
+        var entity = new StoredFile(
+            fileName: input.FileName,
+            status: StoredFileStatus.Pending,
+            size: 0,
+            contentType: null,
+            storageSource: _options.DefaultStorageSource);
+
+        await storedFileRepository.InsertAsync(entity, cancellationToken: cancellationToken);
+
         TimeSpan? expires = input.ExpiresSeconds is > 0
             ? TimeSpan.FromSeconds(input.ExpiresSeconds.Value)
             : null;
@@ -146,14 +143,14 @@ public class FileService(
         var ticket = await objectStorage.CreateStsUploadAsync(
             new ObjectStorageStsUploadArgs
             {
-                ObjectKey = objectKey,
+                ObjectKey = entity.ObjectKey,
                 Expires = expires
             },
             cancellationToken);
 
         return new StsUploadDto
         {
-            ObjectKey = ticket.ObjectKey,
+            FileId = entity.Id,
             PhysicalObjectKey = ticket.PhysicalObjectKey,
             Bucket = ticket.Bucket,
             Region = ticket.Region,
@@ -166,97 +163,80 @@ public class FileService(
     }
 
     /// <summary>
-    /// 直传完成后登记元数据（不接收文件流）。返回 FileId 供业务表持久化。
+    /// 直传完成后将 Pending 转为 Available。
     /// </summary>
     public virtual async Task<FileDto> ConfirmUploadAsync(
         ConfirmUploadInput input,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(input);
-        ArgumentException.ThrowIfNullOrWhiteSpace(input.ObjectKey);
-        ArgumentException.ThrowIfNullOrWhiteSpace(input.FileName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(input.Category);
+        if (input.FileId == Guid.Empty)
+        {
+            throw new BusinessException("FileId 无效");
+        }
 
-        var category = input.Category.Trim().ToLowerInvariant();
-        var objectKey = ObjectStoragePathHelper.NormalizeObjectKey(input.ObjectKey);
-        ValidateFileMeta(input.FileName, input.ContentType, input.Size, category);
+        var entity = await GetRequiredAsync(input.FileId, cancellationToken);
+        EnsureOwner(entity);
+
+        if (entity.Status != StoredFileStatus.Pending)
+        {
+            throw new BusinessException($"文件状态不是 Pending，无法确认：{entity.Status}");
+        }
+
+        var fileName = string.IsNullOrWhiteSpace(input.FileName) ? entity.FileName : input.FileName.Trim();
+        ValidateFileMeta(fileName, input.ContentType, input.Size, policy: null);
 
         if (input.VerifyExists)
         {
-            var exists = await objectStorage.ExistsAsync(objectKey, cancellationToken);
+            var exists = await objectStorage.ExistsAsync(entity.ObjectKey, cancellationToken);
             if (!exists)
             {
-                throw new DomainException($"对象存储中不存在该文件，请确认直传已成功：{objectKey}");
+                throw new BusinessException("对象存储中不存在该文件，请确认直传已成功");
             }
         }
 
-        var entity = new StoredFile(
-            objectKey: objectKey,
-            fileName: input.FileName.Trim(),
-            category: category,
-            size: input.Size ?? 0,
-            contentType: string.IsNullOrWhiteSpace(input.ContentType) ? null : input.ContentType.Trim(),
-            bizType: input.BizType,
-            bizId: input.BizId);
+        entity.MarkAvailable(
+            fileName,
+            input.Size ?? 0,
+            string.IsNullOrWhiteSpace(input.ContentType) ? null : input.ContentType.Trim());
 
-        await storedFileRepository.InsertAsync(entity, cancellationToken: cancellationToken);
-        await UnitOfWorkManager.Current!.SaveChangesAsync(cancellationToken);
+        await storedFileRepository.UpdateAsync(entity, cancellationToken: cancellationToken);
 
-        var dto = ObjectMapper.Map<StoredFile, FileDto>(entity);
-        dto.Url = await ResolveUrlAsync(entity, expires: null, cancellationToken);
-        return dto;
+        var url = await ResolveUrlAsync(entity, expires: null, cancellationToken);
+        return ToDto(entity, url);
     }
 
-    /// <summary>
-    /// 按 Id 获取文件元数据。
-    /// </summary>
     public virtual async Task<FileDto> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await GetRequiredAsync(id, cancellationToken);
-        var dto = ObjectMapper.Map<StoredFile, FileDto>(entity);
-        dto.Url = await ResolveUrlAsync(entity, expires: null, cancellationToken);
-        return dto;
-    }
 
-    /// <summary>
-    /// 按业务维度查询文件列表。
-    /// </summary>
-    public virtual async Task<List<FileDto>> GetListByBizAsync(
-        string bizType,
-        string bizId,
-        string? category = null,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(bizType);
-        ArgumentException.ThrowIfNullOrWhiteSpace(bizId);
-
-        var list = await storedFileRepository.GetListByBizAsync(bizType, bizId, category, cancellationToken);
-        var result = new List<FileDto>(list.Count);
-        foreach (var entity in list)
+        if (entity.Status == StoredFileStatus.Pending)
         {
-            var dto = ObjectMapper.Map<StoredFile, FileDto>(entity);
-            dto.Url = await ResolveUrlAsync(entity, expires: null, cancellationToken);
-            result.Add(dto);
+            EnsureOwner(entity);
+            return ToDto(entity, url: null);
         }
 
-        return result;
+        var url = await ResolveUrlAsync(entity, expires: null, cancellationToken);
+        return ToDto(entity, url);
     }
 
-    /// <summary>
-    /// 获取访问地址；传入 expires 时生成签名 URL（若存储支持）。
-    /// </summary>
     public virtual async Task<string> GetAccessUrlAsync(
         Guid id,
         int? expiresSeconds = null,
         CancellationToken cancellationToken = default)
     {
         var entity = await GetRequiredAsync(id, cancellationToken);
+        if (entity.Status != StoredFileStatus.Available)
+        {
+            throw new BusinessException("文件尚未确认，无法获取访问地址");
+        }
+
         TimeSpan? expires = null;
         if (expiresSeconds is > 0)
         {
             expires = TimeSpan.FromSeconds(expiresSeconds.Value);
         }
-        else if (ShouldUseSignedUrl(entity.Category))
+        else if (_options.SignUrlsByDefault)
         {
             expires = TimeSpan.FromSeconds(_options.DefaultSignedUrlExpiresSeconds);
         }
@@ -264,12 +244,10 @@ public class FileService(
         return await ResolveUrlAsync(entity, expires, cancellationToken);
     }
 
-    /// <summary>
-    /// 删除文件元数据，并尝试删除对象存储中的对象。
-    /// </summary>
     public virtual async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await GetRequiredAsync(id, cancellationToken);
+        EnsureOwner(entity);
 
         try
         {
@@ -281,7 +259,15 @@ public class FileService(
         }
 
         await storedFileRepository.DeleteAsync(entity, cancellationToken: cancellationToken);
-        await UnitOfWorkManager.Current!.SaveChangesAsync(cancellationToken);
+    }
+
+    private void EnsureOwner(StoredFile entity)
+    {
+        var userId = CurrentUser.Id;
+        if (userId == null || entity.CreateUserId != userId.Value)
+        {
+            throw new BusinessException("无权操作该文件");
+        }
     }
 
     private async Task<StoredFile> GetRequiredAsync(Guid id, CancellationToken cancellationToken)
@@ -289,45 +275,40 @@ public class FileService(
         var entity = await storedFileRepository.FirstOrDefaultAsync(x => x.Id == id, cancellationToken: cancellationToken);
         if (entity == null)
         {
-            throw new DomainException($"文件不存在：{id}");
+            throw new BusinessException($"文件不存在：{id}");
         }
 
         return entity;
     }
 
-    private void ValidateFile(IFormFile file, string category)
+    private void ValidateFileMeta(string fileName, string? contentType, long? size, string? policy)
     {
-        ValidateFileMeta(file.FileName, file.ContentType, file.Length, category);
-    }
+        FileUploadPolicyOptions? policyOptions = null;
+        if (!string.IsNullOrWhiteSpace(policy))
+        {
+            _options.Policies.TryGetValue(policy.Trim(), out policyOptions);
+        }
 
-    private void ValidateFileMeta(string fileName, string? contentType, long? size, string category)
-    {
-        var categoryOptions = _options.Categories.GetValueOrDefault(category);
-        var maxSize = categoryOptions?.MaxSizeBytes ?? _options.DefaultMaxSizeBytes;
+        var maxSize = policyOptions?.MaxSizeBytes ?? _options.DefaultMaxSizeBytes;
         if (maxSize > 0 && size is > 0 && size.Value > maxSize)
         {
-            throw new DomainException($"文件大小不能超过 {maxSize} 字节");
+            throw new BusinessException($"文件大小不能超过 {maxSize} 字节");
         }
 
         var extension = Path.GetExtension(fileName).ToLowerInvariant();
-        var allowed = categoryOptions?.AllowedExtensions ?? _options.DefaultAllowedExtensions;
+        var allowed = policyOptions?.AllowedExtensions ?? _options.DefaultAllowedExtensions;
         if (allowed is { Length: > 0 } &&
             !allowed.Contains(extension, StringComparer.OrdinalIgnoreCase))
         {
-            throw new DomainException($"不支持的文件类型：{extension}");
+            throw new BusinessException($"不支持的文件类型：{extension}");
         }
 
-        _ = contentType; // 预留：可按 category 校验 MIME
-    }
-
-    private bool ShouldUseSignedUrl(string category)
-    {
-        return _options.Categories.TryGetValue(category, out var categoryOptions) && categoryOptions.UseSignedUrl;
+        _ = contentType;
     }
 
     private Task<string> ResolveUrlAsync(StoredFile entity, TimeSpan? expires, CancellationToken cancellationToken)
     {
-        if (expires == null && ShouldUseSignedUrl(entity.Category))
+        if (expires == null && _options.SignUrlsByDefault)
         {
             expires = TimeSpan.FromSeconds(_options.DefaultSignedUrlExpiresSeconds);
         }
@@ -335,9 +316,12 @@ public class FileService(
         return objectStorage.GetUrlAsync(entity.ObjectKey, expires, cancellationToken);
     }
 
-    private static string BuildObjectKey(string category, string extension)
+    private static FileDto ToDto(StoredFile entity, string? url) => new()
     {
-        var date = DateTime.UtcNow.ToString("yyyyMMdd");
-        return $"{category}/{date}/{Guid.NewGuid():N}{extension}";
-    }
+        Id = entity.Id,
+        FileName = entity.FileName,
+        ContentType = entity.ContentType,
+        Size = entity.Size,
+        Url = url
+    };
 }

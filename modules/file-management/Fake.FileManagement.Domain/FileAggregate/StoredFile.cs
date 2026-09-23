@@ -2,19 +2,16 @@ using Fake.Domain.Entities.Auditing;
 
 namespace Fake.FileManagement.Domain.FileAggregate;
 
+/// <summary>
+/// 通用文件元数据。对象存储 ObjectKey = <see cref="Id"/>，不含业务外键。
+/// </summary>
 public class StoredFile : FullAuditedAggregateRoot<Guid>
 {
     public const int MaxFileNameLength = 256;
-    public const int MaxObjectKeyLength = 512;
     public const int MaxContentTypeLength = 128;
-    public const int MaxCategoryLength = 64;
-    public const int MaxBizTypeLength = 64;
-    public const int MaxBizIdLength = 64;
-
-    /// <summary>
-    /// 逻辑对象键（不含环境 KeyPrefix）。
-    /// </summary>
-    public string ObjectKey { get; private set; } = null!;
+    public const int MaxStorageSourceLength = 64;
+    
+    public string ObjectKey => Id.ToString();
 
     public string FileName { get; private set; } = null!;
 
@@ -23,67 +20,53 @@ public class StoredFile : FullAuditedAggregateRoot<Guid>
     public long Size { get; private set; }
 
     /// <summary>
-    /// 业务分类，例如 avatar / waybill / document。
+    /// 存储源名称。一期默认 default；多源时用于找回写入位置。
     /// </summary>
-    public string Category { get; private set; } = null!;
+    public string StorageSource { get; private set; } = "default";
 
-    public string? BizType { get; private set; }
-
-    public string? BizId { get; private set; }
+    public StoredFileStatus Status { get; private set; }
 
     protected StoredFile()
     {
     }
 
     public StoredFile(
-        string objectKey,
         string fileName,
-        string category,
-        long size,
+        StoredFileStatus status,
+        long size = 0,
         string? contentType = null,
-        string? bizType = null,
-        string? bizId = null)
+        string storageSource = "default")
     {
-        SetObjectKey(objectKey);
         SetFileName(fileName);
-        SetCategory(category);
         SetSize(size);
-        ContentType = contentType;
-        BizType = NormalizeOptional(bizType, MaxBizTypeLength, nameof(bizType));
-        BizId = NormalizeOptional(bizId, MaxBizIdLength, nameof(bizId));
+        ContentType = NormalizeOptional(contentType, MaxContentTypeLength, nameof(contentType));
+        SetStorageSource(storageSource);
+        Status = status;
     }
 
-    private void SetObjectKey(string objectKey)
+    public void MarkAvailable(string fileName, long size, string? contentType)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(objectKey);
-        if (objectKey.Length > MaxObjectKeyLength)
+        if (Status == StoredFileStatus.Available)
         {
-            throw new ArgumentException($"ObjectKey 长度不能超过 {MaxObjectKeyLength}", nameof(objectKey));
+            return;
         }
 
-        ObjectKey = objectKey;
+        SetFileName(fileName);
+        SetSize(size);
+        ContentType = NormalizeOptional(contentType, MaxContentTypeLength, nameof(contentType));
+        Status = StoredFileStatus.Available;
     }
 
     private void SetFileName(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+        fileName = fileName.Trim();
         if (fileName.Length > MaxFileNameLength)
         {
             throw new ArgumentException($"FileName 长度不能超过 {MaxFileNameLength}", nameof(fileName));
         }
 
         FileName = fileName;
-    }
-
-    private void SetCategory(string category)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(category);
-        if (category.Length > MaxCategoryLength)
-        {
-            throw new ArgumentException($"Category 长度不能超过 {MaxCategoryLength}", nameof(category));
-        }
-
-        Category = category;
     }
 
     private void SetSize(long size)
@@ -94,6 +77,18 @@ public class StoredFile : FullAuditedAggregateRoot<Guid>
         }
 
         Size = size;
+    }
+
+    private void SetStorageSource(string storageSource)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(storageSource);
+        storageSource = storageSource.Trim();
+        if (storageSource.Length > MaxStorageSourceLength)
+        {
+            throw new ArgumentException($"StorageSource 长度不能超过 {MaxStorageSourceLength}", nameof(storageSource));
+        }
+
+        StorageSource = storageSource;
     }
 
     private static string? NormalizeOptional(string? value, int maxLength, string paramName)
@@ -110,5 +105,10 @@ public class StoredFile : FullAuditedAggregateRoot<Guid>
         }
 
         return value;
+    }
+
+    public static string GenerateObjectKey()
+    {
+        return Guid.NewGuid().ToString();
     }
 }

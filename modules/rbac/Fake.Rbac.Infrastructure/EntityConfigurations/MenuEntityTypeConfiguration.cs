@@ -52,9 +52,8 @@ public class MenuEntityTypeConfiguration: IEntityTypeConfiguration<Menu>
         builder.Ignore(m => m.Children);
 
         builder.HasIndex(m => m.Name);
-        // PermissionCode 唯一索引
-        // MySQL 的唯一索引默认允许多个 NULL 值，所以不需要额外的过滤条件
-        builder.HasIndex(m => m.PermissionCode).IsUnique();
+        // 唯一性由应用层校验；库侧沿用 InitialCreate 的普通索引
+        builder.HasIndex(m => m.PermissionCode);
         builder.HasIndex(m => m.PId); // Index for parent lookups
     }
 }
