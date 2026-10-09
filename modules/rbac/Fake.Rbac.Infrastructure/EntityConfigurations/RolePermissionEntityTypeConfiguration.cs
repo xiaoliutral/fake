@@ -10,7 +10,8 @@ public class RolePermissionEntityTypeConfiguration: IEntityTypeConfiguration<Rol
     {
         builder.ToTable("role_permission", FakeRbacDbContext.DefaultSchema);
 
-        builder.HasIndex(rp => new { rp.RoleId, rp.PermissionCode }).IsUnique();
+        // 业务唯一由应用层保证，库侧仅普通索引
+        builder.HasIndex(rp => new { rp.RoleId, rp.PermissionCode });
 
         builder.Property(rp => rp.RoleId).IsRequired();
 

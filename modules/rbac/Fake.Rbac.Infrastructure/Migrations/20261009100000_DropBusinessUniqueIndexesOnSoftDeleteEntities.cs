@@ -6,8 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Fake.Rbac.Infrastructure.Migrations;
 
 /// <summary>
-/// 软删实体去掉业务唯一索引，改为普通索引；唯一性改由应用层保证。
-/// 关联表 user_role / role_permission 的唯一索引保留。
+/// 去掉业务唯一索引，改为普通索引；唯一性改由应用层保证。
 /// </summary>
 [DbContext(typeof(FakeRbacDbContext))]
 [Migration("20261009100000_DropBusinessUniqueIndexesOnSoftDeleteEntities")]
@@ -63,6 +62,8 @@ public partial class DropBusinessUniqueIndexesOnSoftDeleteEntities : Migration
             CALL fake_drop_index_if_exists('role', 'IX_role_Code');
             CALL fake_drop_index_if_exists('organization', 'IX_organization_Code');
             CALL fake_drop_index_if_exists('menu', 'IX_menu_PermissionCode');
+            CALL fake_drop_index_if_exists('role_permission', 'IX_role_permission_RoleId_PermissionCode');
+            CALL fake_drop_index_if_exists('user_role', 'IX_user_role_UserId_RoleId');
 
             CALL fake_drop_column_if_exists('user', 'DeletionToken');
             CALL fake_drop_column_if_exists('role', 'DeletionToken');
@@ -74,6 +75,8 @@ public partial class DropBusinessUniqueIndexesOnSoftDeleteEntities : Migration
             CREATE INDEX `IX_role_Code` ON `role` (`Code`);
             CREATE INDEX `IX_organization_Code` ON `organization` (`Code`);
             CREATE INDEX `IX_menu_PermissionCode` ON `menu` (`PermissionCode`);
+            CREATE INDEX `IX_role_permission_RoleId_PermissionCode` ON `role_permission` (`RoleId`, `PermissionCode`);
+            CREATE INDEX `IX_user_role_UserId_RoleId` ON `user_role` (`UserId`, `RoleId`);
 
             DROP PROCEDURE IF EXISTS `fake_drop_index_if_exists`;
             DROP PROCEDURE IF EXISTS `fake_drop_column_if_exists`;

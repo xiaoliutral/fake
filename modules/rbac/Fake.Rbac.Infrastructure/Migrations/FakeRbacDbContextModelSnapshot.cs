@@ -253,8 +253,7 @@ namespace Fake.Rbac.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RoleId", "PermissionCode")
-                        .IsUnique();
+                    b.HasIndex("RoleId", "PermissionCode");
 
                     b.ToTable("role_permission", (string)null);
                 });
@@ -348,8 +347,7 @@ namespace Fake.Rbac.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId", "RoleId")
-                        .IsUnique();
+                    b.HasIndex("UserId", "RoleId");
 
                     b.ToTable("user_role", (string)null);
                 });

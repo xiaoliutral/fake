@@ -10,7 +10,8 @@ public class UserRoleEntityTypeConfiguration: IEntityTypeConfiguration<UserRole>
     {
         builder.ToTable("user_role", FakeRbacDbContext.DefaultSchema);
 
-        builder.HasIndex(ur => new { ur.UserId, ur.RoleId }).IsUnique();
+        // 业务唯一由应用层保证，库侧仅普通索引
+        builder.HasIndex(ur => new { ur.UserId, ur.RoleId });
 
         builder.Property(ur => ur.UserId).IsRequired();
 
