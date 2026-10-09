@@ -28,12 +28,10 @@ public class UserEntityTypeConfiguration: IEntityTypeConfiguration<User>
         
         builder.HasMany(u => u.Roles).WithOne().HasForeignKey(ur => ur.UserId);
 
-        builder.HasIndex(u => u.Account).IsUnique();
-
-        builder.HasIndex(u => u.Email).IsUnique();
-
+        // 业务唯一由应用层保证（软删实体不加库级唯一索引）
+        builder.HasIndex(u => u.Account);
+        builder.HasIndex(u => u.Email);
         builder.HasIndex(u => u.Name);
-        
         builder.HasIndex(u => u.OrganizationId);
     }
 }

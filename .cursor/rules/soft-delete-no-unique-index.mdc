@@ -1,0 +1,29 @@
+---
+description: 软删实体禁止业务唯一索引；唯一性走应用层（对齐 ABP）
+globs: modules/**/EntityConfigurations/**/*.cs,modules/**/Migrations/**/*.cs,src/**/EntityConfigurations/**/*.cs
+alwaysApply: true
+---
+
+# 软删与唯一索引
+
+MySQL 不支持过滤唯一索引。对实现 `ISoftDelete` / `FullAudited*` 的实体：
+
+## 禁止
+
+- 对业务键（Account、Email、Code、PermissionCode、Name 等）使用 `.IsUnique()` / 唯一约束
+- 引入 `DeletionToken`、生成列等仅为「软删后复用业务键」的库级唯一方案（除非产品明确要求且单独评审）
+- 用 `ConcurrencyStamp` 参与业务唯一索引
+
+## 要求
+
+- 业务唯一在 **Application / Domain Manager** 中校验（创建/更新前查重），错误信息对用户友好
+- 库侧仅保留 **非唯一** 查询索引：`builder.HasIndex(x => x.Account)`（不要 `IsUnique()`）
+- 软删查询依赖全局 `ISoftDelete` 过滤器；查重时勿误包含已删行（默认过滤器即可）
+
+## 允许唯一索引的例外
+
+仅当实体 **不软删**（如关联表 `UserRole`、`RolePermission`）时，可对组合键使用 `.IsUnique()`。
+
+## 参考
+
+与 ABP 一致：Identity 等对用户名/邮箱默认不加「忽略软删」的库级唯一，靠应用层保证。

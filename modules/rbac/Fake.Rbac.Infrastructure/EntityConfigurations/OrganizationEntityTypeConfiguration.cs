@@ -20,8 +20,8 @@ public class OrganizationEntityTypeConfiguration : IEntityTypeConfiguration<Orga
             .IsRequired()
             .HasMaxLength(64);
 
-        builder.HasIndex(o => o.Code)
-            .IsUnique();
+        // 业务唯一由应用层保证（软删实体不加库级唯一索引）
+        builder.HasIndex(o => o.Code);
 
         builder.Property(o => o.Type)
             .IsRequired()

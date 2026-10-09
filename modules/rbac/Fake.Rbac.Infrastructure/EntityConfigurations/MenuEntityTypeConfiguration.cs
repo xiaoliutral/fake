@@ -52,7 +52,7 @@ public class MenuEntityTypeConfiguration: IEntityTypeConfiguration<Menu>
         builder.Ignore(m => m.Children);
 
         builder.HasIndex(m => m.Name);
-        // 唯一性由应用层校验；库侧沿用 InitialCreate 的普通索引
+        // 业务唯一由应用层保证（软删实体不加库级唯一索引）
         builder.HasIndex(m => m.PermissionCode);
         builder.HasIndex(m => m.PId); // Index for parent lookups
     }

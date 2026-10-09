@@ -24,7 +24,8 @@ public class RoleEntityTypeConfiguration: IEntityTypeConfiguration<Role>
             .WithOne()
             .HasForeignKey(rp => rp.RoleId);
 
-        builder.HasIndex(r => r.Code).IsUnique();
+        // 业务唯一由应用层保证（软删实体不加库级唯一索引）
+        builder.HasIndex(r => r.Code);
     }
     
 }
