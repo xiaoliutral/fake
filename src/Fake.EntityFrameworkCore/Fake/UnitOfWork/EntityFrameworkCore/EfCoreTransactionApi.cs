@@ -1,4 +1,5 @@
-﻿using Fake.Threading;
+﻿using System.Data.Common;
+using Fake.Threading;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -7,13 +8,17 @@ namespace Fake.UnitOfWork.EntityFrameWorkCore;
 /// <summary>
 /// EntityFrameworkCore事务api
 /// </summary>
-public class EfCoreTransactionApi : ITransactionApi, ISupportRollback
+public class EfCoreTransactionApi : ITransactionApi, ISupportRollback, IOutboxEnlistableTransaction
 {
     public IDbContextTransaction DbContextTransaction { get; }
     public DbContext StarterDbContext { get; }
     public List<DbContext> AttendedDbContexts { get; }
 
     protected ICancellationTokenProvider CancellationTokenProvider { get; }
+
+    public Guid TransactionId => DbContextTransaction.TransactionId;
+
+    public DbTransaction? GetDbTransaction() => DbContextTransaction.GetDbTransaction();
 
     public EfCoreTransactionApi(
         IDbContextTransaction dbContextTransaction,

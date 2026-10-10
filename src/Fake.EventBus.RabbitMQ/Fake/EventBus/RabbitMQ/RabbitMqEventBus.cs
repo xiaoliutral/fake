@@ -22,7 +22,7 @@ public class RabbitMqEventBus(
     IOptions<EventBusSubscriptionOptions> subscriptionOptions,
     IOptions<RabbitMqEventBusOptions> eventBusOptions,
     IApplicationInfo applicationInfo
-) : IDistributedEventBus, IDisposable, IHostedService
+) : IPhysicalDistributedEventBus, IDisposable, IHostedService
 {
     private readonly RabbitMqEventBusOptions _eventBusOptions = eventBusOptions.Value;
     private readonly EventBusSubscriptionOptions _subscriptionOptions = subscriptionOptions.Value;

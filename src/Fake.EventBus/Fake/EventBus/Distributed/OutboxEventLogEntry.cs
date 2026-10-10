@@ -17,7 +17,8 @@ public class OutboxEventLogEntry
         EventId = @event.Id;
         CreationTime = @event.CreationTime;
         EventTypeName = @event.GetType().FullName ?? String.Empty;
-        Content = JsonSerializer.Serialize(@event);
+        // 必须按运行时类型序列化，否则派生属性（如 Payload）会丢失
+        Content = JsonSerializer.Serialize(@event, @event.GetType());
         State = EventState.NotPublished;
         TimesSent = 0;
         TransactionId = transactionId.ToString();

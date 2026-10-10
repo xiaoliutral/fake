@@ -7,4 +7,6 @@ public interface ITransactionApiContainer
     void AddTransactionApi(string key, ITransactionApi api);
 
     ITransactionApi GetOrAddTransactionApi(string key, Func<ITransactionApi> factory);
+
+    IReadOnlyList<ITransactionApi> GetAllActiveTransactionApis();
 }

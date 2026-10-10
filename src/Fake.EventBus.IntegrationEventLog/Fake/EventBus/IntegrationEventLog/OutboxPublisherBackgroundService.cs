@@ -86,7 +86,7 @@ public class OutboxPublisherBackgroundService : BackgroundService
     {
         await using var scope = _serviceProvider.CreateAsyncScope();
         var eventLogService = scope.ServiceProvider.GetRequiredService<IOutboxEventLogService>();
-        var eventBus = scope.ServiceProvider.GetRequiredService<IDistributedEventBus>();
+        var eventBus = scope.ServiceProvider.GetRequiredService<IPhysicalDistributedEventBus>();
 
         try
         {
@@ -121,7 +121,8 @@ public class OutboxPublisherBackgroundService : BackgroundService
             await eventBus.PublishAsync(integrationEvent, cancellationToken);
             await eventLogService.MarkEventAsPublishedAsync(eventLog.EventId);
 
-            _logger.LogInformation("Successfully published event {EventId} from Outbox", eventLog.EventId);
+            _logger.LogInformation(
+                "Outbox event {EventId} dispatched by background scanner (retry/fallback)", eventLog.EventId);
         }
         catch (Exception ex)
         {

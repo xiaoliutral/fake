@@ -15,14 +15,17 @@ public class FakeEventBusRabbitMqModuleTests : ApplicationTest<FakeEventBusRabbi
     public void 应注册分布式事件总线为RabbitMqEventBus且本地总线保持LocalEventBus()
     {
         var distributedEventBus = ServiceProvider.GetRequiredService<IDistributedEventBus>();
+        var physicalEventBus = ServiceProvider.GetRequiredService<IPhysicalDistributedEventBus>();
         var eventBus = ServiceProvider.GetRequiredService<IEventBus>();
         var localEventBus = ServiceProvider.GetRequiredService<ILocalEventBus>();
 
         distributedEventBus.ShouldBeOfType<RabbitMqEventBus>();
+        physicalEventBus.ShouldBeOfType<RabbitMqEventBus>();
         eventBus.ShouldBeOfType<LocalEventBus>();
         localEventBus.ShouldBeOfType<LocalEventBus>();
         ReferenceEquals(eventBus, localEventBus).ShouldBeTrue();
         ReferenceEquals(distributedEventBus, ServiceProvider.GetRequiredService<RabbitMqEventBus>()).ShouldBeTrue();
+        ReferenceEquals(physicalEventBus, distributedEventBus).ShouldBeTrue();
     }
 
     [Fact]

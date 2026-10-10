@@ -36,5 +36,6 @@ public class FakeEventBusModule : FakeModule
         // 默认空实现；接入 Fake.EventBus.IntegrationEventLog 后由该模块 Replace
         context.Services.TryAddTransient<IOutboxEventLogService>(_ => NullOutboxEventLogService.Instance);
         context.Services.TryAddTransient<IInboxEventLogService>(_ => NullInboxEventLogService.Instance);
+        context.Services.TryAddTransient<IOutboxEventPublisher>(_ => NullOutboxEventPublisher.Instance);
     }
 }

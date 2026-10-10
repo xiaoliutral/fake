@@ -48,7 +48,12 @@ public interface IUnitOfWork : IDatabaseApiContainer, ITransactionApiContainer, 
     Task CompleteAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// 事务提交执行
+    /// 所有 DatabaseApi.SaveChanges 完成之后、事务 Commit 之前触发
+    /// </summary>
+    void OnSaveChanged(Func<Task> func);
+
+    /// <summary>
+    /// 事务提交之后执行
     /// </summary>
     /// <param name="func"></param>
     void OnCompleted(Func<Task> func);

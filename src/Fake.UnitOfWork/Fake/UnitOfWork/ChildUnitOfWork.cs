@@ -54,6 +54,11 @@ public class ChildUnitOfWork : IUnitOfWork
         return _parent.GetOrAddTransactionApi(key, factory);
     }
 
+    public IReadOnlyList<ITransactionApi> GetAllActiveTransactionApis()
+    {
+        return _parent.GetAllActiveTransactionApis();
+    }
+
     public void Dispose()
     {
     }
@@ -82,6 +87,11 @@ public class ChildUnitOfWork : IUnitOfWork
     public Task CompleteAsync(CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
+    }
+
+    public void OnSaveChanged(Func<Task> func)
+    {
+        _parent.OnSaveChanged(func);
     }
 
     public void OnCompleted(Func<Task> func)

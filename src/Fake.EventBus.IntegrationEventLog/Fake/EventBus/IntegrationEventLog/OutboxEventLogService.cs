@@ -1,3 +1,4 @@
+using System.Data.Common;
 using Fake.EventBus;
 using Fake.EventBus.Distributed;
 using Microsoft.EntityFrameworkCore;
@@ -5,6 +6,9 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Fake.EventBus.IntegrationEventLog;
 
+/// <summary>
+/// EF Core 实现的 Outbox 存储。通过 <see cref="DbTransaction"/> 加入调用方事务（EF / SqlSugar 均可提供）。
+/// </summary>
 public class OutboxEventLogService(IntegrationEventLogContext integrationEventLogContext)
     : IOutboxEventLogService
 {
@@ -38,15 +42,9 @@ public class OutboxEventLogService(IntegrationEventLogContext integrationEventLo
 
     public Task SaveEventAsync(Event @event, ITransactionContext transactionContext)
     {
-        var transactionId = transactionContext.TransactionId;
+        EnlistInAmbientTransaction(transactionContext);
 
-        if (transactionContext is EfCoreTransactionContext efTransaction)
-        {
-            var dbTransaction = (IDbContextTransaction)efTransaction.GetUnderlyingTransaction();
-            integrationEventLogContext.Database.UseTransaction(dbTransaction.GetDbTransaction());
-        }
-
-        var eventLogEntry = new OutboxEventLogEntry(@event, transactionId);
+        var eventLogEntry = new OutboxEventLogEntry(@event, transactionContext.TransactionId);
         integrationEventLogContext.OutboxEventLogs.Add(eventLogEntry);
 
         return integrationEventLogContext.SaveChangesAsync();
@@ -78,6 +76,20 @@ public class OutboxEventLogService(IntegrationEventLogContext integrationEventLo
     public Task MarkEventAsFailedAsync(Guid eventId)
     {
         return UpdateEventStatus(eventId, EventState.PublishFailed);
+    }
+
+    private void EnlistInAmbientTransaction(ITransactionContext transactionContext)
+    {
+        switch (transactionContext.GetUnderlyingTransaction())
+        {
+            case DbTransaction dbTransaction:
+                integrationEventLogContext.Database.UseTransaction(dbTransaction);
+                break;
+            case IDbContextTransaction efTransaction:
+                integrationEventLogContext.Database.UseTransaction(efTransaction.GetDbTransaction());
+                break;
+            // TransactionScope / 环境事务：由 EF 自动感知，无需 UseTransaction
+        }
     }
 
     private static IEnumerable<OutboxEventLogEntry> Deserialize(List<OutboxEventLogEntry> entries)
