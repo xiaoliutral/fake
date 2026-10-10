@@ -1,7 +1,7 @@
 using Fake.EventBus.Distributed;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace Fake.EntityFrameworkCore.IntegrationEventLog;
+namespace Fake.EventBus.IntegrationEventLog;
 
 /// <summary>
 /// EF Core 事务上下文实现

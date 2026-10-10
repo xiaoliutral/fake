@@ -1,4 +1,4 @@
-namespace Fake.EntityFrameworkCore.IntegrationEventLog.Options;
+namespace Fake.EventBus.IntegrationEventLog;
 
 /// <summary>
 /// Inbox 清理服务配置选项

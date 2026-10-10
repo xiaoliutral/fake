@@ -1,16 +1,19 @@
-using Fake.EventBus;
 using Fake.EventBus.Distributed;
 using Microsoft.EntityFrameworkCore;
 
-namespace Fake.EntityFrameworkCore.IntegrationEventLog;
+namespace Fake.EventBus.IntegrationEventLog;
 
 public class InboxEventLogService(IntegrationEventLogContext context) : IInboxEventLogService
 {
-    private volatile bool _disposedValue;
+    /// <summary>
+    /// Consuming 超过此时长视为僵尸，允许重新抢占
+    /// </summary>
+    private static readonly TimeSpan ProcessingLockTimeout = TimeSpan.FromMinutes(5);
 
     public async Task<bool> IsEventProcessedAsync(Guid eventId)
     {
-        return await context.InboxEventLogs.AnyAsync(e => e.EventId == eventId);
+        return await context.InboxEventLogs.AnyAsync(e =>
+            e.EventId == eventId && e.State == EventState.ConsumeSucceeded);
     }
 
     public async Task SaveProcessedEventAsync(Guid eventId, string eventTypeName, string content)
@@ -31,7 +34,8 @@ public class InboxEventLogService(IntegrationEventLogContext context) : IInboxEv
         }
         catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
         {
-            return false;
+            context.ChangeTracker.Clear();
+            return await TryReclaimAsync(eventId);
         }
     }
 
@@ -55,33 +59,36 @@ public class InboxEventLogService(IntegrationEventLogContext context) : IInboxEv
         }
     }
 
+    private async Task<bool> TryReclaimAsync(Guid eventId)
+    {
+        var existing = await context.InboxEventLogs.FindAsync(eventId);
+        if (existing == null)
+            return false;
+
+        if (existing.State == EventState.ConsumeSucceeded)
+            return false;
+
+        var now = DateTime.UtcNow;
+        var canReclaim = existing.State == EventState.ConsumeFailed ||
+                         (existing.State == EventState.Consuming &&
+                          existing.ProcessedTime < now - ProcessingLockTimeout);
+
+        if (!canReclaim)
+            return false;
+
+        existing.MarkAsConsuming();
+        await context.SaveChangesAsync();
+        return true;
+    }
+
     private static bool IsUniqueConstraintViolation(DbUpdateException ex)
     {
         var message = ex.InnerException?.Message ?? ex.Message;
-        return message.Contains("2627") || 
-               message.Contains("2601") || 
-               message.Contains("23505") || 
+        return message.Contains("2627") ||
+               message.Contains("2601") ||
+               message.Contains("23505") ||
                message.Contains("1062") ||
                message.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase) ||
                message.Contains("duplicate", StringComparison.OrdinalIgnoreCase);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposedValue)
-        {
-            if (disposing)
-            {
-                context.Dispose();
-            }
-
-            _disposedValue = true;
-        }
-    }
-
-    public void Dispose()
-    {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
     }
 }

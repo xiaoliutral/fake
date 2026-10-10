@@ -1,4 +1,4 @@
-﻿using Fake.Autofac;
+using Fake.Autofac;
 using Fake.Modularity;
 using Fake.SyncEx;
 using Microsoft.Data.Sqlite;
@@ -7,11 +7,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 
-namespace Fake.EntityFrameworkCore.IntegrationEventLog.Tests;
+namespace Fake.EventBus.IntegrationEventLog.Tests;
 
 [DependsOn(typeof(FakeAutofacModule))]
-[DependsOn(typeof(FakeEntityFrameworkCoreIntegrationEventLogModule))]
-public class FakeEntityFrameworkCoreIntegrationEventLogTestModule : FakeModule
+[DependsOn(typeof(FakeEventBusIntegrationEventLogModule))]
+public class FakeEventBusIntegrationEventLogTestModule : FakeModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {

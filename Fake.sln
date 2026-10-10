@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33723.286
@@ -73,11 +73,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fake.EventBus.RabbitMQ", "s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fake.RabbitMQ", "src\Fake.RabbitMQ\Fake.RabbitMQ.csproj", "{9C12BDF1-4745-4B3F-9979-B61CCAB93E9D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fake.EntityFrameworkCore.IntegrationEventLog", "src\Fake.EntityFrameworkCore.IntegrationEventLog\Fake.EntityFrameworkCore.IntegrationEventLog.csproj", "{8A110FDF-BF6A-4C78-A1DF-326E7CABC7D4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fake.EventBus.IntegrationEventLog", "src\Fake.EventBus.IntegrationEventLog\Fake.EventBus.IntegrationEventLog.csproj", "{8A110FDF-BF6A-4C78-A1DF-326E7CABC7D4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fake.EventBus.Tests", "tests\Fake.EventBus.Tests\Fake.EventBus.Tests.csproj", "{3087C7AA-17B7-4187-8AB4-7ADB1038C0D8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fake.EntityFrameworkCore.IntegrationEventLog.Tests", "tests\Fake.EntityFrameworkCore.IntegrationEventLog.Tests\Fake.EntityFrameworkCore.IntegrationEventLog.Tests.csproj", "{E453F51E-BCE8-427B-AF7C-86AF89C9F239}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fake.EventBus.IntegrationEventLog.Tests", "tests\Fake.EventBus.IntegrationEventLog.Tests\Fake.EventBus.IntegrationEventLog.Tests.csproj", "{E453F51E-BCE8-427B-AF7C-86AF89C9F239}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fake.ObjectMapping", "src\Fake.ObjectMapping\Fake.ObjectMapping.csproj", "{C20EB46A-E5F9-43E1-84E8-6677979EC1CC}"
 EndProject
@@ -212,6 +212,13 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fake.FileManagement.Infrastructure", "modules\file-management\Fake.FileManagement.Infrastructure\Fake.FileManagement.Infrastructure.csproj", "{8A55A464-5809-4E37-8123-0DE0CFE44059}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fake.FileManagement.Domain", "modules\file-management\Fake.FileManagement.Domain\Fake.FileManagement.Domain.csproj", "{4E21F8E3-427C-4A00-ACA3-0AE10614882A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "rules", "rules", "{A9D65B53-3814-4CEF-AB36-BF476668A055}"
+	ProjectSection(SolutionItems) = preProject
+		.cursor\rules\fake-eventbus-rabbitmq.mdc = .cursor\rules\fake-eventbus-rabbitmq.mdc
+		.cursor\rules\fake-rabbitmq.mdc = .cursor\rules\fake-rabbitmq.mdc
+		.cursor\rules\soft-delete-no-unique-index.mdc = .cursor\rules\soft-delete-no-unique-index.mdc
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -509,9 +516,7 @@ Global
 		{5DA97EA0-8E4C-47E1-B1BD-1F636A5437E8} = {242B5161-9E38-4BBD-9AA7-A85831F60533}
 		{4DCB4E21-30B1-43F0-94BB-2968708457A0} = {AC56DAD8-C5AB-4E41-A280-1BCC08A2BE60}
 		{64836C12-F23E-48FD-AC30-5E63DFD7092D} = {4DCB4E21-30B1-43F0-94BB-2968708457A0}
-		{8A110FDF-BF6A-4C78-A1DF-326E7CABC7D4} = {64836C12-F23E-48FD-AC30-5E63DFD7092D}
 		{507825BD-B352-4646-85EA-A893CF3221CF} = {64836C12-F23E-48FD-AC30-5E63DFD7092D}
-		{E453F51E-BCE8-427B-AF7C-86AF89C9F239} = {64836C12-F23E-48FD-AC30-5E63DFD7092D}
 		{9D7D6527-1E06-4457-8D8A-D7A6A91F2C7A} = {64836C12-F23E-48FD-AC30-5E63DFD7092D}
 		{ECBC0DDA-CDD7-4239-BCF8-A5A3299A36E4} = {AC56DAD8-C5AB-4E41-A280-1BCC08A2BE60}
 		{AFA214FC-3902-40D6-95E5-DD8516C61926} = {ECBC0DDA-CDD7-4239-BCF8-A5A3299A36E4}
@@ -576,5 +581,8 @@ Global
 		{8A55A464-5809-4E37-8123-0DE0CFE44059} = {309DC6D3-4B98-422F-947A-B7A0FCD9D168}
 		{4E21F8E3-427C-4A00-ACA3-0AE10614882A} = {309DC6D3-4B98-422F-947A-B7A0FCD9D168}
 		{309DC6D3-4B98-422F-947A-B7A0FCD9D168} = {B6927503-7C6F-4D5C-A25C-7D1E071DE8EA}
+		{A9D65B53-3814-4CEF-AB36-BF476668A055} = {39FED9F7-23E6-43A4-B478-B914A2E805D0}
+		{8A110FDF-BF6A-4C78-A1DF-326E7CABC7D4} = {ECBC0DDA-CDD7-4239-BCF8-A5A3299A36E4}
+		{E453F51E-BCE8-427B-AF7C-86AF89C9F239} = {ECBC0DDA-CDD7-4239-BCF8-A5A3299A36E4}
 	EndGlobalSection
 EndGlobal

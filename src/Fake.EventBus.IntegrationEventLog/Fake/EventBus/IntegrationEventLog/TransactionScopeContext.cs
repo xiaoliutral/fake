@@ -1,7 +1,7 @@
 using System.Transactions;
 using Fake.EventBus.Distributed;
 
-namespace Fake.EntityFrameworkCore.IntegrationEventLog;
+namespace Fake.EventBus.IntegrationEventLog;
 
 /// <summary>
 /// TransactionScope 事务上下文实现

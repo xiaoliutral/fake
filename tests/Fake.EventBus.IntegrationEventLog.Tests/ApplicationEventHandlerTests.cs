@@ -1,13 +1,13 @@
-﻿using System.Transactions;
+using System.Transactions;
 using Application.IntegrationEvents;
 using Fake.EventBus.Distributed;
 using Fake.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Fake.EntityFrameworkCore.IntegrationEventLog.Tests;
+namespace Fake.EventBus.IntegrationEventLog.Tests;
 
 public class ApplicationEventHandlerTests
-    : ApplicationTestWithTools<FakeEntityFrameworkCoreIntegrationEventLogTestModule>
+    : ApplicationTestWithTools<FakeEventBusIntegrationEventLogTestModule>
 {
     private readonly IOutboxEventLogService _outboxEventLogService;
 

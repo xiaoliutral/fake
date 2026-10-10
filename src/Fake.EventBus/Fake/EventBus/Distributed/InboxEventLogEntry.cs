@@ -57,6 +57,16 @@ public class InboxEventLogEntry
     public string EventTypeShortName => _eventTypeShortName ??= EventTypeName.Split('.').Last();
     
     /// <summary>
+    /// 重新标记为消费中（僵尸锁恢复 / 失败重试）
+    /// </summary>
+    public void MarkAsConsuming()
+    {
+        State = EventState.Consuming;
+        ErrorMessage = null;
+        ProcessedTime = DateTime.UtcNow;
+    }
+
+    /// <summary>
     /// 标记为消费成功
     /// </summary>
     public void MarkAsSucceeded()
@@ -64,7 +74,7 @@ public class InboxEventLogEntry
         State = EventState.ConsumeSucceeded;
         ProcessedTime = DateTime.UtcNow;
     }
-    
+
     /// <summary>
     /// 标记为消费失败
     /// </summary>

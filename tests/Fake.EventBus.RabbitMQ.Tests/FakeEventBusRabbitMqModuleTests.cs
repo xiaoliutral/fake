@@ -1,4 +1,5 @@
 using Fake.EventBus.Distributed;
+using Fake.EventBus.Local;
 using Fake.EventBus.RabbitMQ.Tests.Events;
 using Fake.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,14 +12,17 @@ namespace Fake.EventBus.RabbitMQ.Tests;
 public class FakeEventBusRabbitMqModuleTests : ApplicationTest<FakeEventBusRabbitMqTestModule>
 {
     [Fact]
-    public void 应注册分布式事件总线为RabbitMqEventBus()
+    public void 应注册分布式事件总线为RabbitMqEventBus且本地总线保持LocalEventBus()
     {
         var distributedEventBus = ServiceProvider.GetRequiredService<IDistributedEventBus>();
         var eventBus = ServiceProvider.GetRequiredService<IEventBus>();
+        var localEventBus = ServiceProvider.GetRequiredService<ILocalEventBus>();
 
         distributedEventBus.ShouldBeOfType<RabbitMqEventBus>();
-        eventBus.ShouldBeOfType<RabbitMqEventBus>();
-        ReferenceEquals(distributedEventBus, eventBus).ShouldBeTrue();
+        eventBus.ShouldBeOfType<LocalEventBus>();
+        localEventBus.ShouldBeOfType<LocalEventBus>();
+        ReferenceEquals(eventBus, localEventBus).ShouldBeTrue();
+        ReferenceEquals(distributedEventBus, ServiceProvider.GetRequiredService<RabbitMqEventBus>()).ShouldBeTrue();
     }
 
     [Fact]

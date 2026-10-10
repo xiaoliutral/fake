@@ -1,11 +1,11 @@
-using Fake.EntityFrameworkCore.IntegrationEventLog.Options;
+using Fake.EventBus.Distributed;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Fake.EntityFrameworkCore.IntegrationEventLog;
+namespace Fake.EventBus.IntegrationEventLog;
 
 /// <summary>
 /// Inbox 清理后台服务，定期删除旧的已处理事件记录
@@ -63,8 +63,9 @@ public class InboxCleanupBackgroundService : BackgroundService
 
         _logger.LogDebug("Starting cleanup of inbox records older than {CutoffDate}", cutoffDate);
 
+        // 仅清理已成功消费的记录，保留 Consuming / ConsumeFailed 以免破坏幂等与重试
         var deletedCount = await context.InboxEventLogs
-            .Where(e => e.ProcessedTime < cutoffDate)
+            .Where(e => e.State == EventState.ConsumeSucceeded && e.ProcessedTime < cutoffDate)
             .ExecuteDeleteAsync(cancellationToken);
 
         if (deletedCount > 0)

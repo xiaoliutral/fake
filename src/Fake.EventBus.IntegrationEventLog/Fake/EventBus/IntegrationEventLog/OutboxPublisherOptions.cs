@@ -1,4 +1,4 @@
-namespace Fake.EntityFrameworkCore.IntegrationEventLog.Options;
+namespace Fake.EventBus.IntegrationEventLog;
 
 /// <summary>
 /// Outbox 发布服务配置选项
@@ -19,6 +19,12 @@ public class OutboxPublisherOptions
     /// 每次扫描处理的最大事件数量（批量大小，默认 100）
     /// </summary>
     public int BatchSize { get; set; } = 100;
+
+    /// <summary>
+    /// 单进程内并发发布度（默认 8）。每条消息使用独立 DI Scope/DbContext；
+    /// 多实例横向扩展时靠 TryMarkEventAsInProgressAsync 抢占行锁。
+    /// </summary>
+    public int MaxDegreeOfParallelism { get; set; } = 8;
 
     /// <summary>
     /// 启动延迟时间（默认 5 秒）
@@ -49,6 +55,9 @@ public class OutboxPublisherOptions
 
         if (BatchSize > 1000)
             throw new ArgumentException("BatchSize cannot exceed 1000", nameof(BatchSize));
+
+        if (MaxDegreeOfParallelism < 1)
+            throw new ArgumentException("MaxDegreeOfParallelism must be at least 1", nameof(MaxDegreeOfParallelism));
 
         if (StartupDelay < TimeSpan.Zero)
             throw new ArgumentException("StartupDelay cannot be negative", nameof(StartupDelay));

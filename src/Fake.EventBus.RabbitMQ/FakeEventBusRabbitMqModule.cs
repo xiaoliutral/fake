@@ -41,8 +41,9 @@ public class FakeEventBusRabbitMqModule : FakeModule
         var configuration = context.Services.GetConfiguration();
         context.Services.Configure<RabbitMqEventBusOptions>(configuration.GetSection("RabbitMQ:EventBus"));
 
-        context.Services.AddSingleton<IEventBus, RabbitMqEventBus>();
-        context.Services.AddSingleton<IDistributedEventBus, RabbitMqEventBus>();
-        context.Services.AddHostedService<RabbitMqEventBus>();
+        // IEventBus 保持为 LocalEventBus；分布式只挂 IDistributedEventBus
+        context.Services.AddSingleton<RabbitMqEventBus>();
+        context.Services.AddSingleton<IDistributedEventBus>(sp => sp.GetRequiredService<RabbitMqEventBus>());
+        context.Services.AddHostedService(sp => sp.GetRequiredService<RabbitMqEventBus>());
     }
 }

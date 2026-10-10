@@ -130,28 +130,26 @@ public class RabbitMqEventBus(
         // deserialize the event
         var @event = DeserializeMessage(message, eventType);
 
-        var inboxService = scope.ServiceProvider.GetService<IInboxEventLogService>();
-        if (inboxService != null)
+        var inboxService = scope.ServiceProvider.GetRequiredService<IInboxEventLogService>();
+
+        // 1. 原子性标记为"处理中"（NullInbox 恒为 true）
+        var isNewEvent = await inboxService.TryMarkAsProcessingAsync(
+            @event.Id,
+            eventType.FullName ?? eventName,
+            message);
+
+        if (!isNewEvent)
         {
-            // 1. 原子性标记为"处理中"
-            var isNewEvent = await inboxService.TryMarkAsProcessingAsync(
-                @event.Id, 
-                eventType.FullName ?? eventName, 
-                message);
-
-            if (!isNewEvent)
-            {
-                logger.LogInformation("Event {EventId} already processed, skipping.", @event.Id);
-                return;
-            }
-
-            logger.LogDebug("Event {EventId} marked as processing", @event.Id);
+            logger.LogInformation("Event {EventId} already processed, skipping.", @event.Id);
+            return;
         }
+
+        logger.LogDebug("Event {EventId} marked as processing", @event.Id);
 
         // 2. 执行业务逻辑（带重试）
         const int maxRetries = 3;
         Exception? lastException = null;
-        
+
         for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
             try
@@ -162,20 +160,17 @@ public class RabbitMqEventBus(
                 }
 
                 // 3. 成功：标记为已成功
-                if (inboxService != null)
-                {
-                    await inboxService.MarkAsSucceededAsync(@event.Id);
-                }
-                
+                await inboxService.MarkAsSucceededAsync(@event.Id);
+
                 logger.LogInformation("Event {EventId} processed successfully", @event.Id);
                 return;
             }
             catch (Exception ex)
             {
                 lastException = ex;
-                logger.LogWarning(ex, "Event {EventId} processing failed (attempt {Attempt}/{MaxRetries})", 
+                logger.LogWarning(ex, "Event {EventId} processing failed (attempt {Attempt}/{MaxRetries})",
                     @event.Id, attempt, maxRetries);
-                
+
                 if (attempt < maxRetries)
                 {
                     await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
@@ -184,7 +179,7 @@ public class RabbitMqEventBus(
         }
 
         // 4. 重试N次后仍失败：标记为失败
-        if (inboxService != null && lastException != null)
+        if (lastException != null)
         {
             await inboxService.MarkAsFailedAsync(@event.Id, lastException.Message);
         }

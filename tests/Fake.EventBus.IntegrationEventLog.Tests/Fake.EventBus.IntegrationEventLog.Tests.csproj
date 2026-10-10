@@ -3,7 +3,7 @@
     <Import Project="..\..\common.test.props"/>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\Fake.EntityFrameworkCore.IntegrationEventLog\Fake.EntityFrameworkCore.IntegrationEventLog.csproj"/>
+        <ProjectReference Include="..\..\src\Fake.EventBus.IntegrationEventLog\Fake.EventBus.IntegrationEventLog.csproj"/>
         <ProjectReference Include="..\Fake.EntityFrameworkCore.Tests\Fake.EntityFrameworkCore.Tests.csproj"/>
     </ItemGroup>
 

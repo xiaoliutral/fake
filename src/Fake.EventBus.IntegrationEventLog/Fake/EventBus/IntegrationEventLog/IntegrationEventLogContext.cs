@@ -1,8 +1,9 @@
-﻿using Fake.EventBus.Distributed;
+using Fake.EntityFrameworkCore;
+using Fake.EventBus.Distributed;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Fake.EntityFrameworkCore.IntegrationEventLog;
+namespace Fake.EventBus.IntegrationEventLog;
 
 public class IntegrationEventLogContext : EfCoreDbContext<IntegrationEventLogContext>
 {
@@ -46,15 +47,13 @@ public class IntegrationEventLogContext : EfCoreDbContext<IntegrationEventLogCon
             .IsRequired();
 
         builder.Property(e => e.EventTypeName)
-            .HasMaxLength(30)
+            .HasMaxLength(512)
             .IsRequired();
 
-        // 添加复合索引，优化 Outbox 扫描查询性能
-        // WHERE State = NotPublished ORDER BY CreationTime
+        // WHERE State IN (NotPublished, PublishFailed) ORDER BY CreationTime
         builder.HasIndex(e => new { e.State, e.CreationTime })
             .HasDatabaseName("IX_OutboxEventLog_State_CreationTime");
 
-        // 添加事务 ID 索引，优化按事务查询
         builder.HasIndex(e => e.TransactionId)
             .HasDatabaseName("IX_OutboxEventLog_TransactionId");
     }
@@ -69,7 +68,7 @@ public class IntegrationEventLogContext : EfCoreDbContext<IntegrationEventLogCon
             .IsRequired();
 
         builder.Property(e => e.EventTypeName)
-            .HasMaxLength(30)
+            .HasMaxLength(512)
             .IsRequired();
 
         builder.Property(e => e.Content)
