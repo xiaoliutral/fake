@@ -27,6 +27,8 @@ public sealed class DashboardHostFixture : IAsyncLifetime
         });
 
         _app = builder.Build();
+        // 须显式挂载（且在真实宿主中应位于 UsePathBase 之后）
+        _app.UseFakeEventBusDashboard();
         await _app.StartAsync();
         Client = _app.GetTestClient();
     }

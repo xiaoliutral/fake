@@ -1,6 +1,5 @@
 using Fake.EventBus.Dashboard;
 using Fake.EventBus.Distributed;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -8,8 +7,9 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class EventBusDashboardServiceCollectionExtensions
 {
     /// <summary>
-    /// 注册 EventBus Dashboard（CAP 风格：可插拔、不绑死宿主应用）。
-    /// 默认通过 <see cref="IStartupFilter"/> 自动挂载到管道；也可显式调用 <c>UseFakeEventBusDashboard()</c>。
+    /// 注册 EventBus Dashboard 服务。
+    /// 宿主须在 <c>UsePathBase</c> 之后调用 <c>UseFakeEventBusDashboard()</c>
+    ///（网关前缀如 /admin 时尤为重要，否则会 404）。
     /// </summary>
     public static IServiceCollection AddFakeEventBusDashboard(
         this IServiceCollection services,
@@ -27,8 +27,7 @@ public static class EventBusDashboardServiceCollectionExtensions
         services.TryAddSingleton<IDlxAdminService>(_ => NullDlxAdminService.Instance);
 
         services.TryAddSingleton<EventBusDashboardApi>();
-        services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IStartupFilter, EventBusDashboardStartupFilter>());
         return services;
     }
 }
+

@@ -9,6 +9,8 @@ namespace Fake.EventBus.Dashboard;
 /// 独立 EventBus Dashboard 模块。也可不依赖 Fake 模块系统，直接：
 /// <code>
 /// services.AddFakeEventBusDashboard(o => o.PathMatch = "/eventbus");
+/// // 管道中须在 UsePathBase 之后：
+/// app.UseFakeEventBusDashboard();
 /// </code>
 /// </summary>
 [DependsOn(typeof(FakeEventBusModule))]

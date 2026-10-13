@@ -12,7 +12,8 @@ public static class EventBusDashboardApplicationBuilderExtensions
 
     /// <summary>
     /// 挂载 EventBus Dashboard（UI + API）。默认路径 <c>/eventbus</c>。
-    /// 若已通过 <c>AddFakeEventBusDashboard</c> 的 StartupFilter 挂载，则不会重复注册。
+    /// 请放在 <c>UsePathBase</c> 之后；重复调用会被忽略。
+    /// 对外完整路径示例：PathBase=/admin → <c>/admin/eventbus</c>。
     /// </summary>
     public static IApplicationBuilder UseFakeEventBusDashboard(this IApplicationBuilder app)
     {
