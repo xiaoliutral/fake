@@ -1,4 +1,5 @@
 using Fake.Rbac.Domain.OrganizationAggregate;
+using Fake.EntityFrameworkCore.Modeling;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -8,7 +9,7 @@ public class OrganizationEntityTypeConfiguration : IEntityTypeConfiguration<Orga
 {
     public void Configure(EntityTypeBuilder<Organization> builder)
     {
-        builder.ToTable("organization", FakeRbacDbContext.DefaultSchema);
+        builder.ToFakeTable("organization", FakeRbacDbContext.DefaultSchema);
 
         builder.HasKey(o => o.Id);
 

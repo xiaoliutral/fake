@@ -21,4 +21,7 @@ public sealed class NullInboxEventLogService : IInboxEventLogService
 
     public Task MarkAsFailedAsync(Guid eventId, string errorMessage)
         => Task.CompletedTask;
+
+    public Task ResetEventForRetryAsync(Guid eventId, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
 }

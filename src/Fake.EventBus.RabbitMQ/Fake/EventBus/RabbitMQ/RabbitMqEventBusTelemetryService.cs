@@ -27,21 +27,24 @@ public class RabbitMqEventBusTelemetryService(IOptions<RabbitMqEventBusOptions> 
     {
         return _propagator.Extract(default, properties, static (props, key) =>
         {
-            if (props.Headers.TryGetValue(key, out var value))
+            if (props.Headers != null && props.Headers.TryGetValue(key, out var value))
             {
-                return new[] { Encoding.UTF8.GetString((byte[])value) };
+                return value switch
+                {
+                    byte[] bytes => [Encoding.UTF8.GetString(bytes)],
+                    string s => [s],
+                    _ => Array.Empty<string>()
+                };
             }
 
             return Array.Empty<string>();
         });
     }
 
-    private static void SetActivityContext(Activity? activity, string routingKey, string operation)
+    public static void SetActivityContext(Activity? activity, string routingKey, string operation)
     {
         if (activity is null) return;
 
-        // These tags are added demonstrating the semantic conventions of the OpenTelemetry messaging specification
-        // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/messaging/messaging-spans.md
         activity.SetTag("messaging.operation.name", operation);
         activity.SetTag("messaging.system", "rabbitmq");
         activity.SetTag("messaging.destination_kind", "queue");

@@ -1,9 +1,13 @@
+using Fake.EntityFrameworkCore;
 using Serilog;
 using SimpleAdmin.Api;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Configuration.AddConsul("idwms/common", source => source.ReloadOnChange = true);
 builder.Configuration.AddConsul("idwms/dev", source => source.ReloadOnChange = true);
+
+// Fake 框架表前缀（默认 fk_）：须在 AddApplication / Migrate 之前生效
+FakeDbProperties.Configure(builder.Configuration[FakeDbProperties.TablePrefixConfigurationKey]);
 
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)

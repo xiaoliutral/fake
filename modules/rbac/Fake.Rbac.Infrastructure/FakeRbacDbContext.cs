@@ -11,8 +11,8 @@ namespace Fake.Rbac.Infrastructure;
 public class FakeRbacDbContext(DbContextOptions<FakeRbacDbContext> options)
     : EfCoreDbContext<FakeRbacDbContext>(options)
 {
-    // MySQL doesn't support schemas, so we set this to null
-    public const string? DefaultSchema = null;
+    // MySQL doesn't support schemas; align with FakeDbProperties.DbSchema when needed
+    public static string? DefaultSchema => FakeDbProperties.DbSchema;
 
     public DbSet<User> Users { get; set; }
     public DbSet<Role> Roles { get; set; }

@@ -28,14 +28,22 @@ public class FakeEventBusModule : FakeModule
 
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
+        var configuration = context.Services.GetConfiguration();
+        context.Services.Configure<EventRoutingOptions>(configuration.GetSection(EventRoutingOptions.SectionName));
+        context.Services.TryAddSingleton<IEventRoutingKeyResolver, DefaultEventRoutingKeyResolver>();
+        context.Services.TryAddSingleton<EventBusMetrics>();
+
         // 同一实例：IEventBus / ILocalEventBus 均指向本地总线
         context.Services.AddSingleton<LocalEventBus>();
         context.Services.AddSingleton<ILocalEventBus>(sp => sp.GetRequiredService<LocalEventBus>());
         context.Services.AddSingleton<IEventBus>(sp => sp.GetRequiredService<LocalEventBus>());
 
-        // 默认空实现；接入 Fake.EventBus.IntegrationEventLog 后由该模块 Replace
+        // 默认空实现；接入 Fake.EventBus.IntegrationEventLog / RabbitMQ 后由对应模块 Replace
         context.Services.TryAddTransient<IOutboxEventLogService>(_ => NullOutboxEventLogService.Instance);
         context.Services.TryAddTransient<IInboxEventLogService>(_ => NullInboxEventLogService.Instance);
         context.Services.TryAddTransient<IOutboxEventPublisher>(_ => NullOutboxEventPublisher.Instance);
+        context.Services.TryAddTransient<IOutboxAdminStore>(_ => NullOutboxAdminStore.Instance);
+        context.Services.TryAddTransient<IInboxAdminStore>(_ => NullInboxAdminStore.Instance);
+        context.Services.TryAddSingleton<IDlxAdminService>(_ => NullDlxAdminService.Instance);
     }
 }

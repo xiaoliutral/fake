@@ -12,6 +12,7 @@ namespace Fake.EventBus.IntegrationEventLog;
 /// </summary>
 public class OutboxDistributedEventBus(
     IUnitOfWorkManager unitOfWorkManager,
+    EventBusMetrics metrics,
     ILogger<OutboxDistributedEventBus> logger) : IDistributedEventBus
 {
     private const string PendingEventsKey = "Fake.EventBus.Outbox.PendingEvents";
@@ -116,6 +117,8 @@ public class OutboxDistributedEventBus(
 
         var txIds = uow.GetOrAddItem(TransactionIdsKey, _ => new HashSet<Guid>());
         txIds.Add(enlistable.TransactionId);
+
+        metrics.RecordOutboxEnqueued(@event.GetType().Name);
 
         logger.LogInformation(
             "Outbox event {EventId} ({EventType}) enqueued for transaction {TransactionId}",

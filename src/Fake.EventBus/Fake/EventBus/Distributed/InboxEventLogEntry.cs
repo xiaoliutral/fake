@@ -84,4 +84,14 @@ public class InboxEventLogEntry
         ErrorMessage = errorMessage;
         ProcessedTime = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// 人工重试：标记为失败以便下次投递时重新抢占。
+    /// </summary>
+    public void ResetForRetry(string? reason = null)
+    {
+        State = EventState.ConsumeFailed;
+        ErrorMessage = reason ?? "Reset for manual retry";
+        ProcessedTime = DateTime.UtcNow;
+    }
 }

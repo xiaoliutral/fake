@@ -30,4 +30,9 @@ public interface IInboxEventLogService
     /// 标记事件处理失败
     /// </summary>
     Task MarkAsFailedAsync(Guid eventId, string errorMessage);
+
+    /// <summary>
+    /// 人工重试：重置为可重新抢占状态
+    /// </summary>
+    Task ResetEventForRetryAsync(Guid eventId, CancellationToken cancellationToken = default);
 }

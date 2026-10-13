@@ -5,18 +5,22 @@ using Fake.Rbac.Domain.RoleAggregate;
 using Fake.Rbac.Domain.UserAggregate;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Fake.Rbac.Infrastructure.DataSeeds;
 
 /// <summary>
 /// RBAC模块数据种子
 /// </summary>
-public class RbacDataSeedContributor(FakeRbacDbContext dbContext, DbInitializer dbInitializer, IConfiguration configuration) : IDataSeedContributor
+public class RbacDataSeedContributor(
+    FakeRbacDbContext dbContext,
+    IConfiguration configuration,
+    ILogger<RbacDataSeedContributor> logger) : IDataSeedContributor
 {
     public async Task SeedAsync()
     {
-        await dbInitializer.InitializeAsync();
-        
+        await MigrateAsync();
+
         if (!configuration.GetSection("GenerateSeedData").Get<bool>()) return;
         
         // 种子数据：默认菜单（菜单就是权限）
@@ -30,6 +34,33 @@ public class RbacDataSeedContributor(FakeRbacDbContext dbContext, DbInitializer 
         
         // 种子数据：默认组织架构
         await SeedDefaultOrganizationsAsync();
+    }
+
+    private async Task MigrateAsync()
+    {
+        try
+        {
+            logger.LogInformation("开始初始化数据库...");
+
+            var pending = (await dbContext.Database.GetPendingMigrationsAsync()).ToList();
+            if (pending.Count > 0)
+            {
+                logger.LogInformation("发现 {Count} 个待应用的迁移", pending.Count);
+                await dbContext.Database.MigrateAsync();
+                logger.LogInformation("迁移应用成功");
+            }
+            else
+            {
+                logger.LogInformation("没有待应用的迁移");
+            }
+
+            logger.LogInformation("数据库初始化完成");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "数据库初始化失败");
+            throw;
+        }
     }
 
     private async Task SeedAdminRoleAsync()

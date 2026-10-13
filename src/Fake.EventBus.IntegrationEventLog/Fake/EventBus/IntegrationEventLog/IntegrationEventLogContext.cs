@@ -1,4 +1,5 @@
 using Fake.EntityFrameworkCore;
+using Fake.EntityFrameworkCore.Modeling;
 using Fake.EventBus.Distributed;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -26,7 +27,7 @@ public class IntegrationEventLogContext : EfCoreDbContext<IntegrationEventLogCon
 
     void ConfigureOutboxEventLogEntry(EntityTypeBuilder<OutboxEventLogEntry> builder)
     {
-        builder.ToTable("OutboxEventLog");
+        builder.ToFakeTable("outbox_event_log");
 
         builder.HasKey(e => e.EventId);
 
@@ -52,15 +53,15 @@ public class IntegrationEventLogContext : EfCoreDbContext<IntegrationEventLogCon
 
         // WHERE State IN (NotPublished, PublishFailed) ORDER BY CreationTime
         builder.HasIndex(e => new { e.State, e.CreationTime })
-            .HasDatabaseName("IX_OutboxEventLog_State_CreationTime");
+            .HasDatabaseName("ix_" + FakeDbProperties.GetTableName("outbox_event_log") + "_state_creation_time");
 
         builder.HasIndex(e => e.TransactionId)
-            .HasDatabaseName("IX_OutboxEventLog_TransactionId");
+            .HasDatabaseName("ix_" + FakeDbProperties.GetTableName("outbox_event_log") + "_transaction_id");
     }
 
     void ConfigureInboxEventLogEntry(EntityTypeBuilder<InboxEventLogEntry> builder)
     {
-        builder.ToTable("InboxEventLog");
+        builder.ToFakeTable("inbox_event_log");
 
         builder.HasKey(e => e.EventId);
 
@@ -81,7 +82,7 @@ public class IntegrationEventLogContext : EfCoreDbContext<IntegrationEventLogCon
         builder.Property(e => e.State)
             .IsRequired();
 
-        // 添加索引以提高查询性能
-        builder.HasIndex(e => e.ProcessedTime);
+        builder.HasIndex(e => e.ProcessedTime)
+            .HasDatabaseName("ix_" + FakeDbProperties.GetTableName("inbox_event_log") + "_processed_time");
     }
 }

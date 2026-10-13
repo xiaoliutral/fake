@@ -59,6 +59,16 @@ public class InboxEventLogService(IntegrationEventLogContext context) : IInboxEv
         }
     }
 
+    public async Task ResetEventForRetryAsync(Guid eventId, CancellationToken cancellationToken = default)
+    {
+        var entry = await context.InboxEventLogs
+            .SingleOrDefaultAsync(e => e.EventId == eventId, cancellationToken)
+            ?? throw new InvalidOperationException($"Inbox event {eventId} was not found.");
+
+        entry.ResetForRetry();
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task<bool> TryReclaimAsync(Guid eventId)
     {
         var existing = await context.InboxEventLogs.FindAsync(eventId);

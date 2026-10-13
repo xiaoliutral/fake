@@ -1,13 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
+    <Import Project="../../../common.module.props"/>
+    <Import Project="../../../configureawait.props"/>
 
     <ItemGroup>
         <ProjectReference Include="..\..\..\src\Fake.EntityFrameworkCore\Fake.EntityFrameworkCore.csproj"/>
+        <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3"/>
         <ProjectReference Include="..\Fake.TenantManagement.Domain\Fake.TenantManagement.Domain.csproj"/>
     </ItemGroup>
 

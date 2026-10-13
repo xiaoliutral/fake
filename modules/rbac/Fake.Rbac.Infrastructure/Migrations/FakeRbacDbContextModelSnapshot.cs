@@ -106,7 +106,7 @@ namespace Fake.Rbac.Infrastructure.Migrations
 
                     b.HasIndex("PermissionCode");
 
-                    b.ToTable("menu", (string)null);
+                    b.ToTable(FakeDbProperties.GetTableName("menu"), (string)null);
                 });
 
             modelBuilder.Entity("Fake.Rbac.Domain.OrganizationAggregate.Organization", b =>
@@ -177,7 +177,7 @@ namespace Fake.Rbac.Infrastructure.Migrations
 
                     b.HasIndex("Code");
 
-                    b.ToTable("organization", (string)null);
+                    b.ToTable(FakeDbProperties.GetTableName("organization"), (string)null);
                 });
 
             modelBuilder.Entity("Fake.Rbac.Domain.RoleAggregate.Role", b =>
@@ -227,7 +227,7 @@ namespace Fake.Rbac.Infrastructure.Migrations
 
                     b.HasIndex("Code");
 
-                    b.ToTable("role", (string)null);
+                    b.ToTable(FakeDbProperties.GetTableName("role"), (string)null);
                 });
 
             modelBuilder.Entity("Fake.Rbac.Domain.RoleAggregate.RolePermission", b =>
@@ -255,7 +255,7 @@ namespace Fake.Rbac.Infrastructure.Migrations
 
                     b.HasIndex("RoleId", "PermissionCode");
 
-                    b.ToTable("role_permission", (string)null);
+                    b.ToTable(FakeDbProperties.GetTableName("role_permission"), (string)null);
                 });
 
             modelBuilder.Entity("Fake.Rbac.Domain.UserAggregate.User", b =>
@@ -322,7 +322,7 @@ namespace Fake.Rbac.Infrastructure.Migrations
 
                     b.HasIndex("Email");
 
-                    b.ToTable("user", (string)null);
+                    b.ToTable(FakeDbProperties.GetTableName("user"), (string)null);
                 });
 
             modelBuilder.Entity("Fake.Rbac.Domain.UserAggregate.UserRole", b =>
@@ -349,7 +349,7 @@ namespace Fake.Rbac.Infrastructure.Migrations
 
                     b.HasIndex("UserId", "RoleId");
 
-                    b.ToTable("user_role", (string)null);
+                    b.ToTable(FakeDbProperties.GetTableName("user_role"), (string)null);
                 });
 
             modelBuilder.Entity("Fake.Rbac.Domain.RoleAggregate.RolePermission", b =>
@@ -378,7 +378,7 @@ namespace Fake.Rbac.Infrastructure.Migrations
 
                             b1.HasKey("UserId");
 
-                            b1.ToTable("user");
+                            b1.ToTable(FakeDbProperties.GetTableName("user"));
 
                             b1.WithOwner()
                                 .HasForeignKey("UserId");

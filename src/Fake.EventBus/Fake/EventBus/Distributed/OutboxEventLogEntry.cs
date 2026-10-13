@@ -88,4 +88,13 @@ public class OutboxEventLogEntry
     {
         TimesSent += value;
     }
+
+    /// <summary>
+    /// 人工重试：回到待发布并清除锁。
+    /// </summary>
+    public void ResetForRetry()
+    {
+        State = EventState.NotPublished;
+        LockExpiresAt = null;
+    }
 }

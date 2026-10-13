@@ -9,7 +9,7 @@ public class StoredFileEntityTypeConfiguration : IEntityTypeConfiguration<Stored
 {
     public void Configure(EntityTypeBuilder<StoredFile> builder)
     {
-        builder.ToTable("stored_file");
+        builder.ToFakeTable("stored_file");
 
         builder.TryConfigureByConvention();
 

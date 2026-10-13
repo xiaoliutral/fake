@@ -78,6 +78,28 @@ public class OutboxEventLogService(IntegrationEventLogContext integrationEventLo
         return UpdateEventStatus(eventId, EventState.PublishFailed);
     }
 
+    public async Task<OutboxEventLogEntry?> FindAsync(Guid eventId, CancellationToken cancellationToken = default)
+    {
+        var entry = await integrationEventLogContext.OutboxEventLogs
+            .AsNoTracking()
+            .SingleOrDefaultAsync(e => e.EventId == eventId, cancellationToken);
+
+        if (entry == null)
+            return null;
+
+        return entry.DeserializeJsonContent(IntegrationEventTypeResolver.Resolve(entry.EventTypeName));
+    }
+
+    public async Task ResetEventForRetryAsync(Guid eventId, CancellationToken cancellationToken = default)
+    {
+        var entry = await integrationEventLogContext.OutboxEventLogs
+            .SingleOrDefaultAsync(e => e.EventId == eventId, cancellationToken)
+            ?? throw new InvalidOperationException($"Outbox event {eventId} was not found.");
+
+        entry.ResetForRetry();
+        await integrationEventLogContext.SaveChangesAsync(cancellationToken);
+    }
+
     private void EnlistInAmbientTransaction(ITransactionContext transactionContext)
     {
         switch (transactionContext.GetUnderlyingTransaction())

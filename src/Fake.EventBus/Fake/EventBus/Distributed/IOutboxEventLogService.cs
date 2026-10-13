@@ -27,4 +27,14 @@ public interface IOutboxEventLogService
     Task<bool> TryMarkEventAsInProgressAsync(Guid eventId, TimeSpan? lockTimeout = null);
 
     Task MarkEventAsFailedAsync(Guid eventId);
+
+    /// <summary>
+    /// 按 Id 查找 Outbox 条目（含反序列化 IntegrationEvent）
+    /// </summary>
+    Task<OutboxEventLogEntry?> FindAsync(Guid eventId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 人工重试：重置为 NotPublished 并清除锁
+    /// </summary>
+    Task ResetEventForRetryAsync(Guid eventId, CancellationToken cancellationToken = default);
 }

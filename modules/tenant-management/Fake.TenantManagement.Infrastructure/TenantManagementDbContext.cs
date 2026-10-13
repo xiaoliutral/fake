@@ -8,7 +8,7 @@ namespace Fake.TenantManagement.Infrastructure;
 public class TenantManagementDbContext(DbContextOptions<TenantManagementDbContext> options)
     : EfCoreDbContext<TenantManagementDbContext>(options)
 {
-    public const string? DefaultSchema = null;
+    public static string? DefaultSchema => FakeDbProperties.DbSchema;
 
     public DbSet<Tenant> Tenants { get; set; }
     public DbSet<TenantConnectionString> TenantConnectionStrings { get; set; }

@@ -87,11 +87,13 @@ public class OutboxPublisherBackgroundService : BackgroundService
         await using var scope = _serviceProvider.CreateAsyncScope();
         var eventLogService = scope.ServiceProvider.GetRequiredService<IOutboxEventLogService>();
         var eventBus = scope.ServiceProvider.GetRequiredService<IPhysicalDistributedEventBus>();
+        var metrics = scope.ServiceProvider.GetRequiredService<EventBusMetrics>();
+        var eventType = eventLog.EventTypeShortName;
 
         try
         {
             _logger.LogDebug("Attempting to acquire lock for event {EventId} ({EventType})",
-                eventLog.EventId, eventLog.EventTypeShortName);
+                eventLog.EventId, eventType);
 
             var lockTimeout = _options.EnableZombieLockRecovery ? _options.LockTimeout : (TimeSpan?)null;
             var lockAcquired = await eventLogService.TryMarkEventAsInProgressAsync(eventLog.EventId, lockTimeout);
@@ -105,8 +107,13 @@ public class OutboxPublisherBackgroundService : BackgroundService
 
             if (_options.EnableZombieLockRecovery && eventLog.TimesSent > 0)
             {
+                metrics.RecordOutboxScanRetry(eventType);
                 _logger.LogWarning("Recovered zombie lock for event {EventId}, attempt {TimesSent}",
                     eventLog.EventId, eventLog.TimesSent + 1);
+            }
+            else if (eventLog.State == EventState.PublishFailed || eventLog.TimesSent > 0)
+            {
+                metrics.RecordOutboxScanRetry(eventType);
             }
 
             if (eventLog.IntegrationEvent is not IntegrationEvent integrationEvent)
@@ -116,10 +123,11 @@ public class OutboxPublisherBackgroundService : BackgroundService
             }
 
             _logger.LogDebug("Lock acquired, publishing event {EventId} ({EventType}) from Outbox",
-                eventLog.EventId, eventLog.EventTypeShortName);
+                eventLog.EventId, eventType);
 
             await eventBus.PublishAsync(integrationEvent, cancellationToken);
             await eventLogService.MarkEventAsPublishedAsync(eventLog.EventId);
+            metrics.RecordOutboxDispatched(eventType, "scan");
 
             _logger.LogInformation(
                 "Outbox event {EventId} dispatched by background scanner (retry/fallback)", eventLog.EventId);
@@ -127,6 +135,7 @@ public class OutboxPublisherBackgroundService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to publish event {EventId} from Outbox", eventLog.EventId);
+            metrics.RecordOutboxDispatchFailed(eventType, "scan");
             try
             {
                 await eventLogService.MarkEventAsFailedAsync(eventLog.EventId);

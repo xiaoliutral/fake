@@ -9,4 +9,7 @@ public sealed class NullOutboxEventPublisher : IOutboxEventPublisher
 
     public Task PublishPendingAsync(Guid transactionId, CancellationToken cancellationToken = default)
         => Task.CompletedTask;
+
+    public Task PublishOneAsync(Guid eventId, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
 }

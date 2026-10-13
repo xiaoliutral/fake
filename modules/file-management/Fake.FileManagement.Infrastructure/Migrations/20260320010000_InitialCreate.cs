@@ -1,4 +1,5 @@
 using System;
+using Fake.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -15,7 +16,7 @@ public partial class InitialCreate : Migration
             .Annotation("MySql:CharSet", "utf8mb4");
 
         migrationBuilder.CreateTable(
-                name: "stored_file",
+                name: FakeDbProperties.GetTableName("stored_file"),
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
@@ -36,24 +37,24 @@ public partial class InitialCreate : Migration
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_stored_file", x => x.Id);
+                    table.PrimaryKey("PK_" + FakeDbProperties.GetTableName("stored_file"), x => x.Id);
                 })
             .Annotation("MySql:CharSet", "utf8mb4");
 
         migrationBuilder.CreateIndex(
-            name: "IX_stored_file_Status",
-            table: "stored_file",
+            name: "IX_" + FakeDbProperties.GetTableName("stored_file") + "_Status",
+            table: FakeDbProperties.GetTableName("stored_file"),
             column: "Status");
 
         migrationBuilder.CreateIndex(
-            name: "IX_stored_file_StorageSource",
-            table: "stored_file",
+            name: "IX_" + FakeDbProperties.GetTableName("stored_file") + "_StorageSource",
+            table: FakeDbProperties.GetTableName("stored_file"),
             column: "StorageSource");
     }
 
     /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.DropTable(name: "stored_file");
+        migrationBuilder.DropTable(name: FakeDbProperties.GetTableName("stored_file"));
     }
 }

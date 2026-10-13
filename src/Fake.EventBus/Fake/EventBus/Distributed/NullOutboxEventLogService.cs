@@ -26,4 +26,10 @@ public sealed class NullOutboxEventLogService : IOutboxEventLogService
 
     public Task MarkEventAsFailedAsync(Guid eventId)
         => Task.CompletedTask;
+
+    public Task<OutboxEventLogEntry?> FindAsync(Guid eventId, CancellationToken cancellationToken = default)
+        => Task.FromResult<OutboxEventLogEntry?>(null);
+
+    public Task ResetEventForRetryAsync(Guid eventId, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
 }

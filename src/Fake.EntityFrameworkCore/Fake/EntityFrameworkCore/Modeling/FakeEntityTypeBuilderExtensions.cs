@@ -1,11 +1,36 @@
 ﻿using Fake.EntityFrameworkCore.ValueCompares;
 using Fake.EntityFrameworkCore.ValueConverters;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Fake.EntityFrameworkCore.Modeling;
 
 public static class FakeEntityTypeBuilderExtensions
 {
+    /// <summary>
+    /// 使用 <see cref="FakeDbProperties"/> 前缀注册表名（默认 <c>fk_</c>）。
+    /// </summary>
+    public static EntityTypeBuilder ToFakeTable(
+        this EntityTypeBuilder builder,
+        string nameWithoutPrefix,
+        string? schema = null)
+    {
+        return builder.ToTable(
+            FakeDbProperties.GetTableName(nameWithoutPrefix),
+            schema ?? FakeDbProperties.DbSchema);
+    }
+
+    public static EntityTypeBuilder<TEntity> ToFakeTable<TEntity>(
+        this EntityTypeBuilder<TEntity> builder,
+        string nameWithoutPrefix,
+        string? schema = null)
+        where TEntity : class
+    {
+        return builder.ToTable(
+            FakeDbProperties.GetTableName(nameWithoutPrefix),
+            schema ?? FakeDbProperties.DbSchema);
+    }
+
     public static EntityTypeBuilder TryConfigureByConvention(this EntityTypeBuilder builder)
     {
         return builder.TryConfigureCreator()

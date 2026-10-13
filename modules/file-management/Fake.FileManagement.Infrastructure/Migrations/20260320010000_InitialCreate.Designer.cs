@@ -85,7 +85,7 @@ partial class InitialCreate
 
                 b.HasIndex("StorageSource");
 
-                b.ToTable("stored_file", (string)null);
+                b.ToTable(FakeDbProperties.GetTableName("stored_file"), (string)null);
             });
 #pragma warning restore 612, 618
     }

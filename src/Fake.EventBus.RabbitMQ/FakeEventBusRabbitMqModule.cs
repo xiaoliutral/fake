@@ -1,5 +1,6 @@
 ﻿using Fake.DependencyInjection;
 using Fake.EventBus.Distributed;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 // ReSharper disable once CheckNamespace
 namespace Fake.EventBus.RabbitMQ;
@@ -41,10 +42,15 @@ public class FakeEventBusRabbitMqModule : FakeModule
         var configuration = context.Services.GetConfiguration();
         context.Services.Configure<RabbitMqEventBusOptions>(configuration.GetSection("RabbitMQ:EventBus"));
 
+        context.Services.AddSingleton<RabbitMqEventBusTelemetryService>();
+
         // IEventBus 保持为 LocalEventBus；物理总线供 Outbox Commit 后投递
         context.Services.AddSingleton<RabbitMqEventBus>();
         context.Services.AddSingleton<IPhysicalDistributedEventBus>(sp => sp.GetRequiredService<RabbitMqEventBus>());
         context.Services.AddSingleton<IDistributedEventBus>(sp => sp.GetRequiredService<RabbitMqEventBus>());
         context.Services.AddHostedService(sp => sp.GetRequiredService<RabbitMqEventBus>());
+
+        context.Services.Replace(
+            ServiceDescriptor.Singleton<IDlxAdminService, RabbitMqDlxAdminService>());
     }
 }

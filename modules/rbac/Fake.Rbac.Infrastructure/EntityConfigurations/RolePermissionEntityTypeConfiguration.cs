@@ -1,4 +1,5 @@
 using Fake.Rbac.Domain.RoleAggregate;
+using Fake.EntityFrameworkCore.Modeling;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -8,7 +9,7 @@ public class RolePermissionEntityTypeConfiguration: IEntityTypeConfiguration<Rol
 {
     public void Configure(EntityTypeBuilder<RolePermission> builder)
     {
-        builder.ToTable("role_permission", FakeRbacDbContext.DefaultSchema);
+        builder.ToFakeTable("role_permission", FakeRbacDbContext.DefaultSchema);
 
         // 业务唯一由应用层保证，库侧仅普通索引
         builder.HasIndex(rp => new { rp.RoleId, rp.PermissionCode });

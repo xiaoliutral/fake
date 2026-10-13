@@ -1,4 +1,5 @@
 using Fake.Rbac.Domain.MenuAggregate;
+using Fake.EntityFrameworkCore.Modeling;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -8,7 +9,7 @@ public class MenuEntityTypeConfiguration: IEntityTypeConfiguration<Menu>
 {
     public void Configure(EntityTypeBuilder<Menu> builder)
     {
-        builder.ToTable("menu", FakeRbacDbContext.DefaultSchema);
+        builder.ToFakeTable("menu", FakeRbacDbContext.DefaultSchema);
 
         builder.HasKey(m => m.Id);
 

@@ -11,4 +11,9 @@ public interface IOutboxEventPublisher
     /// 发布指定事务下尚未发送的 Outbox 事件。须在业务事务 Commit 之后调用。
     /// </summary>
     Task PublishPendingAsync(Guid transactionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 立即发布单条 Outbox 事件（运维重试：已重置为 NotPublished 后可选同步投递）。
+    /// </summary>
+    Task PublishOneAsync(Guid eventId, CancellationToken cancellationToken = default);
 }

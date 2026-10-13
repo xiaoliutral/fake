@@ -1,4 +1,5 @@
 using Fake.Rbac.Domain.RoleAggregate;
+using Fake.EntityFrameworkCore.Modeling;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -8,7 +9,7 @@ public class RoleEntityTypeConfiguration: IEntityTypeConfiguration<Role>
 {
     public void Configure(EntityTypeBuilder<Role> builder)
     {
-        builder.ToTable("role", FakeRbacDbContext.DefaultSchema);
+        builder.ToFakeTable("role", FakeRbacDbContext.DefaultSchema);
 
         builder.HasKey(r => r.Id);
 

@@ -9,7 +9,7 @@ public class TenantEntityTypeConfiguration : IEntityTypeConfiguration<Tenant>
 {
     public void Configure(EntityTypeBuilder<Tenant> builder)
     {
-        builder.ToTable("tenant", TenantManagementDbContext.DefaultSchema);
+        builder.ToFakeTable("tenant", TenantManagementDbContext.DefaultSchema);
 
         builder.TryConfigureByConvention();
 

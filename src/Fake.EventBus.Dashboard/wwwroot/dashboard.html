@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fake EventBus Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4d;
+      --text: #e7ecf3;
+      --muted: #8b9bb4;
+      --accent: #3b82f6;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; border-bottom: 1px solid var(--border); background: #121a24;
+    }
+    header h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .02em; }
+    header .meta { color: var(--muted); font-size: 12px; }
+    nav { display: flex; gap: 4px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+    nav button {
+      background: transparent; border: 1px solid transparent; color: var(--muted);
+      padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    }
+    nav button.active, nav button:hover {
+      color: var(--text); background: var(--panel); border-color: var(--border);
+    }
+    main { padding: 16px 20px 40px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+    }
+    .card .label { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+    .card .value { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; }
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    @media (max-width: 900px) { .charts { grid-template-columns: 1fr; } }
+    .chart-box {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+      height: 260px;
+    }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+    input, select, button.action {
+      background: #0d131c; border: 1px solid var(--border); color: var(--text);
+      border-radius: 6px; padding: 7px 10px; font-size: 13px;
+    }
+    button.action { cursor: pointer; background: var(--accent); border-color: transparent; }
+    button.action.secondary { background: transparent; border-color: var(--border); }
+    button.action.danger { background: var(--danger); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 500; background: #121a24; position: sticky; top: 0; }
+    .table-wrap {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+      overflow: auto; max-height: 520px;
+    }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px;
+      background: #243044; color: var(--muted);
+    }
+    .badge.ok { background: rgba(34,197,94,.15); color: var(--ok); }
+    .badge.warn { background: rgba(245,158,11,.15); color: var(--warn); }
+    .badge.danger { background: rgba(239,68,68,.15); color: var(--danger); }
+    .mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+    .muted { color: var(--muted); }
+    .hidden { display: none; }
+    .pager { display: flex; gap: 8px; align-items: center; margin-top: 10px; color: var(--muted); font-size: 12px; }
+    pre {
+      margin: 0; max-width: 360px; white-space: pre-wrap; word-break: break-all;
+      color: var(--muted); font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Fake EventBus Dashboard</h1>
+    <div class="meta" id="serverMeta">connecting…</div>
+  </header>
+  <nav>
+    <button class="active" data-tab="overview">Overview</button>
+    <button data-tab="outbox">Published / Outbox</button>
+    <button data-tab="inbox">Received / Inbox</button>
+    <button data-tab="dlx">DLX</button>
+  </nav>
+  <main>
+    <section id="tab-overview">
+      <div class="cards" id="metricCards"></div>
+      <div class="charts">
+        <div class="chart-box"><canvas id="chartOutbox"></canvas></div>
+        <div class="chart-box"><canvas id="chartInbox"></canvas></div>
+      </div>
+      <div class="cards" id="stateCards"></div>
+    </section>
+
+    <section id="tab-outbox" class="hidden">
+      <div class="toolbar">
+        <select id="outboxState">
+          <option value="">All states</option>
+          <option>NotPublished</option>
+          <option>InProgress</option>
+          <option>Published</option>
+          <option>PublishFailed</option>
+        </select>
+        <input id="outboxType" placeholder="Event type" />
+        <input id="outboxKeyword" placeholder="Keyword / Id" />
+        <button class="action" id="outboxSearch">Search</button>
+      </div>
+      <div class="table-wrap"><table><thead>
+        <tr><th>EventId</th><th>Type</th><th>State</th><th>Times</th><th>Created</th><th>Actions</th></tr>
+      </thead><tbody id="outboxBody"></tbody></table></div>
+      <div class="pager" id="outboxPager"></div>
+    </section>
+
+    <section id="tab-inbox" class="hidden">
+      <div class="toolbar">
+        <select id="inboxState">
+          <option value="">All states</option>
+          <option>Consuming</option>
+          <option>ConsumeSucceeded</option>
+          <option>ConsumeFailed</option>
+        </select>
+        <input id="inboxType" placeholder="Event type" />
+        <input id="inboxKeyword" placeholder="Keyword / Id" />
+        <button class="action" id="inboxSearch">Search</button>
+      </div>
+      <div class="table-wrap"><table><thead>
+        <tr><th>EventId</th><th>Type</th><th>State</th><th>Processed</th><th>Error</th><th>Actions</th></tr>
+      </thead><tbody id="inboxBody"></tbody></table></div>
+      <div class="pager" id="inboxPager"></div>
+    </section>
+
+    <section id="tab-dlx" class="hidden">
+      <div class="toolbar">
+        <button class="action" id="dlxRefresh">Refresh DLX</button>
+        <span class="muted" id="dlxStatus"></span>
+      </div>
+      <div class="table-wrap"><table><thead>
+        <tr><th>MessageId</th><th>RoutingKey</th><th>EventId</th><th>Reason</th><th>Body</th><th>Actions</th></tr>
+      </thead><tbody id="dlxBody"></tbody></table></div>
+    </section>
+  </main>
+
+  <script>
+    const API = "{{API_BASE}}";
+    const POLL_MS = Number("{{POLL_MS}}") || 2000;
+
+    const stateBadge = (s) => {
+      if (!s) return "";
+      const cls = /Failed|fail/i.test(s) ? "danger"
+        : /Published|Succeeded/i.test(s) ? "ok"
+        : /Progress|Consuming|NotPublished/i.test(s) ? "warn" : "";
+      return `<span class="badge ${cls}">${s}</span>`;
+    };
+
+    const fmt = (n) => Number(n || 0).toLocaleString();
+    const shortId = (id) => (id || "").toString().slice(0, 8) + "…";
+
+    let outboxPage = 1, inboxPage = 1;
+    const history = { labels: [], enqueued: [], dispatched: [], failed: [], inboxOk: [], inboxDup: [], inboxFail: [] };
+    const MAX_POINTS = 30;
+
+    const chartOutbox = new Chart(document.getElementById("chartOutbox"), {
+      type: "line",
+      data: {
+        labels: history.labels,
+        datasets: [
+          { label: "Enqueued", data: history.enqueued, borderColor: "#3b82f6", tension: .25, pointRadius: 0 },
+          { label: "Dispatched", data: history.dispatched, borderColor: "#22c55e", tension: .25, pointRadius: 0 },
+          { label: "Failed", data: history.failed, borderColor: "#ef4444", tension: .25, pointRadius: 0 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#8b9bb4" } } },
+        scales: { x: { ticks: { color: "#8b9bb4" } }, y: { ticks: { color: "#8b9bb4" }, beginAtZero: true } } }
+    });
+
+    const chartInbox = new Chart(document.getElementById("chartInbox"), {
+      type: "line",
+      data: {
+        labels: history.labels,
+        datasets: [
+          { label: "Processed", data: history.inboxOk, borderColor: "#22c55e", tension: .25, pointRadius: 0 },
+          { label: "Duplicate", data: history.inboxDup, borderColor: "#f59e0b", tension: .25, pointRadius: 0 },
+          { label: "Failed", data: history.inboxFail, borderColor: "#ef4444", tension: .25, pointRadius: 0 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#8b9bb4" } } },
+        scales: { x: { ticks: { color: "#8b9bb4" } }, y: { ticks: { color: "#8b9bb4" }, beginAtZero: true } } }
+    });
+
+    document.querySelectorAll("nav button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        ["overview","outbox","inbox","dlx"].forEach(t => {
+          document.getElementById("tab-" + t).classList.toggle("hidden", t !== btn.dataset.tab);
+        });
+        if (btn.dataset.tab === "outbox") loadOutbox();
+        if (btn.dataset.tab === "inbox") loadInbox();
+        if (btn.dataset.tab === "dlx") loadDlx();
+      });
+    });
+
+    async function api(path, opts) {
+      const res = await fetch(API + path, Object.assign({ headers: { "Content-Type": "application/json" } }, opts || {}));
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+      return res.json();
+    }
+
+    function renderCards(m) {
+      const cards = [
+        ["Outbox Enqueued", m.outboxEnqueued],
+        ["Dispatched (immediate)", m.outboxDispatchedImmediate],
+        ["Dispatched (scan)", m.outboxDispatchedScan],
+        ["Dispatch Failed", m.outboxDispatchFailed],
+        ["Scan Retry", m.outboxScanRetry],
+        ["Inbox Processed", m.inboxProcessed],
+        ["Inbox Duplicate", m.inboxDuplicate],
+        ["Inbox Failed", m.inboxFailed]
+      ];
+      document.getElementById("metricCards").innerHTML = cards.map(([l,v]) =>
+        `<div class="card"><div class="label">${l}</div><div class="value">${fmt(v)}</div></div>`).join("");
+    }
+
+    function renderStateCards(outbox, inbox) {
+      const parts = [];
+      (outbox || []).forEach(x => parts.push(`<div class="card"><div class="label">Outbox · ${x.state}</div><div class="value">${fmt(x.count)}</div></div>`));
+      (inbox || []).forEach(x => parts.push(`<div class="card"><div class="label">Inbox · ${x.state}</div><div class="value">${fmt(x.count)}</div></div>`));
+      document.getElementById("stateCards").innerHTML = parts.join("") || `<div class="muted">No persisted messages yet.</div>`;
+    }
+
+    function pushHistory(m) {
+      const label = new Date().toLocaleTimeString();
+      history.labels.push(label);
+      history.enqueued.push(m.outboxEnqueued);
+      history.dispatched.push((m.outboxDispatchedImmediate || 0) + (m.outboxDispatchedScan || 0));
+      history.failed.push(m.outboxDispatchFailed);
+      history.inboxOk.push(m.inboxProcessed);
+      history.inboxDup.push(m.inboxDuplicate);
+      history.inboxFail.push(m.inboxFailed);
+      if (history.labels.length > MAX_POINTS) {
+        Object.keys(history).forEach(k => history[k].shift());
+      }
+      chartOutbox.update("none");
+      chartInbox.update("none");
+    }
+
+    async function refreshStats() {
+      try {
+        const data = await api("/stats");
+        renderCards(data.metrics);
+        renderStateCards(data.outbox, data.inbox);
+        pushHistory(data.metrics);
+        document.getElementById("serverMeta").textContent =
+          `UTC ${new Date(data.serverTimeUtc).toISOString()} · poll ${data.pollIntervalMs}ms · DLX ${data.dlxAvailable ? "on" : "off"}`;
+      } catch (e) {
+        document.getElementById("serverMeta").textContent = "error: " + e.message;
+      }
+    }
+
+    async function loadOutbox() {
+      const q = new URLSearchParams({
+        pageIndex: outboxPage, pageSize: 20,
+        state: document.getElementById("outboxState").value,
+        eventType: document.getElementById("outboxType").value,
+        keyword: document.getElementById("outboxKeyword").value
+      });
+      const data = await api("/outbox?" + q.toString());
+      document.getElementById("outboxBody").innerHTML = (data.items || []).map(item => `
+        <tr>
+          <td class="mono" title="${item.eventId}">${shortId(item.eventId)}</td>
+          <td>${item.eventTypeShortName}</td>
+          <td>${stateBadge(item.state)}</td>
+          <td>${item.timesSent}</td>
+          <td class="mono">${item.creationTime}</td>
+          <td>
+            <button class="action secondary" onclick="retryOutbox('${item.eventId}', false)">Reset</button>
+            <button class="action" onclick="retryOutbox('${item.eventId}', true)">Publish now</button>
+          </td>
+        </tr>`).join("") || `<tr><td colspan="6" class="muted">No data</td></tr>`;
+      document.getElementById("outboxPager").innerHTML =
+        `Total ${data.total} · Page ${data.pageIndex}
+         <button class="action secondary" onclick="outboxPage=Math.max(1,outboxPage-1);loadOutbox()">Prev</button>
+         <button class="action secondary" onclick="outboxPage=outboxPage+1;loadOutbox()">Next</button>`;
+    }
+
+    async function loadInbox() {
+      const q = new URLSearchParams({
+        pageIndex: inboxPage, pageSize: 20,
+        state: document.getElementById("inboxState").value,
+        eventType: document.getElementById("inboxType").value,
+        keyword: document.getElementById("inboxKeyword").value
+      });
+      const data = await api("/inbox?" + q.toString());
+      document.getElementById("inboxBody").innerHTML = (data.items || []).map(item => `
+        <tr>
+          <td class="mono" title="${item.eventId}">${shortId(item.eventId)}</td>
+          <td>${item.eventTypeShortName}</td>
+          <td>${stateBadge(item.state)}</td>
+          <td class="mono">${item.processedTime}</td>
+          <td>${item.errorMessage || ""}</td>
+          <td><button class="action" onclick="retryInbox('${item.eventId}')">Reset for retry</button></td>
+        </tr>`).join("") || `<tr><td colspan="6" class="muted">No data</td></tr>`;
+      document.getElementById("inboxPager").innerHTML =
+        `Total ${data.total} · Page ${data.pageIndex}
+         <button class="action secondary" onclick="inboxPage=Math.max(1,inboxPage-1);loadInbox()">Prev</button>
+         <button class="action secondary" onclick="inboxPage=inboxPage+1;loadInbox()">Next</button>`;
+    }
+
+    async function loadDlx() {
+      try {
+        const data = await api("/dlx/messages?maxCount=50");
+        document.getElementById("dlxStatus").textContent = data.available
+          ? `${(data.items||[]).length} message(s) previewed (held until requeue/discard/refresh)`
+          : "DLX not available (enable RabbitMQ EventBus EnableDlx)";
+        document.getElementById("dlxBody").innerHTML = (data.items || []).map(item => `
+          <tr>
+            <td class="mono">${shortId(item.messageId)}</td>
+            <td class="mono">${item.routingKey || ""}</td>
+            <td class="mono">${item.eventId || ""}</td>
+            <td>${item.deathReason || ""}</td>
+            <td><pre>${(item.body || "").slice(0, 240)}</pre></td>
+            <td>
+              <button class="action" onclick="dlxOp('${item.messageId}','requeue')">Requeue</button>
+              <button class="action danger" onclick="dlxOp('${item.messageId}','discard')">Discard</button>
+            </td>
+          </tr>`).join("") || `<tr><td colspan="6" class="muted">Empty</td></tr>`;
+      } catch (e) {
+        document.getElementById("dlxStatus").textContent = e.message;
+      }
+    }
+
+    window.retryOutbox = async (id, publishNow) => {
+      await api(`/outbox/${id}/retry`, { method: "POST", body: JSON.stringify({ publishNow }) });
+      await loadOutbox(); await refreshStats();
+    };
+    window.retryInbox = async (id) => {
+      await api(`/inbox/${id}/retry`, { method: "POST", body: "{}" });
+      await loadInbox(); await refreshStats();
+    };
+    window.dlxOp = async (id, op) => {
+      await api(`/dlx/messages/${id}/${op}`, { method: "POST", body: "{}" });
+      await loadDlx();
+    };
+
+    document.getElementById("outboxSearch").onclick = () => { outboxPage = 1; loadOutbox(); };
+    document.getElementById("inboxSearch").onclick = () => { inboxPage = 1; loadInbox(); };
+    document.getElementById("dlxRefresh").onclick = () => loadDlx();
+
+    refreshStats();
+    setInterval(refreshStats, POLL_MS);
+  </script>
+</body>
+</html>

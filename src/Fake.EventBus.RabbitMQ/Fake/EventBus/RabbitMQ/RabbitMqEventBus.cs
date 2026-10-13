@@ -9,19 +9,19 @@ using RabbitMQ.Client.Exceptions;
 namespace Fake.EventBus.RabbitMQ;
 
 /// <summary>
-/// 基于RabbitMessageQueue实现的事件总线
-/// </summary> 
-/// <remarks>
-/// <para>路由模式，直连交换机，以事件名称作为routeKey</para>
-/// <para>一个客户端独享一个消费者通道</para>
-/// </remarks>
+/// 基于 RabbitMQ 的物理分布式事件总线。
+/// 路由：默认 ShortName，可通过 EventBus:Routing 自定义；Header 携带 EventId / EventType。
+/// </summary>
 public class RabbitMqEventBus(
     IRabbitMqConnectionPool rabbitMqConnectionPool,
     ILogger<RabbitMqEventBus> logger,
     IServiceScopeFactory serviceScopeFactory,
     IOptions<EventBusSubscriptionOptions> subscriptionOptions,
     IOptions<RabbitMqEventBusOptions> eventBusOptions,
-    IApplicationInfo applicationInfo
+    IApplicationInfo applicationInfo,
+    IEventRoutingKeyResolver routingKeyResolver,
+    RabbitMqEventBusTelemetryService telemetry,
+    EventBusMetrics metrics
 ) : IPhysicalDistributedEventBus, IDisposable, IHostedService
 {
     private readonly RabbitMqEventBusOptions _eventBusOptions = eventBusOptions.Value;
@@ -29,20 +29,24 @@ public class RabbitMqEventBus(
 
     private readonly ResiliencePipeline _pipeline = CreateResiliencePipeline(eventBusOptions.Value.RetryCount);
 
-    private IModel? _consumerChannel; // 消费者专用通道，异常会自动重启
+    private IModel? _consumerChannel;
 
-    private readonly string _exchangeName = eventBusOptions.Value.ExchangeName; // 事件投递的交换机
+    private readonly string _exchangeName = eventBusOptions.Value.ExchangeName;
 
-    // work queue：competing consumers,
-    // 当多个消费者订阅同一个队列时，RabbitMQ 使用轮询（Round-Robin）或者根据消费者的 Qos 设置来分发消息。每条消息只会被投递给其中一个消费者。
     private readonly string _queueName = (eventBusOptions.Value.QueueName ?? applicationInfo.ApplicationName)
-        .TrimEnd('.') + ".Queue"; // 客户端订阅队列名称
+        .TrimEnd('.') + ".Queue";
 
     public Task PublishAsync(IntegrationEvent @event, CancellationToken cancellationToken)
     {
-        var routingKey = @event.GetType().Name;
+        var eventType = @event.GetType();
+        var routingKey = routingKeyResolver.Resolve(eventType);
 
-        logger.LogDebug("Creating RabbitMQ channel for publishing event: {EventId} ({EventName})", @event.Id,
+        using var activity = telemetry.StartActivity($"{_exchangeName} publish", ActivityKind.Producer);
+        RabbitMqEventBusTelemetryService.SetActivityContext(activity, routingKey, "publish");
+        activity?.SetTag("messaging.message.id", @event.Id.ToString());
+        activity?.SetTag("fake.event.type", eventType.FullName);
+
+        logger.LogDebug("Creating RabbitMQ channel for publishing event: {EventId} ({RoutingKey})", @event.Id,
             routingKey);
 
         using var channel = rabbitMqConnectionPool.Get(_eventBusOptions.ConnectionName).CreateModel();
@@ -50,12 +54,17 @@ public class RabbitMqEventBus(
         var body = SerializeMessage(@event);
 
         var properties = channel.CreateBasicProperties();
-        properties.DeliveryMode = 2; // Non-persistent (1) or persistent (2).
+        properties.DeliveryMode = 2;
+        properties.Headers ??= new Dictionary<string, object>();
+        properties.Headers[EventBusMessageHeaders.EventId] = @event.Id.ToString();
+        properties.Headers[EventBusMessageHeaders.EventType] = eventType.FullName ?? eventType.Name;
 
-        // tips：最大努力投递
+        if (activity != null)
+            telemetry.InjectTraceContext(properties, activity.Context);
+
         _pipeline.Execute(chan =>
         {
-            logger.LogDebug("Publishing event to RabbitMQ: {EventId} ({EventName})", @event.Id, routingKey);
+            logger.LogDebug("Publishing event to RabbitMQ: {EventId} ({RoutingKey})", @event.Id, routingKey);
             chan.BasicPublish(exchange: _exchangeName, routingKey: routingKey, mandatory: true,
                 basicProperties: properties, body: body);
         }, channel);
@@ -65,15 +74,17 @@ public class RabbitMqEventBus(
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
+        RebuildSubscriptionRoutingKeys();
+
         _ = Task.Factory.StartNew(() =>
         {
             _consumerChannel = CreateConsumerChannel();
-            foreach (var (eventName, _) in _subscriptionOptions.EventTypes)
+            foreach (var routingKey in GetBindRoutingKeys())
             {
                 _consumerChannel.QueueBind(
                     queue: _queueName,
                     exchange: _exchangeName,
-                    routingKey: eventName);
+                    routingKey: routingKey);
             }
 
             StartBasicConsume(_consumerChannel);
@@ -106,51 +117,74 @@ public class RabbitMqEventBus(
         _consumerChannel?.Dispose();
     }
 
-
     #region private methods
 
-    /// <summary>
-    /// 处理消息（实现 Inbox 幂等性）
-    /// </summary>
-    /// <param name="eventName"></param>
-    /// <param name="message"></param>
-    /// <returns></returns>
-    private async Task ProcessingEventAsync(string eventName, string message)
+    private void RebuildSubscriptionRoutingKeys()
     {
-        logger.LogDebug("Processing RabbitMQ event: {EventName}", eventName);
+        // PreConfigure 以 ShortName 注册；此处按解析器补齐自定义 / FullName 路由键映射
+        var snapshot = _subscriptionOptions.EventTypes.ToList();
+        foreach (var (_, eventType) in snapshot)
+        {
+            var routingKey = routingKeyResolver.Resolve(eventType);
+            _subscriptionOptions.EventTypes[routingKey] = eventType;
+
+            // 兼容：始终保留 ShortName 映射，便于旧消息 / 旧绑定
+            _subscriptionOptions.EventTypes[eventType.Name] = eventType;
+        }
+    }
+
+    private IEnumerable<string> GetBindRoutingKeys()
+    {
+        return _subscriptionOptions.EventTypes.Values
+            .Distinct()
+            .Select(routingKeyResolver.Resolve)
+            .Distinct(StringComparer.Ordinal);
+    }
+
+    private async Task ProcessingEventAsync(
+        string routingKey,
+        string message,
+        IBasicProperties properties,
+        ActivityContext parentContext)
+    {
+        using var activity = telemetry.StartActivity($"{_queueName} process", ActivityKind.Consumer, parentContext);
+        RabbitMqEventBusTelemetryService.SetActivityContext(activity, routingKey, "process");
+
+        logger.LogDebug("Processing RabbitMQ event: {RoutingKey}", routingKey);
 
         await using var scope = serviceScopeFactory.CreateAsyncScope();
 
-        if (!_subscriptionOptions.EventTypes.TryGetValue(eventName, out var eventType))
+        if (!TryResolveEventType(routingKey, properties, out var eventType))
         {
-            logger.LogWarning("Unable to resolve event type for event name {EventName}", eventName);
+            logger.LogWarning("Unable to resolve event type for routing key {RoutingKey}", routingKey);
             return;
         }
 
-        // deserialize the event
+        activity?.SetTag("fake.event.type", eventType.FullName);
+
         var @event = DeserializeMessage(message, eventType);
+        activity?.SetTag("messaging.message.id", @event.Id.ToString());
 
         var inboxService = scope.ServiceProvider.GetRequiredService<IInboxEventLogService>();
 
-        // 1. 原子性标记为"处理中"（NullInbox 恒为 true）
         var isNewEvent = await inboxService.TryMarkAsProcessingAsync(
             @event.Id,
-            eventType.FullName ?? eventName,
+            eventType.FullName ?? routingKey,
             message);
 
         if (!isNewEvent)
         {
+            metrics.RecordInboxDuplicate(eventType.Name);
             logger.LogInformation("Event {EventId} already processed, skipping.", @event.Id);
             return;
         }
 
         logger.LogDebug("Event {EventId} marked as processing", @event.Id);
 
-        // 2. 执行业务逻辑（带重试）
         const int maxRetries = 3;
         Exception? lastException = null;
 
-        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
         {
             try
             {
@@ -159,8 +193,8 @@ public class RabbitMqEventBus(
                     await handler.HandleAsync(@event);
                 }
 
-                // 3. 成功：标记为已成功
                 await inboxService.MarkAsSucceededAsync(@event.Id);
+                metrics.RecordInboxProcessed(eventType.Name);
 
                 logger.LogInformation("Event {EventId} processed successfully", @event.Id);
                 return;
@@ -178,41 +212,61 @@ public class RabbitMqEventBus(
             }
         }
 
-        // 4. 重试N次后仍失败：标记为失败
         if (lastException != null)
         {
             await inboxService.MarkAsFailedAsync(@event.Id, lastException.Message);
+            metrics.RecordInboxFailed(eventType.Name);
         }
-        
-        logger.LogError(lastException, "Event {EventId} failed after {MaxRetries} attempts", 
+
+        logger.LogError(lastException, "Event {EventId} failed after {MaxRetries} attempts",
             @event.Id, maxRetries);
-        
-        throw lastException!; // 让 RabbitMQ 将消息投递到死信队列
+
+        throw lastException!;
     }
 
-    /// <summary>
-    /// 创建消费者通道
-    /// </summary>
-    /// <returns></returns>
+    private bool TryResolveEventType(string routingKey, IBasicProperties properties, out Type eventType)
+    {
+        if (_subscriptionOptions.EventTypes.TryGetValue(routingKey, out eventType!))
+            return true;
+
+        if (properties.Headers != null &&
+            properties.Headers.TryGetValue(EventBusMessageHeaders.EventType, out var headerValue))
+        {
+            var typeName = headerValue switch
+            {
+                byte[] bytes => Encoding.UTF8.GetString(bytes),
+                string s => s,
+                _ => headerValue?.ToString()
+            };
+
+            if (!string.IsNullOrEmpty(typeName))
+            {
+                if (_subscriptionOptions.EventTypes.TryGetValue(typeName, out eventType!))
+                    return true;
+
+                var shortName = typeName.Split('.').Last();
+                if (_subscriptionOptions.EventTypes.TryGetValue(shortName, out eventType!))
+                    return true;
+            }
+        }
+
+        eventType = null!;
+        return false;
+    }
+
     private IModel CreateConsumerChannel()
     {
         logger.LogDebug("Creating rabbitmq eventbus consumer channel");
 
-        // tips: can't use using, because the channel will be disposed in the callback exception
         var channel = rabbitMqConnectionPool.Get(_eventBusOptions.ConnectionName).CreateModel();
 
         var arguments = new Dictionary<string, object>();
 
-        /*
-         * The message is negatively acknowledged by a consumer using basic.reject or basic.nack with requeue parameter set to false.
-         * The message expires due to per-message TTL; or
-         * The message is dropped because its queue exceeded a length limit
-         */
         if (_eventBusOptions.EnableDlx)
         {
-            string dlxExchangeName = "DLX." + _exchangeName;
-            string dlxQueueName = "DLX." + _queueName;
-            string dlxRouteKey = dlxQueueName;
+            var dlxExchangeName = RabbitMqDlxNames.Exchange(_exchangeName);
+            var dlxQueueName = RabbitMqDlxNames.Queue(_queueName);
+            var dlxRouteKey = RabbitMqDlxNames.RoutingKey(_queueName);
 
             logger.LogDebug("Binding DLX exchange: {DlxExchangeName}, queue: {DlxQueueName}, routeKey: {DlxRouteKey}",
                 dlxExchangeName, dlxQueueName, dlxRouteKey);
@@ -239,58 +293,42 @@ public class RabbitMqEventBus(
         channel.QueueDeclare(queue: _queueName, durable: true, exclusive: false, autoDelete: false,
             arguments: arguments);
 
-        /*
-         * 消费者限流机制，防止开启客户端时，服务被巨量数据冲宕机
-         * 限流情况不能设置自动签收，一定要手动签收
-         * prefetchSize，消息体大小，如果设置为0，表示对消息本身的大小不限制
-         * prefetchCount，告诉RabbitMQ不要一次性给消费者推送大于N条消息
-         * global，是否将设置应用于整个通道，false表示只应用于当前消费者
-         */
         channel.BasicQos(_eventBusOptions.PrefetchSize, _eventBusOptions.PrefetchCount, false);
 
-        // 当通道调用的回调中发生异常时发出信号
         channel.CallbackException += (_, args) =>
         {
             logger.LogWarning(args.Exception, "Consumer channel callback exception");
 
-            // 销毁原有通道，重新创建
             channel.Dispose();
             var newChannel = CreateConsumerChannel();
             _consumerChannel = newChannel;
-            // 使得新的消费者通道依然能够正常的消费消息
             StartBasicConsume(newChannel);
         };
 
         return channel;
     }
 
-    /// <summary>
-    /// 启动基本内容类消费
-    /// </summary>
-    /// <param name="channel"></param>
     private void StartBasicConsume(IModel channel)
     {
         logger.LogDebug("Starting rabbitmq eventbus basic consume");
 
-        // 创建异步消费者
         var consumer = new AsyncEventingBasicConsumer(channel);
         consumer.Received += async (_, eventArgs) =>
         {
-            string eventName = eventArgs.RoutingKey;
+            var routingKey = eventArgs.RoutingKey;
+            var message = Encoding.UTF8.GetString(eventArgs.Body.Span);
+            var parentContext = telemetry.ExtractTraceContext(eventArgs.BasicProperties).ActivityContext;
 
-            string message = Encoding.UTF8.GetString(eventArgs.Body.Span);
             try
             {
-                await ProcessingEventAsync(eventName, message);
+                await ProcessingEventAsync(routingKey, message, eventArgs.BasicProperties, parentContext);
                 channel.BasicAck(eventArgs.DeliveryTag, multiple: false);
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Processing event: {EventName} failed, message:\n {Message}", eventName,
+                logger.LogWarning(ex, "Processing event: {RoutingKey} failed, message:\n {Message}", routingKey,
                     message);
 
-                // 即使发生异常，消息也总会被ack且不requeue，实际上，应该用死信队列来解决异常case
-                // For more information see: https://www.rabbitmq.com/dlx.html
                 channel.BasicNack(eventArgs.DeliveryTag, multiple: false, requeue: false);
             }
         };
@@ -298,9 +336,8 @@ public class RabbitMqEventBus(
         channel.BasicConsume(queue: _queueName, autoAck: false, consumer: consumer);
     }
 
-    static ResiliencePipeline CreateResiliencePipeline(int retryCount)
+    private static ResiliencePipeline CreateResiliencePipeline(int retryCount)
     {
-        // See https://www.pollydocs.org/strategies/retry.html
         var retryOptions = new RetryStrategyOptions
         {
             ShouldHandle = new PredicateBuilder().Handle<BrokerUnreachableException>().Handle<SocketException>(),
