@@ -7,7 +7,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Fake.Rbac.Infrastructure.Migrations;
 
 /// <summary>
-/// RBAC 基线（唯一迁移）。业务唯一由应用层保证，库侧索引均为非唯一。
+/// RBAC 基线。表名经 <see cref="FakeDbProperties"/> 加前缀（默认 fk_）；
+/// 存量无前缀库由后续 <c>RenameTablesToFakePrefix</c> 迁移处理。
 /// </summary>
 public partial class InitialCreate : Migration
 {
