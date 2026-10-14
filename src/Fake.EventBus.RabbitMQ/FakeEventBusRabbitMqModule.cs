@@ -52,5 +52,7 @@ public class FakeEventBusRabbitMqModule : FakeModule
 
         context.Services.Replace(
             ServiceDescriptor.Singleton<IDlxAdminService, RabbitMqDlxAdminService>());
+        context.Services.Replace(
+            ServiceDescriptor.Singleton<IEventBusTopology, RabbitMqEventBusTopology>());
     }
 }

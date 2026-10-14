@@ -18,4 +18,7 @@ public sealed class NullInboxAdminStore : IInboxAdminStore
 
     public Task ResetForRetryAsync(Guid eventId, CancellationToken cancellationToken = default)
         => throw new InvalidOperationException("Inbox admin store is not available. Add Fake.EventBus.IntegrationEventLog.");
+
+    public Task<bool> TryResetForRetryAsync(Guid eventId, CancellationToken cancellationToken = default)
+        => Task.FromResult(false);
 }

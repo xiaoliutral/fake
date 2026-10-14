@@ -12,7 +12,7 @@ public static class EventBusDashboardApplicationBuilderExtensions
 
     /// <summary>
     /// 挂载 EventBus Dashboard（UI + API）。默认路径 <c>/eventbus</c>。
-    /// 请放在 <c>UsePathBase</c> 之后；重复调用会被忽略。
+    /// 请放在 <c>UsePathBase</c> 之后调用；重复调用会被忽略。
     /// 对外完整路径示例：PathBase=/admin → <c>/admin/eventbus</c>。
     /// </summary>
     public static IApplicationBuilder UseFakeEventBusDashboard(this IApplicationBuilder app)
@@ -25,21 +25,38 @@ public static class EventBusDashboardApplicationBuilderExtensions
         var options = app.ApplicationServices.GetRequiredService<IOptions<EventBusDashboardOptions>>().Value;
         var path = NormalizePath(options.PathMatch);
 
+        // WebApplication / 最小宿主：走 endpoint 路由，匹配的是 PathBase 剥离后的 Path，
+        // 比 IApplicationBuilder.Map 中间件分支更不容易在网关前缀下 404。
+        if (app is IEndpointRouteBuilder endpoints)
+        {
+            var group = endpoints.MapGroup(path);
+            EventBusDashboardApi.MapEndpoints(group);
+
+            group.MapGet("/", async ctx =>
+            {
+                await EventBusDashboardStaticFiles.WriteUiAsync(ctx, options);
+            });
+            group.MapGet("/dashboard.html", async ctx =>
+            {
+                await EventBusDashboardStaticFiles.WriteUiAsync(ctx, options);
+            });
+
+            return app;
+        }
+
         app.Map(path, branch =>
         {
             branch.UseRouting();
-            branch.UseEndpoints(endpoints =>
+            branch.UseEndpoints(branchEndpoints =>
             {
-                var api = branch.ApplicationServices.GetRequiredService<EventBusDashboardApi>();
-                api.Map(endpoints);
+                EventBusDashboardApi.MapEndpoints(branchEndpoints);
 
-                // 不用 index.html，避免与宿主 Swagger/静态站入口冲突
-                endpoints.MapGet("/", async ctx =>
+                branchEndpoints.MapGet("/", async ctx =>
                 {
                     await EventBusDashboardStaticFiles.WriteUiAsync(ctx, options);
                 });
 
-                endpoints.MapGet("/dashboard.html", async ctx =>
+                branchEndpoints.MapGet("/dashboard.html", async ctx =>
                 {
                     await EventBusDashboardStaticFiles.WriteUiAsync(ctx, options);
                 });

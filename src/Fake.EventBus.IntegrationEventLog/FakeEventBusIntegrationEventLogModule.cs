@@ -33,6 +33,8 @@ public class FakeEventBusIntegrationEventLogModule : FakeModule
             ServiceDescriptor.Transient<IOutboxAdminStore, OutboxAdminStore>());
         context.Services.Replace(
             ServiceDescriptor.Transient<IInboxAdminStore, InboxAdminStore>());
+        context.Services.Replace(
+            ServiceDescriptor.Transient<IInboxEventReprocessor, InboxEventReprocessor>());
 
         // 业务注入 IDistributedEventBus → Outbox；解析时校验物理总线已注册（如 RabbitMQ）
         context.Services.Replace(ServiceDescriptor.Singleton<IDistributedEventBus>(sp =>

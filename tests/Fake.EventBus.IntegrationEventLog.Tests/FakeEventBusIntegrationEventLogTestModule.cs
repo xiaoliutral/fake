@@ -1,6 +1,7 @@
 using Fake.Autofac;
 using Fake.EntityFrameworkCore;
 using Fake.EventBus.Distributed;
+using Fake.EventBus.IntegrationEventLog.Tests.Events;
 using Fake.EventBus.IntegrationEventLog.Tests.Fakes;
 using Fake.Modularity;
 using Fake.SyncEx;
@@ -21,6 +22,9 @@ public class FakeEventBusIntegrationEventLogTestModule : FakeModule
         context.Services.AddSingleton<FakePhysicalDistributedEventBus>();
         context.Services.AddSingleton<IPhysicalDistributedEventBus>(sp =>
             sp.GetRequiredService<FakePhysicalDistributedEventBus>());
+
+        // Inbox 本地 Reprocess 回退路径：非 keyed 的 IEventHandler<T>
+        context.Services.AddTransient<IEventHandler<TestOutboxIntegrationEvent>, TrackingInboxHandler>();
 
         context.Services.Configure<OutboxPublisherOptions>(o =>
         {
@@ -56,6 +60,25 @@ public class FakeEventBusIntegrationEventLogTestModule : FakeModule
     {
         using var scope = context.ServiceProvider.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<IntegrationEventLogContext>();
-        SyncContext.Run(async () => await ctx.Database.EnsureCreatedAsync());
+        // SQLite 测试：EnsureCreated（模型建表）。官方 Migration 含 MySQL collation，不能直接 Migrate。
+        // 写入 __EFMigrationsHistory，避免后续 DataSeed 再 Migrate 撞表。
+        SyncContext.Run(async () =>
+        {
+            await ctx.Database.EnsureCreatedAsync();
+            await ctx.Database.ExecuteSqlRawAsync("""
+                CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
+                    "MigrationId" TEXT NOT NULL CONSTRAINT "PK___EFMigrationsHistory" PRIMARY KEY,
+                    "ProductVersion" TEXT NOT NULL
+                );
+                """);
+            foreach (var migrationId in ctx.Database.GetMigrations())
+            {
+                await ctx.Database.ExecuteSqlInterpolatedAsync(
+                    $"""
+                     INSERT OR IGNORE INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+                     VALUES ({migrationId}, {"8.0.0"});
+                     """);
+            }
+        });
     }
 }

@@ -28,7 +28,7 @@
     }
     header h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .02em; }
     header .meta { color: var(--muted); font-size: 12px; }
-    nav { display: flex; gap: 4px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+    nav { display: flex; gap: 4px; padding: 10px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
     nav button {
       background: transparent; border: 1px solid transparent; color: var(--muted);
       padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
@@ -57,12 +57,13 @@
     button.action { cursor: pointer; background: var(--accent); border-color: transparent; }
     button.action.secondary { background: transparent; border-color: var(--border); }
     button.action.danger { background: var(--danger); }
+    button.action:disabled { opacity: .5; cursor: not-allowed; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
     th { color: var(--muted); font-weight: 500; background: #121a24; position: sticky; top: 0; }
     .table-wrap {
       background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
-      overflow: auto; max-height: 520px;
+      overflow: auto; max-height: 560px;
     }
     .badge {
       display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px;
@@ -73,12 +74,39 @@
     .badge.danger { background: rgba(239,68,68,.15); color: var(--danger); }
     .mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
     .muted { color: var(--muted); }
-    .hidden { display: none; }
+    .hidden { display: none !important; }
     .pager { display: flex; gap: 8px; align-items: center; margin-top: 10px; color: var(--muted); font-size: 12px; }
-    pre {
-      margin: 0; max-width: 360px; white-space: pre-wrap; word-break: break-all;
-      color: var(--muted); font-size: 11px;
+    pre.payload {
+      margin: 0; white-space: pre-wrap; word-break: break-word;
+      color: #c8d4e6; font-size: 12px; font-family: ui-monospace, Consolas, monospace;
+      background: #0d131c; border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+      max-height: 50vh; overflow: auto;
     }
+    tr.clickable { cursor: pointer; }
+    tr.clickable:hover { background: rgba(59,130,246,.08); }
+    .drawer-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 40;
+      display: flex; justify-content: flex-end;
+    }
+    .drawer {
+      width: min(560px, 100vw); height: 100%; background: #121a24;
+      border-left: 1px solid var(--border); padding: 16px 18px; overflow: auto;
+      box-shadow: -12px 0 40px rgba(0,0,0,.35);
+    }
+    .drawer h2 { margin: 0 0 4px; font-size: 16px; }
+    .drawer .row { margin: 10px 0; font-size: 13px; }
+    .drawer .row .k { color: var(--muted); display: block; margin-bottom: 2px; font-size: 11px; }
+    .drawer-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .toast {
+      position: fixed; right: 16px; bottom: 16px; z-index: 60;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 14px; font-size: 13px; max-width: 420px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    }
+    .toast.ok { border-color: rgba(34,197,94,.4); }
+    .toast.err { border-color: rgba(239,68,68,.5); }
+    .handler-list { margin: 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
+    .handler-list li { margin: 2px 0; word-break: break-all; }
   </style>
 </head>
 <body>
@@ -88,6 +116,7 @@
   </header>
   <nav>
     <button class="active" data-tab="overview">Overview</button>
+    <button data-tab="subscriptions">Events / Consumers</button>
     <button data-tab="outbox">Published / Outbox</button>
     <button data-tab="inbox">Received / Inbox</button>
     <button data-tab="dlx">DLX</button>
@@ -100,6 +129,16 @@
         <div class="chart-box"><canvas id="chartInbox"></canvas></div>
       </div>
       <div class="cards" id="stateCards"></div>
+    </section>
+
+    <section id="tab-subscriptions" class="hidden">
+      <div class="toolbar">
+        <button class="action secondary" id="subsRefresh">Refresh</button>
+        <span class="muted" id="subsMeta"></span>
+      </div>
+      <div class="table-wrap"><table><thead>
+        <tr><th>Event</th><th>Routing Key</th><th>Handlers</th></tr>
+      </thead><tbody id="subsBody"></tbody></table></div>
     </section>
 
     <section id="tab-outbox" class="hidden">
@@ -150,6 +189,25 @@
     </section>
   </main>
 
+  <div id="drawerRoot" class="drawer-backdrop hidden" onclick="if(event.target===this)closeDrawer()">
+    <aside class="drawer" id="drawer">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <h2 id="drawerTitle">Message</h2>
+        <button class="action secondary" onclick="closeDrawer()">Close</button>
+      </div>
+      <div id="drawerMeta"></div>
+      <div class="drawer-actions" id="drawerActions"></div>
+      <div class="row"><span class="k">Payload</span>
+        <div class="drawer-actions" style="margin-top:0;">
+          <button class="action secondary" id="btnCopyJson">Copy JSON</button>
+          <button class="action secondary" id="btnCopyRaw">Copy raw</button>
+        </div>
+        <pre class="payload" id="drawerPayload">loading…</pre>
+      </div>
+    </aside>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+
   <script>
     const API = "{{API_BASE}}";
     const POLL_MS = Number("{{POLL_MS}}") || 2000;
@@ -163,9 +221,18 @@
     };
 
     const fmt = (n) => Number(n || 0).toLocaleString();
-    const shortId = (id) => (id || "").toString().slice(0, 8) + "…";
+    const shortId = (id) => {
+      const s = (id || "").toString();
+      return s.length > 10 ? s.slice(0, 8) + "…" : s;
+    };
+    const esc = (s) => String(s ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
 
     let outboxPage = 1, inboxPage = 1;
+    let drawerItem = null;
+    let drawerKind = null; // outbox | inbox | dlx
+    const dlxCache = new Map();
     const history = { labels: [], enqueued: [], dispatched: [], failed: [], inboxOk: [], inboxDup: [], inboxFail: [] };
     const MAX_POINTS = 30;
 
@@ -201,9 +268,10 @@
       btn.addEventListener("click", () => {
         document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
-        ["overview","outbox","inbox","dlx"].forEach(t => {
+        ["overview","subscriptions","outbox","inbox","dlx"].forEach(t => {
           document.getElementById("tab-" + t).classList.toggle("hidden", t !== btn.dataset.tab);
         });
+        if (btn.dataset.tab === "subscriptions") loadSubscriptions();
         if (btn.dataset.tab === "outbox") loadOutbox();
         if (btn.dataset.tab === "inbox") loadInbox();
         if (btn.dataset.tab === "dlx") loadDlx();
@@ -212,11 +280,37 @@
 
     async function api(path, opts) {
       const res = await fetch(API + path, Object.assign({ headers: { "Content-Type": "application/json" } }, opts || {}));
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = text; }
       if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || res.statusText);
+        const msg = (data && data.error) || (typeof data === "string" ? data : text) || res.statusText;
+        throw new Error(msg);
       }
-      return res.json();
+      return data;
+    }
+
+    function toast(msg, ok) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.className = "toast " + (ok ? "ok" : "err");
+      el.classList.remove("hidden");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.add("hidden"), 4200);
+    }
+
+    function prettyJson(raw) {
+      if (raw == null || raw === "") return "";
+      try { return JSON.stringify(JSON.parse(raw), null, 2); } catch { return String(raw); }
+    }
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text || "");
+        toast("Copied", true);
+      } catch {
+        toast("Copy failed", false);
+      }
     }
 
     function renderCards(m) {
@@ -270,6 +364,25 @@
       }
     }
 
+    async function loadSubscriptions() {
+      const data = await api("/subscriptions");
+      const items = data.items || [];
+      document.getElementById("subsMeta").textContent = `${items.length} event type(s)`;
+      document.getElementById("subsBody").innerHTML = items.map(item => `
+        <tr>
+          <td>
+            <div>${esc(item.eventTypeShortName)}</div>
+            <div class="mono muted">${esc(item.eventTypeName)}</div>
+          </td>
+          <td class="mono">${esc(item.routingKey)}</td>
+          <td>
+            ${(item.handlers || []).length
+              ? `<ul class="handler-list">${item.handlers.map(h => `<li class="mono">${esc(h)}</li>`).join("")}</ul>`
+              : `<span class="muted">No handlers registered</span>`}
+          </td>
+        </tr>`).join("") || `<tr><td colspan="3" class="muted">No subscriptions (is RabbitMQ EventBus loaded?)</td></tr>`;
+    }
+
     async function loadOutbox() {
       const q = new URLSearchParams({
         pageIndex: outboxPage, pageSize: 20,
@@ -279,15 +392,16 @@
       });
       const data = await api("/outbox?" + q.toString());
       document.getElementById("outboxBody").innerHTML = (data.items || []).map(item => `
-        <tr>
-          <td class="mono" title="${item.eventId}">${shortId(item.eventId)}</td>
-          <td>${item.eventTypeShortName}</td>
+        <tr class="clickable" onclick="openOutbox('${item.eventId}')">
+          <td class="mono" title="${esc(item.eventId)}">${shortId(item.eventId)}</td>
+          <td>${esc(item.eventTypeShortName)}</td>
           <td>${stateBadge(item.state)}</td>
           <td>${item.timesSent}</td>
-          <td class="mono">${item.creationTime}</td>
-          <td>
-            <button class="action secondary" onclick="retryOutbox('${item.eventId}', false)">Reset</button>
-            <button class="action" onclick="retryOutbox('${item.eventId}', true)">Publish now</button>
+          <td class="mono">${esc(item.creationTime)}</td>
+          <td onclick="event.stopPropagation()">
+            <button class="action" onclick="retryOutbox('${item.eventId}', true)">Retry &amp; publish</button>
+            <button class="action secondary" onclick="retryOutbox('${item.eventId}', false)">Reset only</button>
+            <button class="action secondary" onclick="openOutbox('${item.eventId}')">Preview</button>
           </td>
         </tr>`).join("") || `<tr><td colspan="6" class="muted">No data</td></tr>`;
       document.getElementById("outboxPager").innerHTML =
@@ -305,13 +419,17 @@
       });
       const data = await api("/inbox?" + q.toString());
       document.getElementById("inboxBody").innerHTML = (data.items || []).map(item => `
-        <tr>
-          <td class="mono" title="${item.eventId}">${shortId(item.eventId)}</td>
-          <td>${item.eventTypeShortName}</td>
+        <tr class="clickable" onclick="openInbox('${item.eventId}')">
+          <td class="mono" title="${esc(item.eventId)}">${shortId(item.eventId)}</td>
+          <td>${esc(item.eventTypeShortName)}</td>
           <td>${stateBadge(item.state)}</td>
-          <td class="mono">${item.processedTime}</td>
-          <td>${item.errorMessage || ""}</td>
-          <td><button class="action" onclick="retryInbox('${item.eventId}')">Reset for retry</button></td>
+          <td class="mono">${esc(item.processedTime)}</td>
+          <td>${esc(item.errorMessage || "")}</td>
+          <td onclick="event.stopPropagation()">
+            <button class="action" onclick="retryInbox('${item.eventId}', true)">Reprocess</button>
+            <button class="action secondary" onclick="retryInbox('${item.eventId}', false)">Reset only</button>
+            <button class="action secondary" onclick="openInbox('${item.eventId}')">Preview</button>
+          </td>
         </tr>`).join("") || `<tr><td colspan="6" class="muted">No data</td></tr>`;
       document.getElementById("inboxPager").innerHTML =
         `Total ${data.total} · Page ${data.pageIndex}
@@ -325,16 +443,19 @@
         document.getElementById("dlxStatus").textContent = data.available
           ? `${(data.items||[]).length} message(s) previewed (held until requeue/discard/refresh)`
           : "DLX not available (enable RabbitMQ EventBus EnableDlx)";
+        dlxCache.clear();
+        (data.items || []).forEach(item => dlxCache.set(item.messageId, item));
         document.getElementById("dlxBody").innerHTML = (data.items || []).map(item => `
-          <tr>
+          <tr class="clickable" onclick="openDlxById('${esc(item.messageId)}')">
             <td class="mono">${shortId(item.messageId)}</td>
-            <td class="mono">${item.routingKey || ""}</td>
-            <td class="mono">${item.eventId || ""}</td>
-            <td>${item.deathReason || ""}</td>
-            <td><pre>${(item.body || "").slice(0, 240)}</pre></td>
-            <td>
-              <button class="action" onclick="dlxOp('${item.messageId}','requeue')">Requeue</button>
-              <button class="action danger" onclick="dlxOp('${item.messageId}','discard')">Discard</button>
+            <td class="mono">${esc(item.routingKey || "")}</td>
+            <td class="mono">${esc(item.eventId || "")}</td>
+            <td>${esc(item.deathReason || "")}</td>
+            <td class="mono muted">${esc((item.body || "").slice(0, 80))}</td>
+            <td onclick="event.stopPropagation()">
+              <button class="action" onclick="dlxOp('${esc(item.messageId)}','requeue')">Requeue</button>
+              <button class="action danger" onclick="dlxOp('${esc(item.messageId)}','discard')">Discard</button>
+              <button class="action secondary" onclick="openDlxById('${esc(item.messageId)}')">Preview</button>
             </td>
           </tr>`).join("") || `<tr><td colspan="6" class="muted">Empty</td></tr>`;
       } catch (e) {
@@ -342,22 +463,122 @@
       }
     }
 
+    function openDrawer(kind, item, title) {
+      drawerKind = kind;
+      drawerItem = item;
+      document.getElementById("drawerTitle").textContent = title;
+      document.getElementById("drawerRoot").classList.remove("hidden");
+      const meta = document.getElementById("drawerMeta");
+      const actions = document.getElementById("drawerActions");
+      const payload = item.content || item.body || "";
+      document.getElementById("drawerPayload").textContent = prettyJson(payload) || "(empty)";
+
+      if (kind === "outbox") {
+        meta.innerHTML = `
+          <div class="row"><span class="k">EventId</span><span class="mono">${esc(item.eventId)}</span></div>
+          <div class="row"><span class="k">Type</span>${esc(item.eventTypeName)} ${stateBadge(item.state)}</div>
+          <div class="row"><span class="k">TimesSent / Tx</span>${item.timesSent} · <span class="mono">${esc(item.transactionId)}</span></div>
+          <div class="row"><span class="k">Created</span><span class="mono">${esc(item.creationTime)}</span></div>`;
+        actions.innerHTML = `
+          <button class="action" onclick="retryOutbox('${item.eventId}', true)">Retry &amp; publish</button>
+          <button class="action secondary" onclick="retryOutbox('${item.eventId}', false)">Reset only</button>`;
+      } else if (kind === "inbox") {
+        meta.innerHTML = `
+          <div class="row"><span class="k">EventId</span><span class="mono">${esc(item.eventId)}</span></div>
+          <div class="row"><span class="k">Type</span>${esc(item.eventTypeName)} ${stateBadge(item.state)}</div>
+          <div class="row"><span class="k">Processed</span><span class="mono">${esc(item.processedTime)}</span></div>
+          <div class="row"><span class="k">Error</span>${esc(item.errorMessage || "-")}</div>`;
+        actions.innerHTML = `
+          <button class="action" onclick="retryInbox('${item.eventId}', true)">Reprocess handlers</button>
+          <button class="action secondary" onclick="retryInbox('${item.eventId}', false)">Reset only</button>`;
+      } else {
+        meta.innerHTML = `
+          <div class="row"><span class="k">MessageId</span><span class="mono">${esc(item.messageId)}</span></div>
+          <div class="row"><span class="k">RoutingKey</span><span class="mono">${esc(item.routingKey || "")}</span></div>
+          <div class="row"><span class="k">EventId</span><span class="mono">${esc(item.eventId || "")}</span></div>
+          <div class="row"><span class="k">Reason</span>${esc(item.deathReason || "-")}</div>`;
+        actions.innerHTML = `
+          <button class="action" onclick="dlxOp('${esc(item.messageId)}','requeue')">Requeue</button>
+          <button class="action danger" onclick="dlxOp('${esc(item.messageId)}','discard')">Discard</button>`;
+      }
+    }
+
+    function closeDrawer() {
+      document.getElementById("drawerRoot").classList.add("hidden");
+      drawerItem = null;
+      drawerKind = null;
+    }
+
+    window.openOutbox = async (id) => {
+      const item = await api(`/outbox/${id}`);
+      openDrawer("outbox", item, "Outbox message");
+    };
+    window.openInbox = async (id) => {
+      const item = await api(`/inbox/${id}`);
+      openDrawer("inbox", item, "Inbox message");
+    };
+    window.openDlxById = (id) => {
+      const item = dlxCache.get(id);
+      if (!item) { toast("Message no longer in preview buffer — refresh DLX", false); return; }
+      openDrawer("dlx", item, "DLX message");
+    };
+
     window.retryOutbox = async (id, publishNow) => {
-      await api(`/outbox/${id}/retry`, { method: "POST", body: JSON.stringify({ publishNow }) });
-      await loadOutbox(); await refreshStats();
+      try {
+        const data = await api(`/outbox/${id}/retry`, {
+          method: "POST",
+          body: JSON.stringify({ publishNow, clearInbox: true })
+        });
+        if (publishNow && !data.published) {
+          toast(data.error || "Publish did not complete", false);
+        } else {
+          toast(publishNow
+            ? `Published${data.inboxCleared ? " (inbox cleared)" : ""}`
+            : "Reset to NotPublished", true);
+        }
+        await loadOutbox(); await refreshStats();
+        if (drawerKind === "outbox" && drawerItem && drawerItem.eventId === id) await openOutbox(id);
+      } catch (e) { toast(e.message, false); }
     };
-    window.retryInbox = async (id) => {
-      await api(`/inbox/${id}/retry`, { method: "POST", body: "{}" });
-      await loadInbox(); await refreshStats();
+
+    window.retryInbox = async (id, reprocessNow) => {
+      try {
+        const data = await api(`/inbox/${id}/retry`, {
+          method: "POST",
+          body: JSON.stringify({ reprocessNow })
+        });
+        if (reprocessNow && !data.processed) {
+          toast(data.error || "Reprocess failed", false);
+        } else {
+          toast(reprocessNow ? "Handlers reprocessed" : "Inbox reset for reclaim", true);
+        }
+        await loadInbox(); await refreshStats();
+        if (drawerKind === "inbox" && drawerItem && drawerItem.eventId === id) await openInbox(id);
+      } catch (e) { toast(e.message, false); }
     };
+
     window.dlxOp = async (id, op) => {
-      await api(`/dlx/messages/${id}/${op}`, { method: "POST", body: "{}" });
-      await loadDlx();
+      try {
+        await api(`/dlx/messages/${id}/${op}`, { method: "POST", body: "{}" });
+        toast(op === "requeue" ? "Requeued" : "Discarded", true);
+        await loadDlx();
+        if (op === "discard") closeDrawer();
+      } catch (e) { toast(e.message, false); }
+    };
+
+    document.getElementById("btnCopyJson").onclick = () => {
+      const raw = drawerItem && (drawerItem.content || drawerItem.body || "");
+      copyText(prettyJson(raw) || "");
+    };
+    document.getElementById("btnCopyRaw").onclick = () => {
+      const raw = drawerItem && (drawerItem.content || drawerItem.body || "");
+      copyText(raw || "");
     };
 
     document.getElementById("outboxSearch").onclick = () => { outboxPage = 1; loadOutbox(); };
     document.getElementById("inboxSearch").onclick = () => { inboxPage = 1; loadInbox(); };
     document.getElementById("dlxRefresh").onclick = () => loadDlx();
+    document.getElementById("subsRefresh").onclick = () => loadSubscriptions();
 
     refreshStats();
     setInterval(refreshStats, POLL_MS);

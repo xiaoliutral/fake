@@ -19,21 +19,25 @@ public class OutboxEventPublisher(
 
         foreach (var eventLog in pendingEvents)
         {
-            await DispatchAsync(eventLog, source: "immediate", cancellationToken);
+            await DispatchAsync(eventLog, source: "immediate", throwOnFailure: false, cancellationToken);
         }
     }
 
-    public async Task PublishOneAsync(Guid eventId, CancellationToken cancellationToken = default)
+    public async Task<OutboxPublishOneResult> PublishOneAsync(
+        Guid eventId,
+        CancellationToken cancellationToken = default)
     {
         var eventLog = await eventLogService.FindAsync(eventId, cancellationToken)
                        ?? throw new InvalidOperationException($"Outbox event {eventId} was not found.");
 
-        await DispatchAsync(eventLog, source: "manual", cancellationToken);
+        // Dashboard 人工重试：失败返回结果，不抛异常（避免 API 500）
+        return await DispatchAsync(eventLog, source: "manual", throwOnFailure: false, cancellationToken);
     }
 
-    private async Task DispatchAsync(
+    private async Task<OutboxPublishOneResult> DispatchAsync(
         OutboxEventLogEntry eventLog,
         string source,
+        bool throwOnFailure,
         CancellationToken cancellationToken)
     {
         var eventType = eventLog.EventTypeShortName;
@@ -43,7 +47,11 @@ public class OutboxEventPublisher(
             if (!lockAcquired)
             {
                 logger.LogDebug("Event {EventId} skipped (already in progress or published)", eventLog.EventId);
-                return;
+                var current = await eventLogService.FindAsync(eventLog.EventId, cancellationToken);
+                return new OutboxPublishOneResult(
+                    false,
+                    "Event was skipped (already in progress or not in a publishable state).",
+                    current?.State);
             }
 
             if (eventLog.IntegrationEvent is not IntegrationEvent integrationEvent)
@@ -59,6 +67,8 @@ public class OutboxEventPublisher(
             logger.LogInformation(
                 "Outbox event {EventId} dispatched (source={Source}, transaction {TransactionId})",
                 eventLog.EventId, source, eventLog.TransactionId);
+
+            return new OutboxPublishOneResult(true, State: EventState.Published);
         }
         catch (Exception ex)
         {
@@ -67,6 +77,11 @@ public class OutboxEventPublisher(
                 eventLog.EventId, source);
             metrics.RecordOutboxDispatchFailed(eventType, source);
             await eventLogService.MarkEventAsFailedAsync(eventLog.EventId);
+
+            if (throwOnFailure)
+                throw;
+
+            return new OutboxPublishOneResult(false, ex.Message, EventState.PublishFailed);
         }
     }
 }

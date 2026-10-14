@@ -45,5 +45,7 @@ public class FakeEventBusModule : FakeModule
         context.Services.TryAddTransient<IOutboxAdminStore>(_ => NullOutboxAdminStore.Instance);
         context.Services.TryAddTransient<IInboxAdminStore>(_ => NullInboxAdminStore.Instance);
         context.Services.TryAddSingleton<IDlxAdminService>(_ => NullDlxAdminService.Instance);
+        context.Services.TryAddSingleton<IEventBusTopology>(_ => NullEventBusTopology.Instance);
+        context.Services.TryAddTransient<IInboxEventReprocessor>(_ => NullInboxEventReprocessor.Instance);
     }
 }

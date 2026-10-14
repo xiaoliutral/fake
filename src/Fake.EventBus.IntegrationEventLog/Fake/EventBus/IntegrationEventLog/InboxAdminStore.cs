@@ -67,12 +67,20 @@ public class InboxAdminStore(IntegrationEventLogContext context) : IInboxAdminSt
 
     public async Task ResetForRetryAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
+        if (!await TryResetForRetryAsync(eventId, cancellationToken))
+            throw new InvalidOperationException($"Inbox event {eventId} was not found.");
+    }
+
+    public async Task<bool> TryResetForRetryAsync(Guid eventId, CancellationToken cancellationToken = default)
+    {
         var entry = await context.InboxEventLogs
-            .SingleOrDefaultAsync(e => e.EventId == eventId, cancellationToken)
-            ?? throw new InvalidOperationException($"Inbox event {eventId} was not found.");
+            .SingleOrDefaultAsync(e => e.EventId == eventId, cancellationToken);
+        if (entry == null)
+            return false;
 
         entry.ResetForRetry();
         await context.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     private static InboxMessageDto ToDto(InboxEventLogEntry e) => new(

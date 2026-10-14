@@ -62,5 +62,31 @@ public sealed class OutboxRetryRequest
     /// <summary>
     /// true：重置为 NotPublished 后立即 Publish；false：仅改状态，等待后台扫描。
     /// </summary>
-    public bool PublishNow { get; set; }
+    public bool PublishNow { get; set; } = true;
+
+    /// <summary>
+    /// true（默认）：同步清除 Inbox 幂等记录，否则消费端会把重投当成重复消息直接跳过。
+    /// </summary>
+    public bool ClearInbox { get; set; } = true;
 }
+
+public sealed class InboxRetryRequest
+{
+    /// <summary>
+    /// true（默认）：本机重新执行已注册 Handler；false：仅重置 Inbox 状态。
+    /// </summary>
+    public bool ReprocessNow { get; set; } = true;
+}
+
+public sealed record OutboxPublishOneResult(bool Published, string? Error = null, EventState? State = null);
+
+public sealed record InboxReprocessResult(bool Processed, string? Error = null, EventState? State = null);
+
+/// <summary>
+/// 已注册的集成事件及其消费者（Handler）。
+/// </summary>
+public sealed record EventSubscriptionDto(
+    string EventTypeName,
+    string EventTypeShortName,
+    string RoutingKey,
+    IReadOnlyList<string> Handlers);

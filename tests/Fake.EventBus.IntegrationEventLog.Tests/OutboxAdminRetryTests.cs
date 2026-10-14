@@ -110,4 +110,86 @@ public class OutboxAdminRetryTests : ApplicationTestWithTools<FakeEventBusIntegr
             (await inbox.TryMarkAsProcessingAsync(eventId, "Test.Event", "{}")).ShouldBeTrue();
         }
     }
+
+    [Fact]
+    public async Task Outbox重投前ClearInbox_已成功的Inbox应变可抢占()
+    {
+        Guid eventId;
+        await using (var scope = ServiceProvider.CreateAsyncScope())
+        {
+            var ctx = scope.ServiceProvider.GetRequiredService<IntegrationEventLogContext>();
+            var outbox = scope.ServiceProvider.GetRequiredService<IOutboxEventLogService>();
+            await using var tx = await ctx.Database.BeginTransactionAsync();
+            var evt = new TestOutboxIntegrationEvent { Payload = "clear-inbox" };
+            eventId = evt.Id;
+            await outbox.SaveEventAsync(evt, ctx);
+            await tx.CommitAsync();
+            await outbox.MarkEventAsPublishedAsync(eventId);
+        }
+
+        await using (var scope = ServiceProvider.CreateAsyncScope())
+        {
+            var inbox = scope.ServiceProvider.GetRequiredService<IInboxEventLogService>();
+            (await inbox.TryMarkAsProcessingAsync(
+                eventId,
+                typeof(TestOutboxIntegrationEvent).FullName!,
+                """{"Payload":"clear-inbox"}""")).ShouldBeTrue();
+            await inbox.MarkAsSucceededAsync(eventId);
+            (await inbox.IsEventProcessedAsync(eventId)).ShouldBeTrue();
+        }
+
+        await using (var scope = ServiceProvider.CreateAsyncScope())
+        {
+            var outboxAdmin = scope.ServiceProvider.GetRequiredService<IOutboxAdminStore>();
+            var inboxAdmin = scope.ServiceProvider.GetRequiredService<IInboxAdminStore>();
+            var publisher = scope.ServiceProvider.GetRequiredService<IOutboxEventPublisher>();
+            var physical = scope.ServiceProvider.GetRequiredService<FakePhysicalDistributedEventBus>();
+            physical.Clear();
+
+            await outboxAdmin.ResetForRetryAsync(eventId);
+            (await inboxAdmin.TryResetForRetryAsync(eventId)).ShouldBeTrue();
+
+            var result = await publisher.PublishOneAsync(eventId);
+            result.Published.ShouldBeTrue();
+            physical.Published.Count.ShouldBe(1);
+        }
+
+        await using (var scope = ServiceProvider.CreateAsyncScope())
+        {
+            var inbox = scope.ServiceProvider.GetRequiredService<IInboxEventLogService>();
+            (await inbox.IsEventProcessedAsync(eventId)).ShouldBeFalse();
+            (await inbox.TryMarkAsProcessingAsync(
+                eventId,
+                typeof(TestOutboxIntegrationEvent).FullName!,
+                """{"Payload":"clear-inbox"}""")).ShouldBeTrue();
+        }
+    }
+
+    [Fact]
+    public async Task Inbox本地Reprocess应执行Handler()
+    {
+        TrackingInboxHandler.Reset();
+        var evt = new TestOutboxIntegrationEvent { Payload = "reprocess-me" };
+        var json = System.Text.Json.JsonSerializer.Serialize(evt);
+
+        await using (var scope = ServiceProvider.CreateAsyncScope())
+        {
+            var inbox = scope.ServiceProvider.GetRequiredService<IInboxEventLogService>();
+            (await inbox.TryMarkAsProcessingAsync(evt.Id, typeof(TestOutboxIntegrationEvent).FullName!, json))
+                .ShouldBeTrue();
+            await inbox.MarkAsFailedAsync(evt.Id, "boom");
+        }
+
+        await using (var scope = ServiceProvider.CreateAsyncScope())
+        {
+            var admin = scope.ServiceProvider.GetRequiredService<IInboxAdminStore>();
+            var reprocessor = scope.ServiceProvider.GetRequiredService<IInboxEventReprocessor>();
+            await admin.ResetForRetryAsync(evt.Id);
+            var result = await reprocessor.ReprocessAsync(evt.Id);
+            result.Processed.ShouldBeTrue(result.Error);
+            result.State.ShouldBe(EventState.ConsumeSucceeded);
+        }
+
+        TrackingInboxHandler.Handled.ShouldContain(evt.Id);
+    }
 }

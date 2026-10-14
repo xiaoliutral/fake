@@ -24,9 +24,11 @@ public static class EventBusDashboardServiceCollectionExtensions
         services.TryAddTransient<IOutboxAdminStore>(_ => NullOutboxAdminStore.Instance);
         services.TryAddTransient<IInboxAdminStore>(_ => NullInboxAdminStore.Instance);
         services.TryAddTransient<IOutboxEventPublisher>(_ => NullOutboxEventPublisher.Instance);
+        services.TryAddTransient<IInboxEventReprocessor>(_ => NullInboxEventReprocessor.Instance);
+        services.TryAddSingleton<IEventBusTopology>(_ => NullEventBusTopology.Instance);
         services.TryAddSingleton<IDlxAdminService>(_ => NullDlxAdminService.Instance);
 
-        services.TryAddSingleton<EventBusDashboardApi>();
+        services.TryAddScoped<EventBusDashboardApi>();
         return services;
     }
 }

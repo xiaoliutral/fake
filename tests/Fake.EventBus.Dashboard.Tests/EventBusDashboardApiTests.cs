@@ -73,4 +73,25 @@ public class EventBusDashboardApiTests : IClassFixture<DashboardHostFixture>
         using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
         doc.RootElement.GetProperty("available").GetBoolean().ShouldBeFalse();
     }
+
+    [Fact]
+    public async Task Subscriptions接口应返回items()
+    {
+        var res = await _fixture.Client.GetAsync("/eventbus/api/subscriptions");
+        res.StatusCode.ShouldBe(HttpStatusCode.OK);
+        using var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetProperty("items").ValueKind.ShouldBe(JsonValueKind.Array);
+    }
+
+    [Fact]
+    public async Task UI应包含预览复制与订阅页()
+    {
+        var html = await _fixture.Client.GetStringAsync("/eventbus/");
+        html.ShouldContain("Events / Consumers");
+        html.ShouldContain("btnCopyJson");
+        html.ShouldContain("Retry &amp; publish");
+        html.ShouldContain("/subscriptions");
+        html.ShouldContain("clearInbox");
+        html.ShouldContain("reprocessNow");
+    }
 }

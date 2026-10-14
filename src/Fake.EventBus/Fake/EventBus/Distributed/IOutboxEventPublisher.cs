@@ -15,5 +15,5 @@ public interface IOutboxEventPublisher
     /// <summary>
     /// 立即发布单条 Outbox 事件（运维重试：已重置为 NotPublished 后可选同步投递）。
     /// </summary>
-    Task PublishOneAsync(Guid eventId, CancellationToken cancellationToken = default);
+    Task<OutboxPublishOneResult> PublishOneAsync(Guid eventId, CancellationToken cancellationToken = default);
 }
