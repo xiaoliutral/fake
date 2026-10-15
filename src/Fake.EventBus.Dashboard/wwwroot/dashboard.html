@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fake EventBus Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root {
       --bg: #0f1419;
@@ -125,8 +124,14 @@
     <section id="tab-overview">
       <div class="cards" id="metricCards"></div>
       <div class="charts">
-        <div class="chart-box"><canvas id="chartOutbox"></canvas></div>
-        <div class="chart-box"><canvas id="chartInbox"></canvas></div>
+        <div class="chart-box">
+          <div class="muted" style="font-size:12px;margin-bottom:6px;">Outbox (cumulative)</div>
+          <canvas id="chartOutbox"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="muted" style="font-size:12px;margin-bottom:6px;">Inbox (cumulative)</div>
+          <canvas id="chartInbox"></canvas>
+        </div>
       </div>
       <div class="cards" id="stateCards"></div>
     </section>
@@ -236,33 +241,85 @@
     const history = { labels: [], enqueued: [], dispatched: [], failed: [], inboxOk: [], inboxDup: [], inboxFail: [] };
     const MAX_POINTS = 30;
 
-    const chartOutbox = new Chart(document.getElementById("chartOutbox"), {
-      type: "line",
-      data: {
-        labels: history.labels,
-        datasets: [
-          { label: "Enqueued", data: history.enqueued, borderColor: "#3b82f6", tension: .25, pointRadius: 0 },
-          { label: "Dispatched", data: history.dispatched, borderColor: "#22c55e", tension: .25, pointRadius: 0 },
-          { label: "Failed", data: history.failed, borderColor: "#ef4444", tension: .25, pointRadius: 0 }
-        ]
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#8b9bb4" } } },
-        scales: { x: { ticks: { color: "#8b9bb4" } }, y: { ticks: { color: "#8b9bb4" }, beginAtZero: true } } }
-    });
+    // 内置轻量折线（不依赖 CDN / Chart.js，避免内网环境整页挂死）
+    function drawSparkline(canvas, series) {
+      if (!canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      const cssW = canvas.clientWidth || canvas.parentElement.clientWidth || 300;
+      const cssH = Math.max(160, (canvas.parentElement.clientHeight || 220) - 28);
+      canvas.width = Math.floor(cssW * dpr);
+      canvas.height = Math.floor(cssH * dpr);
+      canvas.style.width = cssW + "px";
+      canvas.style.height = cssH + "px";
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, cssW, cssH);
 
-    const chartInbox = new Chart(document.getElementById("chartInbox"), {
-      type: "line",
-      data: {
-        labels: history.labels,
-        datasets: [
-          { label: "Processed", data: history.inboxOk, borderColor: "#22c55e", tension: .25, pointRadius: 0 },
-          { label: "Duplicate", data: history.inboxDup, borderColor: "#f59e0b", tension: .25, pointRadius: 0 },
-          { label: "Failed", data: history.inboxFail, borderColor: "#ef4444", tension: .25, pointRadius: 0 }
-        ]
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: "#8b9bb4" } } },
-        scales: { x: { ticks: { color: "#8b9bb4" } }, y: { ticks: { color: "#8b9bb4" }, beginAtZero: true } } }
-    });
+      const pad = { l: 36, r: 10, t: 18, b: 28 };
+      const plotW = cssW - pad.l - pad.r;
+      const plotH = cssH - pad.t - pad.b;
+      const n = Math.max(...series.map(s => s.data.length), 0);
+      if (n < 1) {
+        ctx.fillStyle = "#8b9bb4";
+        ctx.font = "12px Segoe UI,sans-serif";
+        ctx.fillText("waiting for samples…", pad.l, pad.t + 14);
+        return;
+      }
+
+      let maxY = 0;
+      series.forEach(s => s.data.forEach(v => { if (v > maxY) maxY = v; }));
+      if (maxY <= 0) maxY = 1;
+
+      ctx.strokeStyle = "#2d3a4d";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad.l, pad.t);
+      ctx.lineTo(pad.l, pad.t + plotH);
+      ctx.lineTo(pad.l + plotW, pad.t + plotH);
+      ctx.stroke();
+
+      ctx.fillStyle = "#8b9bb4";
+      ctx.font = "11px Segoe UI,sans-serif";
+      ctx.fillText(String(maxY), 4, pad.t + 10);
+      ctx.fillText("0", 4, pad.t + plotH);
+
+      series.forEach(s => {
+        if (s.data.length < 1) return;
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        s.data.forEach((v, i) => {
+          const x = pad.l + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+          const y = pad.t + plotH - (v / maxY) * plotH;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      });
+
+      // legend
+      let lx = pad.l;
+      const ly = cssH - 10;
+      series.forEach(s => {
+        ctx.fillStyle = s.color;
+        ctx.fillRect(lx, ly - 8, 10, 3);
+        ctx.fillStyle = "#8b9bb4";
+        ctx.fillText(s.label, lx + 14, ly);
+        lx += ctx.measureText(s.label).width + 36;
+      });
+    }
+
+    function redrawCharts() {
+      drawSparkline(document.getElementById("chartOutbox"), [
+        { label: "Enqueued", color: "#3b82f6", data: history.enqueued },
+        { label: "Dispatched", color: "#22c55e", data: history.dispatched },
+        { label: "Failed", color: "#ef4444", data: history.failed }
+      ]);
+      drawSparkline(document.getElementById("chartInbox"), [
+        { label: "Processed", color: "#22c55e", data: history.inboxOk },
+        { label: "Duplicate", color: "#f59e0b", data: history.inboxDup },
+        { label: "Failed", color: "#ef4444", data: history.inboxFail }
+      ]);
+    }
 
     document.querySelectorAll("nav button").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -347,8 +404,7 @@
       if (history.labels.length > MAX_POINTS) {
         Object.keys(history).forEach(k => history[k].shift());
       }
-      chartOutbox.update("none");
-      chartInbox.update("none");
+      redrawCharts();
     }
 
     async function refreshStats() {
@@ -580,6 +636,8 @@
     document.getElementById("dlxRefresh").onclick = () => loadDlx();
     document.getElementById("subsRefresh").onclick = () => loadSubscriptions();
 
+    redrawCharts();
+    window.addEventListener("resize", redrawCharts);
     refreshStats();
     setInterval(refreshStats, POLL_MS);
   </script>

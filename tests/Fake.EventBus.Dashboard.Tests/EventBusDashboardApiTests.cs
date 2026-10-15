@@ -93,5 +93,7 @@ public class EventBusDashboardApiTests : IClassFixture<DashboardHostFixture>
         html.ShouldContain("/subscriptions");
         html.ShouldContain("clearInbox");
         html.ShouldContain("reprocessNow");
+        html.ShouldNotContain("cdn.jsdelivr.net");
+        html.ShouldContain("drawSparkline");
     }
 }
