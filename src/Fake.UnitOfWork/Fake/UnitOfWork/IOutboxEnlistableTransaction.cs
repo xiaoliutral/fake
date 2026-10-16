@@ -5,6 +5,7 @@ namespace Fake.UnitOfWork;
 /// <summary>
 /// 可被 Outbox 征用的工作单元事务（EF / SqlSugar 等实现）。
 /// 总线与存储只依赖本抽象，不直接依赖具体 ORM TransactionApi。
+/// 同一连接串的跨 ORM 共享见 <see cref="UnitOfWorkSharedDb"/>。
 /// </summary>
 public interface IOutboxEnlistableTransaction : ITransactionApi
 {

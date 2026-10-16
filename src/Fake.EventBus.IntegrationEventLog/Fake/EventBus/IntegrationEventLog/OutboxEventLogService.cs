@@ -1,3 +1,4 @@
+using System.Data;
 using System.Data.Common;
 using Fake.EventBus;
 using Fake.EventBus.Distributed;
@@ -102,15 +103,40 @@ public class OutboxEventLogService(IntegrationEventLogContext integrationEventLo
 
     private void EnlistInAmbientTransaction(ITransactionContext transactionContext)
     {
-        switch (transactionContext.GetUnderlyingTransaction())
+        var dbTransaction = transactionContext.GetUnderlyingTransaction() switch
         {
-            case DbTransaction dbTransaction:
-                integrationEventLogContext.Database.UseTransaction(dbTransaction);
-                break;
-            case IDbContextTransaction efTransaction:
-                integrationEventLogContext.Database.UseTransaction(efTransaction.GetDbTransaction());
-                break;
-            // TransactionScope / 环境事务：由 EF 自动感知，无需 UseTransaction
+            DbTransaction ado => ado,
+            IDbContextTransaction efTransaction => efTransaction.GetDbTransaction(),
+            _ => null
+        };
+
+        // 环境事务（TransactionScope）由 EF 自动感知。
+        if (dbTransaction == null)
+        {
+            return;
+        }
+
+        var ownerConnection = dbTransaction.Connection
+                              ?? throw new InvalidOperationException(
+                                  "Ambient DbTransaction has no connection; cannot enlist Outbox.");
+
+        var database = integrationEventLogContext.Database;
+        var current = database.GetDbConnection();
+        // SqlSugar 与 EF 各开连接时，必须先把 Outbox 上下文切到事务所属连接，否则 UseTransaction 会抛
+        // "The specified transaction is not associated with the current connection"。
+        if (!ReferenceEquals(current, ownerConnection))
+        {
+            if (current.State == ConnectionState.Open)
+            {
+                current.Close();
+            }
+
+            database.SetDbConnection(ownerConnection, contextOwnsConnection: false);
+        }
+
+        if (database.CurrentTransaction?.GetDbTransaction() != dbTransaction)
+        {
+            database.UseTransaction(dbTransaction);
         }
     }
 

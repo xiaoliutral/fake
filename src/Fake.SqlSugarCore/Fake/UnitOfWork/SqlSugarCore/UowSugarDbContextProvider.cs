@@ -1,6 +1,10 @@
+using System.Data;
+using System.Data.Common;
 using System.Diagnostics;
 using Fake.SqlSugarCore;
+using Fake.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Fake.UnitOfWork.SqlSugarCore;
@@ -65,32 +69,69 @@ public class UowSugarDbContextProvider<TDbContext>(
 
 
     private async Task<TDbContext> CreateDbContextWithTransactionAsync(IUnitOfWork unitOfWork,
-        // ReSharper disable once UnusedParameter.Local
         CancellationToken cancellationToken = default)
     {
         Debug.Assert(DbContextCreationContext.Current != null, "DbContextCreationContext.Current != null");
 
-        //事务key
-        var transactionApiKey = $"SqlSugarCore_{DbContextCreationContext.Current.ConnectionString}";
+        var connectionString = DbContextCreationContext.Current.ConnectionString;
+        var transactionApiKey = $"SqlSugarCore_{connectionString}";
 
-        //尝试查找事务
         var activeTransaction = unitOfWork.FindTransactionApi(transactionApiKey) as SqlSugarTransactionApi<TDbContext>;
-
-        //该db还没有进行开启事务
-        if (activeTransaction == null)
+        if (activeTransaction != null)
         {
-            //获取到db添加事务即可
-            var dbContext = unitOfWork.ServiceProvider.GetRequiredService<TDbContext>();
-            var transaction = new SqlSugarTransactionApi<TDbContext>(
-                dbContext
-            );
-            unitOfWork.AddTransactionApi(transactionApiKey, transaction);
+            return (TDbContext)activeTransaction.GetDbContext();
+        }
 
-            await dbContext.SqlSugarClient.Ado.BeginTranAsync();
+        var dbContext = unitOfWork.ServiceProvider.GetRequiredService<TDbContext>();
+
+        // 同连接串已有 EF（或其他）共享事务 → 只 enlist，不 Begin / 不 Commit
+        var sharedTx = UnitOfWorkSharedDb.GetDbTransaction(unitOfWork, connectionString);
+        if (sharedTx != null)
+        {
+            await AttachToSharedTransactionAsync(dbContext, sharedTx, cancellationToken);
+            unitOfWork.AddTransactionApi(
+                transactionApiKey,
+                new SqlSugarTransactionApi<TDbContext>(dbContext, ownsTransaction: false));
             return dbContext;
         }
 
-        return (TDbContext)activeTransaction.GetDbContext();
+        var transaction = new SqlSugarTransactionApi<TDbContext>(dbContext, ownsTransaction: true);
+        unitOfWork.AddTransactionApi(transactionApiKey, transaction);
+
+        await dbContext.SqlSugarClient.Ado.BeginTranAsync();
+        UnitOfWorkSharedDb.Register(unitOfWork, connectionString, transaction);
+        return dbContext;
+    }
+
+    private static async Task AttachToSharedTransactionAsync(
+        TDbContext dbContext,
+        DbTransaction dbTransaction,
+        CancellationToken cancellationToken)
+    {
+        var connection = dbTransaction.Connection
+                         ?? throw new InvalidOperationException(
+                             "Shared DbTransaction has no Connection; cannot enlist SqlSugar.");
+
+        // 共享连接由 owner 管理生命周期，禁止 SqlSugar 自动关闭
+        if (dbContext.SqlSugarClient.CurrentConnectionConfig != null)
+        {
+            dbContext.SqlSugarClient.CurrentConnectionConfig.IsAutoCloseConnection = false;
+        }
+
+        if (connection.State != ConnectionState.Open)
+        {
+            if (connection is DbConnection dbConnection)
+            {
+                await dbConnection.OpenAsync(cancellationToken);
+            }
+            else
+            {
+                connection.Open();
+            }
+        }
+
+        dbContext.SqlSugarClient.Ado.Connection = connection;
+        dbContext.SqlSugarClient.Ado.Transaction = dbTransaction;
     }
 
     protected virtual CancellationToken GetCancellationToken(CancellationToken preferredValue = default)

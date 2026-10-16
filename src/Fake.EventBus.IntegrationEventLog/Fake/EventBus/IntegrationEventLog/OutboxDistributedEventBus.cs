@@ -126,11 +126,9 @@ public class OutboxDistributedEventBus(
     }
 
     /// <summary>
-    /// 优先选择已暴露 ADO.NET 事务的征用点（EF / Sugar 混用时取第一个可用）。
+    /// 优先取 <see cref="UnitOfWorkSharedDb"/> 登记的共享 owner，避免误用只 enlist、不 Commit 的附属 TransactionApi。
     /// </summary>
     private static IOutboxEnlistableTransaction? FindEnlistableTransaction(IUnitOfWork uow)
-    {
-        var all = uow.GetAllActiveTransactionApis().OfType<IOutboxEnlistableTransaction>().ToList();
-        return all.FirstOrDefault(t => t.GetDbTransaction() != null) ?? all.FirstOrDefault();
-    }
+        => UnitOfWorkSharedDb.FindAny(uow)
+           ?? uow.GetAllActiveTransactionApis().OfType<IOutboxEnlistableTransaction>().FirstOrDefault();
 }

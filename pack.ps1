@@ -28,7 +28,7 @@ dotnet pack "$currentDirectory\Fake.sln" `
     -c Release `
     --no-build `
     --no-restore `
-    -p:Version=8.0.5.27 `
+    -p:Version=8.0.5.28 `
     -p:RunAnalyzers=false `
     -p:GeneratePackageOnBuild=false `
     -o "$packagesDir"

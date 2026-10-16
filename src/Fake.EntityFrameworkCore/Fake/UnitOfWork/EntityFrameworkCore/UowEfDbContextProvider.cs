@@ -1,6 +1,9 @@
-﻿using System.Diagnostics;
+﻿using System.Data;
+using System.Data.Common;
+using System.Diagnostics;
 using Fake.EntityFrameworkCore;
 using Fake.Threading;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
@@ -76,99 +79,153 @@ public class UowEfDbContextProvider<TDbContext>(
     {
         Debug.Assert(DbContextCreationContext.Current != null, "DbContextCreationContext.Current != null");
 
-        var transactionApiKey = $"EntityFrameworkCore_{DbContextCreationContext.Current.ConnectionString}";
+        var connectionString = DbContextCreationContext.Current.ConnectionString;
+        var transactionApiKey = $"EntityFrameworkCore_{connectionString}";
         var activeTransaction = unitOfWork.FindTransactionApi(transactionApiKey) as EfCoreTransactionApi;
 
         var dbContext = unitOfWork.ServiceProvider.GetRequiredService<TDbContext>();
+        var token = GetCancellationToken(cancellationToken);
 
-        // 该连接未开启事务
-        if (activeTransaction == null)
+        // 该 EF 连接已开启事务 → 复用 / attend
+        if (activeTransaction != null)
         {
-            try
-            {
-                var token = GetCancellationToken(cancellationToken);
-                // 开启数据库事务
-                var dbTransaction = await dbContext.Database.BeginTransactionAsync(
-                    unitOfWork.Context.IsolationLevel,
-                    token
-                );
+            await AttendExistingEfTransactionAsync(dbContext, activeTransaction, token);
+            return dbContext;
+        }
 
-                unitOfWork.AddTransactionApi(
-                    transactionApiKey,
-                    new EfCoreTransactionApi(
-                        dbTransaction,
-                        dbContext,
-                        cancellationTokenProvider
-                    )
-                );
+        // 同连接串已有 SqlSugar（或其他）共享事务 → 只 UseTransaction，不登记新的 Commit owner
+        var sharedTx = UnitOfWorkSharedDb.GetDbTransaction(unitOfWork, connectionString);
+        if (sharedTx != null)
+        {
+            if (!await TryEnlistSharedTransactionAsync(dbContext, sharedTx, token))
+            {
+                Logger.LogError(
+                    "Failed to enlist EF into shared DbTransaction for {ConnectionString}; falling back to own transaction",
+                    connectionString);
             }
-            catch (Exception e) when (e is InvalidOperationException || e is NotSupportedException)
+            else
             {
-                Logger.LogError(TransactionsNotSupportedErrorMessage);
-                Logger.LogException(e);
-
                 return dbContext;
             }
         }
-        else
+
+        try
         {
-            DbContextCreationContext.Current.ExistingConnection =
-                activeTransaction.DbContextTransaction.GetDbTransaction().Connection;
+            var dbTransaction = await dbContext.Database.BeginTransactionAsync(
+                unitOfWork.Context.IsolationLevel,
+                token
+            );
 
-            var token = GetCancellationToken(cancellationToken);
+            var api = new EfCoreTransactionApi(
+                dbTransaction,
+                dbContext,
+                cancellationTokenProvider
+            );
+            unitOfWork.AddTransactionApi(transactionApiKey, api);
+            UnitOfWorkSharedDb.Register(unitOfWork, connectionString, api);
+        }
+        catch (Exception e) when (e is InvalidOperationException || e is NotSupportedException)
+        {
+            Logger.LogError(TransactionsNotSupportedErrorMessage);
+            Logger.LogException(e);
+        }
 
-            // 如果是关系型数据库
-            if (dbContext.Database.GetService<IDbContextTransactionManager>() is IRelationalTransactionManager)
+        return dbContext;
+    }
+
+    private async Task AttendExistingEfTransactionAsync(
+        TDbContext dbContext,
+        EfCoreTransactionApi activeTransaction,
+        CancellationToken token)
+    {
+        DbContextCreationContext.Current!.ExistingConnection =
+            activeTransaction.DbContextTransaction.GetDbTransaction().Connection;
+
+        // 如果是关系型数据库
+        if (dbContext.Database.GetService<IDbContextTransactionManager>() is IRelationalTransactionManager)
+        {
+            // 同一个连接复用一个事务
+            if (dbContext.Database.GetDbConnection() == DbContextCreationContext.Current.ExistingConnection)
             {
-                // 同一个连接复用一个事务
-                if (dbContext.Database.GetDbConnection() == DbContextCreationContext.Current.ExistingConnection)
-                {
-                    // 使当前数据库操作使用已开启的事务
-                    await dbContext.Database.UseTransactionAsync(
-                        activeTransaction.DbContextTransaction.GetDbTransaction(),
-                        token
-                    );
-                }
-                else
-                {
-                    try
-                    {
-                        /* 用户没有使用已存在的连接，我们将启动一个新的事务
-                         * EfCoreTransactionApi将检查连接字符串匹配并通过DbContext实例提交/回滚
-                         * */
-                        await dbContext.Database.BeginTransactionAsync(
-                            unitOfWork.Context.IsolationLevel,
-                            token
-                        );
-                    }
-                    catch (Exception e) when (e is InvalidOperationException || e is NotSupportedException)
-                    {
-                        Logger.LogError(TransactionsNotSupportedErrorMessage);
-                        Logger.LogException(e);
-
-                        return dbContext;
-                    }
-                }
+                await dbContext.Database.UseTransactionAsync(
+                    activeTransaction.DbContextTransaction.GetDbTransaction(),
+                    token
+                );
             }
             else
             {
                 try
                 {
-                    await dbContext.Database.BeginTransactionAsync(token);
+                    /* 用户没有使用已存在的连接，我们将启动一个新的事务
+                     * EfCoreTransactionApi将检查连接字符串匹配并通过DbContext实例提交/回滚
+                     * */
+                    await dbContext.Database.BeginTransactionAsync(
+                        unitOfWorkManager.Current!.Context.IsolationLevel,
+                        token
+                    );
                 }
                 catch (Exception e) when (e is InvalidOperationException || e is NotSupportedException)
                 {
                     Logger.LogError(TransactionsNotSupportedErrorMessage);
                     Logger.LogException(e);
 
-                    return dbContext;
+                    return;
                 }
             }
+        }
+        else
+        {
+            try
+            {
+                await dbContext.Database.BeginTransactionAsync(token);
+            }
+            catch (Exception e) when (e is InvalidOperationException || e is NotSupportedException)
+            {
+                Logger.LogError(TransactionsNotSupportedErrorMessage);
+                Logger.LogException(e);
 
-            activeTransaction.AttendedDbContexts.Add(dbContext);
+                return;
+            }
         }
 
-        return dbContext;
+        activeTransaction.AttendedDbContexts.Add(dbContext);
+    }
+
+    private async Task<bool> TryEnlistSharedTransactionAsync(
+        TDbContext dbContext,
+        DbTransaction sharedTx,
+        CancellationToken token)
+    {
+        try
+        {
+            var sharedConnection = sharedTx.Connection
+                                   ?? throw new InvalidOperationException("Shared DbTransaction has no Connection.");
+
+            if (dbContext.Database.GetDbConnection() != sharedConnection)
+            {
+                var current = dbContext.Database.GetDbConnection();
+                if (current.State == ConnectionState.Open)
+                {
+                    current.Close();
+                }
+
+                dbContext.Database.SetDbConnection(sharedConnection, contextOwnsConnection: false);
+            }
+
+            if (dbContext.Database.GetDbConnection().State != ConnectionState.Open)
+            {
+                await dbContext.Database.OpenConnectionAsync(token);
+            }
+
+            await dbContext.Database.UseTransactionAsync(sharedTx, token);
+            return true;
+        }
+        catch (Exception e) when (e is InvalidOperationException || e is NotSupportedException)
+        {
+            Logger.LogError(TransactionsNotSupportedErrorMessage);
+            Logger.LogException(e);
+            return false;
+        }
     }
 
     protected virtual CancellationToken GetCancellationToken(CancellationToken preferredValue = default)
