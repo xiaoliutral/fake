@@ -32,6 +32,16 @@ public abstract class SugarDbContext<TDbContext> where TDbContext : SugarDbConte
     public SugarDbContext(SugarDbConnOptions<TDbContext> options)
     {
         Options = options;
+        // Pomelo 征用这条连接时会校验 AllowUserVariables / UseAffectedRows。
+        // 连接一旦打开就不能再改连接串，所以必须在 SqlSugar 打开之前写好。
+        if (options.DbType == DbType.MySql)
+        {
+            options.ConnectionString = MySqlPomeloConnectionString.Ensure(options.ConnectionString);
+            options.ReadConnectionStrings = options.ReadConnectionStrings
+                .Select(MySqlPomeloConnectionString.Ensure)
+                .ToList();
+        }
+
         var config = new ConnectionConfig
         {
             ConfigId = Options.ConfigId,
