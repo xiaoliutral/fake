@@ -64,9 +64,9 @@ public class InboxEventReprocessor(
         if (handlers.Count == 0)
         {
             var msg = $"No IEventHandler registered for {eventType.FullName}.";
-            entry.MarkAsFailed(msg);
+            entry.MarkAsNoHandler(msg);
             await context.SaveChangesAsync(cancellationToken);
-            return new InboxReprocessResult(false, msg, EventState.ConsumeFailed);
+            return new InboxReprocessResult(false, msg, EventState.NoHandler);
         }
 
         try

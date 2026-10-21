@@ -22,11 +22,15 @@
       background: var(--bg); color: var(--text);
     }
     header {
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
       padding: 14px 20px; border-bottom: 1px solid var(--border); background: #121a24;
+      flex-wrap: wrap;
     }
     header h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .02em; }
+    header .right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     header .meta { color: var(--muted); font-size: 12px; }
+    header .tz-wrap { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+    header .tz-wrap select { max-width: min(280px, 70vw); }
     nav { display: flex; gap: 4px; padding: 10px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
     nav button {
       background: transparent; border: 1px solid transparent; color: var(--muted);
@@ -111,7 +115,12 @@
 <body>
   <header>
     <h1>Fake EventBus Dashboard</h1>
-    <div class="meta" id="serverMeta">connecting…</div>
+    <div class="right">
+      <label class="tz-wrap">Timezone
+        <select id="tzSelect" title="DB stores UTC; display converts to selected zone"></select>
+      </label>
+      <div class="meta" id="serverMeta">connecting…</div>
+    </div>
   </header>
   <nav>
     <button class="active" data-tab="overview">Overview</button>
@@ -172,6 +181,7 @@
           <option>Consuming</option>
           <option>ConsumeSucceeded</option>
           <option>ConsumeFailed</option>
+          <option>NoHandler</option>
         </select>
         <input id="inboxType" placeholder="Event type" />
         <input id="inboxKeyword" placeholder="Keyword / Id" />
@@ -221,7 +231,7 @@
       if (!s) return "";
       const cls = /Failed|fail/i.test(s) ? "danger"
         : /Published|Succeeded/i.test(s) ? "ok"
-        : /Progress|Consuming|NotPublished/i.test(s) ? "warn" : "";
+        : /NoHandler|Progress|Consuming|NotPublished/i.test(s) ? "warn" : "";
       return `<span class="badge ${cls}">${s}</span>`;
     };
 
@@ -233,6 +243,106 @@
     const esc = (s) => String(s ?? "")
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
+
+    const TZ_STORAGE_KEY = "fake.eventbus.dashboard.tz";
+    const LOCAL_TZ = (() => {
+      try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; }
+      catch { return "UTC"; }
+    })();
+    const FALLBACK_TIMEZONES = [
+      "UTC", "Asia/Shanghai", "Asia/Hong_Kong", "Asia/Tokyo", "Asia/Singapore",
+      "Asia/Seoul", "Asia/Bangkok", "Asia/Kolkata", "Europe/London", "Europe/Paris",
+      "Europe/Berlin", "America/New_York", "America/Chicago", "America/Denver",
+      "America/Los_Angeles", "Australia/Sydney", "Pacific/Auckland"
+    ];
+
+    function listTimeZones() {
+      try {
+        if (typeof Intl.supportedValuesOf === "function")
+          return Intl.supportedValuesOf("timeZone");
+      } catch { /* ignore */ }
+      const set = new Set(FALLBACK_TIMEZONES);
+      set.add(LOCAL_TZ);
+      return [...set].sort();
+    }
+
+    function loadSavedTz() {
+      try {
+        const saved = localStorage.getItem(TZ_STORAGE_KEY);
+        if (saved && listTimeZones().includes(saved)) return saved;
+      } catch { /* ignore */ }
+      return LOCAL_TZ;
+    }
+
+    let currentTz = loadSavedTz();
+
+    /** API/DB 时间为 UTC；无偏移时按 UTC 解析，避免被当成浏览器本地。 */
+    function parseUtc(input) {
+      if (input == null || input === "") return null;
+      if (input instanceof Date) return isNaN(input.getTime()) ? null : input;
+      let s = String(input).trim();
+      if (/^\d+$/.test(s)) {
+        const n = Number(s);
+        const d = new Date(s.length <= 10 ? n * 1000 : n);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      s = s.replace(" ", "T");
+      if (!/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) s += "Z";
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function fmtTime(input, opts) {
+      const d = parseUtc(input);
+      if (!d) return "-";
+      try {
+        return new Intl.DateTimeFormat(undefined, Object.assign({
+          timeZone: currentTz,
+          year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", second: "2-digit",
+          hour12: false
+        }, opts || {})).format(d);
+      } catch {
+        return d.toISOString();
+      }
+    }
+
+    function fmtTimeWithZone(input) {
+      const text = fmtTime(input);
+      if (text === "-") return text;
+      return text + " (" + currentTz + ")";
+    }
+
+    function initTimezoneSelect() {
+      const sel = document.getElementById("tzSelect");
+      const zones = listTimeZones();
+      sel.innerHTML = zones.map(z =>
+        `<option value="${esc(z)}">${esc(z)}${z === LOCAL_TZ ? " (local)" : ""}</option>`
+      ).join("");
+      if (![...sel.options].some(o => o.value === currentTz)) {
+        const opt = document.createElement("option");
+        opt.value = currentTz;
+        opt.textContent = currentTz + " (local)";
+        sel.appendChild(opt);
+      }
+      sel.value = currentTz;
+      sel.addEventListener("change", () => {
+        currentTz = sel.value;
+        try { localStorage.setItem(TZ_STORAGE_KEY, currentTz); } catch { /* ignore */ }
+        onTimezoneChanged();
+      });
+    }
+
+    function onTimezoneChanged() {
+      refreshStats();
+      const active = document.querySelector("nav button.active");
+      const tab = active && active.dataset.tab;
+      if (tab === "outbox") loadOutbox();
+      if (tab === "inbox") loadInbox();
+      if (tab === "dlx") loadDlx();
+      if (drawerItem && drawerKind) openDrawer(drawerKind, drawerItem,
+        document.getElementById("drawerTitle").textContent);
+    }
 
     let outboxPage = 1, inboxPage = 1;
     let drawerItem = null;
@@ -393,7 +503,12 @@
     }
 
     function pushHistory(m) {
-      const label = new Date().toLocaleTimeString();
+      let label;
+      try {
+        label = new Intl.DateTimeFormat(undefined, {
+          timeZone: currentTz, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+        }).format(new Date());
+      } catch { label = new Date().toLocaleTimeString(); }
       history.labels.push(label);
       history.enqueued.push(m.outboxEnqueued);
       history.dispatched.push((m.outboxDispatchedImmediate || 0) + (m.outboxDispatchedScan || 0));
@@ -414,7 +529,7 @@
         renderStateCards(data.outbox, data.inbox);
         pushHistory(data.metrics);
         document.getElementById("serverMeta").textContent =
-          `UTC ${new Date(data.serverTimeUtc).toISOString()} · poll ${data.pollIntervalMs}ms · DLX ${data.dlxAvailable ? "on" : "off"}`;
+          `Server ${fmtTimeWithZone(data.serverTimeUtc)} · poll ${data.pollIntervalMs}ms · DLX ${data.dlxAvailable ? "on" : "off"}`;
       } catch (e) {
         document.getElementById("serverMeta").textContent = "error: " + e.message;
       }
@@ -453,7 +568,7 @@
           <td>${esc(item.eventTypeShortName)}</td>
           <td>${stateBadge(item.state)}</td>
           <td>${item.timesSent}</td>
-          <td class="mono">${esc(item.creationTime)}</td>
+          <td class="mono" title="UTC ${esc(item.creationTime)}">${esc(fmtTime(item.creationTime))}</td>
           <td onclick="event.stopPropagation()">
             <button class="action" onclick="retryOutbox('${item.eventId}', true)">Retry &amp; publish</button>
             <button class="action secondary" onclick="retryOutbox('${item.eventId}', false)">Reset only</button>
@@ -479,7 +594,7 @@
           <td class="mono" title="${esc(item.eventId)}">${shortId(item.eventId)}</td>
           <td>${esc(item.eventTypeShortName)}</td>
           <td>${stateBadge(item.state)}</td>
-          <td class="mono">${esc(item.processedTime)}</td>
+          <td class="mono" title="UTC ${esc(item.processedTime)}">${esc(fmtTime(item.processedTime))}</td>
           <td>${esc(item.errorMessage || "")}</td>
           <td onclick="event.stopPropagation()">
             <button class="action" onclick="retryInbox('${item.eventId}', true)">Reprocess</button>
@@ -534,7 +649,7 @@
           <div class="row"><span class="k">EventId</span><span class="mono">${esc(item.eventId)}</span></div>
           <div class="row"><span class="k">Type</span>${esc(item.eventTypeName)} ${stateBadge(item.state)}</div>
           <div class="row"><span class="k">TimesSent / Tx</span>${item.timesSent} · <span class="mono">${esc(item.transactionId)}</span></div>
-          <div class="row"><span class="k">Created</span><span class="mono">${esc(item.creationTime)}</span></div>`;
+          <div class="row"><span class="k">Created</span><span class="mono" title="UTC ${esc(item.creationTime)}">${esc(fmtTimeWithZone(item.creationTime))}</span></div>`;
         actions.innerHTML = `
           <button class="action" onclick="retryOutbox('${item.eventId}', true)">Retry &amp; publish</button>
           <button class="action secondary" onclick="retryOutbox('${item.eventId}', false)">Reset only</button>`;
@@ -542,7 +657,7 @@
         meta.innerHTML = `
           <div class="row"><span class="k">EventId</span><span class="mono">${esc(item.eventId)}</span></div>
           <div class="row"><span class="k">Type</span>${esc(item.eventTypeName)} ${stateBadge(item.state)}</div>
-          <div class="row"><span class="k">Processed</span><span class="mono">${esc(item.processedTime)}</span></div>
+          <div class="row"><span class="k">Processed</span><span class="mono" title="UTC ${esc(item.processedTime)}">${esc(fmtTimeWithZone(item.processedTime))}</span></div>
           <div class="row"><span class="k">Error</span>${esc(item.errorMessage || "-")}</div>`;
         actions.innerHTML = `
           <button class="action" onclick="retryInbox('${item.eventId}', true)">Reprocess handlers</button>
@@ -552,6 +667,7 @@
           <div class="row"><span class="k">MessageId</span><span class="mono">${esc(item.messageId)}</span></div>
           <div class="row"><span class="k">RoutingKey</span><span class="mono">${esc(item.routingKey || "")}</span></div>
           <div class="row"><span class="k">EventId</span><span class="mono">${esc(item.eventId || "")}</span></div>
+          <div class="row"><span class="k">DeathTime</span><span class="mono" title="UTC ${esc(item.deathTime || "")}">${esc(fmtTimeWithZone(item.deathTime))}</span></div>
           <div class="row"><span class="k">Reason</span>${esc(item.deathReason || "-")}</div>`;
         actions.innerHTML = `
           <button class="action" onclick="dlxOp('${esc(item.messageId)}','requeue')">Requeue</button>
@@ -636,6 +752,7 @@
     document.getElementById("dlxRefresh").onclick = () => loadDlx();
     document.getElementById("subsRefresh").onclick = () => loadSubscriptions();
 
+    initTimezoneSelect();
     redrawCharts();
     window.addEventListener("resize", redrawCharts);
     refreshStats();

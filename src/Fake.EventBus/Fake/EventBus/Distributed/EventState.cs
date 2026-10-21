@@ -42,5 +42,10 @@ public enum EventState
     /// <summary>
     /// 消费失败
     /// </summary>
-    ConsumeFailed = 12
+    ConsumeFailed = 12,
+
+    /// <summary>
+    /// 无匹配 Handler（事件类型已解析，但本进程未注册消费者）
+    /// </summary>
+    NoHandler = 13
 }

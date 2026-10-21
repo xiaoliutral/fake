@@ -7,11 +7,13 @@ namespace Fake.EventBus.IntegrationEventLog;
 
 /// <summary>
 /// 默认 Outbox 总线（业务无感，ORM 无关）：
-/// 事务性 UoW 内只写 Outbox；Commit 后立刻投递；后台扫描兜底。
+/// 事务性 UoW 内写 Outbox；Commit 后立刻投递；后台扫描兜底。
+/// 无事务性 UoW 时降级为物理总线立即发送（放弃与业务写的原子性）。
 /// 事务来自 <see cref="IOutboxEnlistableTransaction"/>（EF / SqlSugar 等）。
 /// </summary>
 public class OutboxDistributedEventBus(
     IUnitOfWorkManager unitOfWorkManager,
+    IPhysicalDistributedEventBus physicalDistributedEventBus,
     EventBusMetrics metrics,
     ILogger<OutboxDistributedEventBus> logger) : IDistributedEventBus
 {
@@ -27,9 +29,12 @@ public class OutboxDistributedEventBus(
         var uow = unitOfWorkManager.Current;
         if (uow == null || !uow.Context.IsTransactional)
         {
-            throw new InvalidOperationException(
-                "集成事件必须在事务性工作单元内发布（写入 Outbox）。" +
-                "请使用 [UnitOfWork] / 事务性 UoW；若需绕过 Outbox 直发，请注入 IPhysicalDistributedEventBus。");
+            logger.LogWarning(
+                "No transactional UoW for event {EventId} ({EventType}); publishing immediately via physical bus (no outbox atomicity)",
+                @event.Id, @event.GetType().Name);
+            await physicalDistributedEventBus.PublishAsync(@event, cancellationToken);
+            metrics.RecordOutboxDispatched(@event.GetType().Name, "immediate-no-tx");
+            return;
         }
 
         var enlistable = FindEnlistableTransaction(uow);

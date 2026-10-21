@@ -1,6 +1,7 @@
 ﻿using System.Net.Sockets;
 using Fake.EventBus;
 using Fake.EventBus.Distributed;
+using Fake.UnitOfWork;
 using Microsoft.Extensions.Hosting;
 using Polly;
 using Polly.Retry;
@@ -21,7 +22,8 @@ public class RabbitMqEventBus(
     IApplicationInfo applicationInfo,
     IEventRoutingKeyResolver routingKeyResolver,
     RabbitMqEventBusTelemetryService telemetry,
-    EventBusMetrics metrics
+    EventBusMetrics metrics,
+    IUnitOfWorkManager unitOfWorkManager
 ) : IPhysicalDistributedEventBus, IDisposable, IHostedService
 {
     private readonly RabbitMqEventBusOptions _eventBusOptions = eventBusOptions.Value;
@@ -181,6 +183,15 @@ public class RabbitMqEventBus(
 
         logger.LogDebug("Event {EventId} marked as processing", @event.Id);
 
+        var handlers = ResolveHandlers(scope.ServiceProvider, eventType);
+        if (handlers.Count == 0)
+        {
+            var msg = $"No IEventHandler registered for {eventType.FullName}.";
+            await inboxService.MarkAsNoHandlerAsync(@event.Id, msg);
+            logger.LogWarning("Event {EventId} ({EventType}) has no matching handler", @event.Id, eventType.FullName);
+            return;
+        }
+
         const int maxRetries = 3;
         Exception? lastException = null;
 
@@ -188,9 +199,15 @@ public class RabbitMqEventBus(
         {
             try
             {
-                foreach (var handler in scope.ServiceProvider.GetKeyedServices<IEventHandler>(eventType))
+                // 消费侧默认开非事务 UoW：Handler 可查库；写库/Outbox 请自行 RequiresNew 事务性 UoW
+                using (var uow = unitOfWorkManager.Begin(new UnitOfWorkAttribute { IsTransactional = false }))
                 {
-                    await handler.HandleAsync(@event);
+                    foreach (var handler in handlers)
+                    {
+                        await handler.HandleAsync(@event);
+                    }
+
+                    await uow.CompleteAsync();
                 }
 
                 await inboxService.MarkAsSucceededAsync(@event.Id);
@@ -222,6 +239,17 @@ public class RabbitMqEventBus(
             @event.Id, maxRetries);
 
         throw lastException!;
+    }
+
+    private static List<IEventHandler> ResolveHandlers(IServiceProvider services, Type eventType)
+    {
+        var handlers = services.GetKeyedServices<IEventHandler>(eventType).ToList();
+        if (handlers.Count > 0)
+            return handlers;
+
+        // 兼容：仅注册了 IEventHandler<T>、未走 keyed 暴露时
+        var generic = typeof(IEventHandler<>).MakeGenericType(eventType);
+        return services.GetServices(generic).OfType<IEventHandler>().ToList();
     }
 
     private bool TryResolveEventType(string routingKey, IBasicProperties properties, out Type eventType)

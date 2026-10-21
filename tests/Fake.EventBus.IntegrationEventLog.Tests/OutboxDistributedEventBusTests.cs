@@ -38,15 +38,32 @@ public class OutboxDistributedEventBusTests : ApplicationTestWithTools<FakeEvent
     }
 
     [Fact]
-    public async Task 无工作单元发布应抛错()
+    public async Task 无工作单元发布应立即走物理总线()
     {
         _uowManager.Current.ShouldBeNull();
+        _physicalEventBus.Clear();
+        var evt = new TestOutboxIntegrationEvent { Payload = "no-uow" };
 
-        var ex = await Should.ThrowAsync<InvalidOperationException>(() =>
-            _distributedEventBus.PublishAsync(new TestOutboxIntegrationEvent()));
+        await _distributedEventBus.PublishAsync(evt);
 
-        ex.Message.ShouldContain("事务性工作单元");
-        _physicalEventBus.Published.Count.ShouldBe(0);
+        _physicalEventBus.Published.Count.ShouldBe(1);
+        _physicalEventBus.Published[0].Id.ShouldBe(evt.Id);
+    }
+
+    [Fact]
+    public async Task 非事务工作单元发布应立即走物理总线()
+    {
+        _physicalEventBus.Clear();
+        var evt = new TestOutboxIntegrationEvent { Payload = "non-tx-uow" };
+
+        using (var uow = _uowManager.Begin(new UnitOfWorkAttribute { IsTransactional = false }))
+        {
+            await _distributedEventBus.PublishAsync(evt);
+            await uow.CompleteAsync();
+        }
+
+        _physicalEventBus.Published.Count.ShouldBe(1);
+        _physicalEventBus.Published[0].Id.ShouldBe(evt.Id);
     }
 
     [Fact]

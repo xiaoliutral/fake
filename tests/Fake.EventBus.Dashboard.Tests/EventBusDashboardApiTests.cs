@@ -95,5 +95,8 @@ public class EventBusDashboardApiTests : IClassFixture<DashboardHostFixture>
         html.ShouldContain("reprocessNow");
         html.ShouldNotContain("cdn.jsdelivr.net");
         html.ShouldContain("drawSparkline");
+        html.ShouldContain("tzSelect");
+        html.ShouldContain("fmtTime");
+        html.ShouldContain("resolvedOptions().timeZone");
     }
 }

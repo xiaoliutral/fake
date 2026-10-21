@@ -59,6 +59,16 @@ public class InboxEventLogService(IntegrationEventLogContext context) : IInboxEv
         }
     }
 
+    public async Task MarkAsNoHandlerAsync(Guid eventId, string? message = null)
+    {
+        var entry = await context.InboxEventLogs.FindAsync(eventId);
+        if (entry != null)
+        {
+            entry.MarkAsNoHandler(message);
+            await context.SaveChangesAsync();
+        }
+    }
+
     public async Task ResetEventForRetryAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
         var entry = await context.InboxEventLogs
@@ -80,6 +90,7 @@ public class InboxEventLogService(IntegrationEventLogContext context) : IInboxEv
 
         var now = DateTime.UtcNow;
         var canReclaim = existing.State == EventState.ConsumeFailed ||
+                         existing.State == EventState.NoHandler ||
                          (existing.State == EventState.Consuming &&
                           existing.ProcessedTime < now - ProcessingLockTimeout);
 

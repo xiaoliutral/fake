@@ -6,6 +6,7 @@
     <ItemGroup>
         <ProjectReference Include="..\Fake.Core\Fake.Core.csproj"/>
         <ProjectReference Include="..\Fake.EventBus\Fake.EventBus.csproj"/>
+        <ProjectReference Include="..\Fake.UnitOfWork\Fake.UnitOfWork.csproj"/>
         <ProjectReference Include="..\Fake.RabbitMQ\Fake.RabbitMQ.csproj"/>
     </ItemGroup>
 

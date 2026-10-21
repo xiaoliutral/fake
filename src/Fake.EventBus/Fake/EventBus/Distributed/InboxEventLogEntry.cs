@@ -86,6 +86,16 @@ public class InboxEventLogEntry
     }
 
     /// <summary>
+    /// 标记为无匹配 Handler（可人工重试 / 部署 Handler 后重投再次抢占）。
+    /// </summary>
+    public void MarkAsNoHandler(string? message = null)
+    {
+        State = EventState.NoHandler;
+        ErrorMessage = message ?? "No matching IEventHandler";
+        ProcessedTime = DateTime.UtcNow;
+    }
+
+    /// <summary>
     /// 人工重试：标记为失败以便下次投递时重新抢占。
     /// </summary>
     public void ResetForRetry(string? reason = null)

@@ -1,4 +1,5 @@
 using Fake.EventBus.Distributed;
+using Fake.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -25,7 +26,7 @@ public class RabbitMqEventBusTopology(
         foreach (var eventType in eventTypes)
         {
             var handlers = scope.ServiceProvider.GetKeyedServices<IEventHandler>(eventType)
-                .Select(h => h.GetType().FullName ?? h.GetType().Name)
+                .Select(FormatHandlerType)
                 .Distinct(StringComparer.Ordinal)
                 .OrderBy(x => x, StringComparer.Ordinal)
                 .ToList();
@@ -34,7 +35,8 @@ public class RabbitMqEventBusTopology(
             {
                 var generic = typeof(IEventHandler<>).MakeGenericType(eventType);
                 handlers = scope.ServiceProvider.GetServices(generic)
-                    .Select(h => h!.GetType().FullName ?? h.GetType().Name)
+                    .Where(h => h != null)
+                    .Select(h => FormatHandlerType(h!))
                     .Distinct(StringComparer.Ordinal)
                     .OrderBy(x => x, StringComparer.Ordinal)
                     .ToList();
@@ -48,5 +50,14 @@ public class RabbitMqEventBusTopology(
         }
 
         return list;
+    }
+
+    /// <summary>
+    /// DI 解析出的 Handler 常被 Castle 代理包装，展示真实实现类型。
+    /// </summary>
+    private static string FormatHandlerType(object handler)
+    {
+        var type = ProxyHelper.GetUnProxiedType(handler);
+        return type.FullName ?? type.Name;
     }
 }

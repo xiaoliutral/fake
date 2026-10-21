@@ -9,12 +9,12 @@ public abstract class Event
     public Guid Id { get; init; } = Guid.NewGuid();
 
     /// <summary>
-    /// 事件创建时间
+    /// 事件创建时间（UTC，与 Outbox/Inbox 及锁过期比较一致）
     /// </summary>
-    public virtual DateTime CreationTime { get; init; } = DateTime.Now;
+    public DateTime CreationTime { get; init; } = DateTime.UtcNow;
 
     public override string ToString()
     {
-        return $"[事件：{GetType().Name} Id：{Id} 创建时间：{CreationTime}]";
+        return $"[Name：{GetType().Name} Id：{Id} CreateAt：{CreationTime}]";
     }
 }

@@ -32,6 +32,11 @@ public interface IInboxEventLogService
     Task MarkAsFailedAsync(Guid eventId, string errorMessage);
 
     /// <summary>
+    /// 标记为无匹配 Handler（终态偏审计；重投时可再抢占）
+    /// </summary>
+    Task MarkAsNoHandlerAsync(Guid eventId, string? message = null);
+
+    /// <summary>
     /// 人工重试：重置为可重新抢占状态
     /// </summary>
     Task ResetEventForRetryAsync(Guid eventId, CancellationToken cancellationToken = default);
