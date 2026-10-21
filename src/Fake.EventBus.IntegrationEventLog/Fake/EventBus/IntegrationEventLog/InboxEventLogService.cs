@@ -1,14 +1,14 @@
 using Fake.EventBus.Distributed;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Fake.EventBus.IntegrationEventLog;
 
-public class InboxEventLogService(IntegrationEventLogContext context) : IInboxEventLogService
+public class InboxEventLogService(
+    IntegrationEventLogContext context,
+    IOptions<IntegrationEventLogOptions> options) : IInboxEventLogService
 {
-    /// <summary>
-    /// Consuming 超过此时长视为僵尸，允许重新抢占
-    /// </summary>
-    private static readonly TimeSpan ProcessingLockTimeout = TimeSpan.FromMinutes(5);
+    private readonly InboxOptions _options = options.Value.Inbox;
 
     public async Task<bool> IsEventProcessedAsync(Guid eventId)
     {
@@ -88,11 +88,12 @@ public class InboxEventLogService(IntegrationEventLogContext context) : IInboxEv
         if (existing.State == EventState.ConsumeSucceeded)
             return false;
 
+        var lockTimeout = _options.ResolveProcessingLockTimeout(existing.EventTypeName);
         var now = DateTime.UtcNow;
         var canReclaim = existing.State == EventState.ConsumeFailed ||
                          existing.State == EventState.NoHandler ||
                          (existing.State == EventState.Consuming &&
-                          existing.ProcessedTime < now - ProcessingLockTimeout);
+                          existing.ProcessedTime < now - lockTimeout);
 
         if (!canReclaim)
             return false;

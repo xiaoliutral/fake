@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Fake.EventBus.Distributed;
+using Fake.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -8,10 +9,12 @@ namespace Fake.EventBus.IntegrationEventLog;
 
 /// <summary>
 /// 本机重新执行 Inbox 事件的 Handler（绕过消息队列，适合人工重试）。
+/// 与 RabbitMqEventBus 消费路径一致：Handle 前开非事务 UoW。
 /// </summary>
 public class InboxEventReprocessor(
     IntegrationEventLogContext context,
     IServiceScopeFactory scopeFactory,
+    IUnitOfWorkManager unitOfWorkManager,
     ILogger<InboxEventReprocessor> logger) : IInboxEventReprocessor
 {
     public async Task<InboxReprocessResult> ReprocessAsync(
@@ -71,9 +74,15 @@ public class InboxEventReprocessor(
 
         try
         {
-            foreach (var handler in handlers)
+            // 与 RabbitMqEventBus.ProcessingEventAsync 对齐：默认非事务 UoW，便于查库
+            using (var uow = unitOfWorkManager.Begin(new UnitOfWorkAttribute { IsTransactional = false }))
             {
-                await handler.HandleAsync(integrationEvent, cancellationToken);
+                foreach (var handler in handlers)
+                {
+                    await handler.HandleAsync(integrationEvent, cancellationToken);
+                }
+
+                await uow.CompleteAsync(cancellationToken);
             }
 
             entry.MarkAsSucceeded();

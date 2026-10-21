@@ -16,7 +16,8 @@ public interface IInboxEventLogService
     Task SaveProcessedEventAsync(Guid eventId, string eventTypeName, string content);
 
     /// <summary>
-    /// 原子性地尝试标记事件为处理中（含僵尸 Consuming / ConsumeFailed 重试）
+    /// 原子性地尝试标记事件为处理中（含僵尸 Consuming / ConsumeFailed 重试）。
+    /// Consuming 僵尸锁超时由 IntegrationEventLog:Inbox 配置决定。
     /// </summary>
     /// <returns>如果成功插入或抢占返回 true，如果已成功处理返回 false</returns>
     Task<bool> TryMarkAsProcessingAsync(Guid eventId, string eventTypeName, string content);

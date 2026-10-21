@@ -19,13 +19,12 @@ public class InboxCleanupBackgroundService : BackgroundService
     public InboxCleanupBackgroundService(
         IServiceProvider serviceProvider,
         ILogger<InboxCleanupBackgroundService> logger,
-        IOptions<InboxCleanupOptions> options)
+        IOptions<IntegrationEventLogOptions> options)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
-        _options = options.Value;
-        
-        // 验证配置
+        _options = options.Value.InboxCleanup;
+
         _options.Validate();
     }
 

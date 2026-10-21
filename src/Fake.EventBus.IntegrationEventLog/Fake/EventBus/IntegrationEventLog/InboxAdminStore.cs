@@ -17,6 +17,9 @@ public class InboxAdminStore(IntegrationEventLogContext context) : IInboxAdminSt
         if (request.State.HasValue)
             query = query.Where(e => e.State == request.State.Value);
 
+        if (request.EventId.HasValue)
+            query = query.Where(e => e.EventId == request.EventId.Value);
+
         if (!string.IsNullOrWhiteSpace(request.EventType))
         {
             var type = request.EventType.Trim();
@@ -24,13 +27,45 @@ public class InboxAdminStore(IntegrationEventLogContext context) : IInboxAdminSt
                 e.EventTypeName == type || e.EventTypeName.EndsWith("." + type));
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Content))
+        {
+            var content = request.Content.Trim();
+            query = query.Where(e => e.Content.Contains(content));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Error))
+        {
+            var error = request.Error.Trim();
+            query = query.Where(e => e.ErrorMessage != null && e.ErrorMessage.Contains(error));
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Keyword))
         {
             var kw = request.Keyword.Trim();
-            query = query.Where(e =>
-                e.EventId.ToString().Contains(kw) ||
-                (e.ErrorMessage != null && e.ErrorMessage.Contains(kw)) ||
-                e.Content.Contains(kw));
+            if (Guid.TryParse(kw, out var eventId))
+            {
+                query = query.Where(e =>
+                    e.EventId == eventId ||
+                    (e.ErrorMessage != null && e.ErrorMessage.Contains(kw)));
+            }
+            else
+            {
+                query = query.Where(e =>
+                    e.EventId.ToString().Contains(kw) ||
+                    (e.ErrorMessage != null && e.ErrorMessage.Contains(kw)));
+            }
+        }
+
+        if (request.From.HasValue)
+        {
+            var from = NormalizeUtc(request.From.Value);
+            query = query.Where(e => e.ProcessedTime >= from);
+        }
+
+        if (request.To.HasValue)
+        {
+            var to = NormalizeUtc(request.To.Value);
+            query = query.Where(e => e.ProcessedTime <= to);
         }
 
         var total = await query.CountAsync(cancellationToken);
@@ -82,6 +117,14 @@ public class InboxAdminStore(IntegrationEventLogContext context) : IInboxAdminSt
         await context.SaveChangesAsync(cancellationToken);
         return true;
     }
+
+    private static DateTime NormalizeUtc(DateTime value)
+        => value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
 
     private static InboxMessageDto ToDto(InboxEventLogEntry e) => new(
         e.EventId,

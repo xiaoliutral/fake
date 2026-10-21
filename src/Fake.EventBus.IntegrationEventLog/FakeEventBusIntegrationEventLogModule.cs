@@ -15,12 +15,13 @@ public class FakeEventBusIntegrationEventLogModule : FakeModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
-        context.Services.AddOptions<OutboxPublisherOptions>()
-            .BindConfiguration(OutboxPublisherOptions.SectionName)
-            .ValidateOnStart();
-
-        context.Services.AddOptions<InboxCleanupOptions>()
-            .BindConfiguration(InboxCleanupOptions.SectionName)
+        context.Services.AddOptions<IntegrationEventLogOptions>()
+            .BindConfiguration(IntegrationEventLogOptions.SectionName)
+            .Validate(o =>
+            {
+                o.Validate();
+                return true;
+            }, "Invalid IntegrationEventLogOptions")
             .ValidateOnStart();
 
         context.Services.Replace(

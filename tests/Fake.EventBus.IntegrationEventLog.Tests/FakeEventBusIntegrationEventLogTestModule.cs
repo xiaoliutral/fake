@@ -26,15 +26,12 @@ public class FakeEventBusIntegrationEventLogTestModule : FakeModule
         // Inbox 本地 Reprocess 回退路径：非 keyed 的 IEventHandler<T>
         context.Services.AddTransient<IEventHandler<TestOutboxIntegrationEvent>, TrackingInboxHandler>();
 
-        context.Services.Configure<OutboxPublisherOptions>(o =>
+        context.Services.Configure<IntegrationEventLogOptions>(o =>
         {
-            o.StartupDelay = TimeSpan.FromHours(1);
-            o.ScanInterval = TimeSpan.FromHours(1);
-        });
-        context.Services.Configure<InboxCleanupOptions>(o =>
-        {
-            o.StartupDelay = TimeSpan.FromHours(1);
-            o.CleanupInterval = TimeSpan.FromHours(1);
+            o.OutboxPublisher.StartupDelay = TimeSpan.FromHours(1);
+            o.OutboxPublisher.ScanInterval = TimeSpan.FromHours(1);
+            o.InboxCleanup.StartupDelay = TimeSpan.FromHours(1);
+            o.InboxCleanup.CleanupInterval = TimeSpan.FromHours(1);
         });
 
         var connection = new SqliteConnection("Filename=:memory:");

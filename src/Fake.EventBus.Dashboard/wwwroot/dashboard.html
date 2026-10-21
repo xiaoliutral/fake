@@ -53,10 +53,19 @@
       height: 260px;
     }
     .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+    .toolbar .field {
+      display: flex; flex-direction: column; gap: 3px; min-width: 0;
+    }
+    .toolbar .field > span {
+      color: var(--muted); font-size: 11px; line-height: 1;
+    }
     input, select, button.action {
       background: #0d131c; border: 1px solid var(--border); color: var(--text);
       border-radius: 6px; padding: 7px 10px; font-size: 13px;
+      color-scheme: dark;
     }
+    input[type="datetime-local"] { min-width: 180px; }
+    input.wide { min-width: 200px; flex: 1; }
     button.action { cursor: pointer; background: var(--accent); border-color: transparent; }
     button.action.secondary { background: transparent; border-color: var(--border); }
     button.action.danger { background: var(--danger); }
@@ -156,17 +165,39 @@
     </section>
 
     <section id="tab-outbox" class="hidden">
-      <div class="toolbar">
-        <select id="outboxState">
-          <option value="">All states</option>
-          <option>NotPublished</option>
-          <option>InProgress</option>
-          <option>Published</option>
-          <option>PublishFailed</option>
-        </select>
-        <input id="outboxType" placeholder="Event type" />
-        <input id="outboxKeyword" placeholder="Keyword / Id" />
+      <div class="toolbar" id="outboxFilters">
+        <label class="field"><span>State</span>
+          <select id="outboxState">
+            <option value="">All</option>
+            <option>NotPublished</option>
+            <option>InProgress</option>
+            <option>Published</option>
+            <option>PublishFailed</option>
+          </select>
+        </label>
+        <label class="field"><span>Event type</span>
+          <input id="outboxType" class="wide" placeholder="ShortName / FullName" />
+        </label>
+        <label class="field"><span>Keyword</span>
+          <input id="outboxKeyword" class="wide" placeholder="EventId / TransactionId / keyword" />
+        </label>
+        <label class="field"><span>Body contains</span>
+          <input id="outboxContent" class="wide" placeholder="Payload substring" />
+        </label>
+        <label class="field"><span>From</span>
+          <input type="datetime-local" id="outboxFrom" title="Wall time in selected timezone; default: start of today" />
+        </label>
+        <label class="field"><span>To</span>
+          <input type="datetime-local" id="outboxTo" title="Wall time in selected timezone; empty = no upper bound" />
+        </label>
+        <label class="field"><span>Min times</span>
+          <input id="outboxMinTimes" type="number" min="0" step="1" style="width:88px" placeholder="≥" />
+        </label>
+        <label class="field"><span>Max times</span>
+          <input id="outboxMaxTimes" type="number" min="0" step="1" style="width:88px" placeholder="≤" />
+        </label>
         <button class="action" id="outboxSearch">Search</button>
+        <button class="action secondary" id="outboxClear">Clear</button>
       </div>
       <div class="table-wrap"><table><thead>
         <tr><th>EventId</th><th>Type</th><th>State</th><th>Times</th><th>Created</th><th>Actions</th></tr>
@@ -175,17 +206,33 @@
     </section>
 
     <section id="tab-inbox" class="hidden">
-      <div class="toolbar">
-        <select id="inboxState">
-          <option value="">All states</option>
-          <option>Consuming</option>
-          <option>ConsumeSucceeded</option>
-          <option>ConsumeFailed</option>
-          <option>NoHandler</option>
-        </select>
-        <input id="inboxType" placeholder="Event type" />
-        <input id="inboxKeyword" placeholder="Keyword / Id" />
+      <div class="toolbar" id="inboxFilters">
+        <label class="field"><span>State</span>
+          <select id="inboxState">
+            <option value="">All</option>
+            <option>Consuming</option>
+            <option>ConsumeSucceeded</option>
+            <option>ConsumeFailed</option>
+            <option>NoHandler</option>
+          </select>
+        </label>
+        <label class="field"><span>Event type</span>
+          <input id="inboxType" class="wide" placeholder="ShortName / FullName" />
+        </label>
+        <label class="field"><span>Keyword</span>
+          <input id="inboxKeyword" class="wide" placeholder="EventId / Error / keyword" />
+        </label>
+        <label class="field"><span>Body contains</span>
+          <input id="inboxContent" class="wide" placeholder="Payload substring" />
+        </label>
+        <label class="field"><span>From</span>
+          <input type="datetime-local" id="inboxFrom" title="Wall time in selected timezone; default: start of today" />
+        </label>
+        <label class="field"><span>To</span>
+          <input type="datetime-local" id="inboxTo" title="Wall time in selected timezone; empty = no upper bound" />
+        </label>
         <button class="action" id="inboxSearch">Search</button>
+        <button class="action secondary" id="inboxClear">Clear</button>
       </div>
       <div class="table-wrap"><table><thead>
         <tr><th>EventId</th><th>Type</th><th>State</th><th>Processed</th><th>Error</th><th>Actions</th></tr>
@@ -195,7 +242,14 @@
 
     <section id="tab-dlx" class="hidden">
       <div class="toolbar">
+        <label class="field"><span>Keyword</span>
+          <input id="dlxKeyword" class="wide" placeholder="Id / routing / reason" />
+        </label>
+        <label class="field"><span>Body contains</span>
+          <input id="dlxContent" class="wide" placeholder="Payload substring" />
+        </label>
         <button class="action" id="dlxRefresh">Refresh DLX</button>
+        <button class="action secondary" id="dlxFilterApply">Filter</button>
         <span class="muted" id="dlxStatus"></span>
       </div>
       <div class="table-wrap"><table><thead>
@@ -311,6 +365,73 @@
       const text = fmtTime(input);
       if (text === "-") return text;
       return text + " (" + currentTz + ")";
+    }
+
+    /** Build querystring; skip empty values. */
+    function buildQuery(params) {
+      const q = new URLSearchParams();
+      Object.entries(params).forEach(([k, v]) => {
+        if (v == null) return;
+        const s = String(v).trim();
+        if (s === "") return;
+        q.set(k, s);
+      });
+      return q.toString();
+    }
+
+    /**
+     * datetime-local value as wall clock in currentTz → UTC ISO.
+     * Iteratively corrects UTC guess using Intl formatToParts.
+     */
+    function wallTimeInTzToUtcIso(value) {
+      if (!value) return "";
+      const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value);
+      if (!m) return "";
+      const y = +m[1], mo = +m[2], d = +m[3], h = +m[4], mi = +m[5], sec = +(m[6] || 0);
+      const target = Date.UTC(y, mo - 1, d, h, mi, sec);
+      let utc = target;
+      for (let i = 0; i < 4; i++) {
+        const parts = new Intl.DateTimeFormat("en-US", {
+          timeZone: currentTz, hour12: false,
+          year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", second: "2-digit"
+        }).formatToParts(new Date(utc));
+        const get = (t) => {
+          const p = parts.find(x => x.type === t);
+          return p ? Number(p.value) : 0;
+        };
+        let hour = get("hour");
+        if (hour === 24) hour = 0; // some locales
+        const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), hour, get("minute"), get("second"));
+        const delta = target - asUtc;
+        if (delta === 0) break;
+        utc += delta;
+      }
+      return new Date(utc).toISOString();
+    }
+
+    /** Start of today in currentTz as datetime-local value (YYYY-MM-DDTHH:mm). */
+    function startOfTodayLocalInput() {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: currentTz,
+        year: "numeric", month: "2-digit", day: "2-digit"
+      }).formatToParts(new Date());
+      const get = (t) => (parts.find(p => p.type === t) || {}).value || "00";
+      return `${get("year")}-${get("month")}-${get("day")}T00:00`;
+    }
+
+    function applyDefaultDateRange(prefix) {
+      document.getElementById(prefix + "From").value = startOfTodayLocalInput();
+      document.getElementById(prefix + "To").value = "";
+    }
+
+    function clearFilterInputs(rootId) {
+      document.querySelectorAll("#" + rootId + " input, #" + rootId + " select").forEach(el => {
+        if (el.tagName === "SELECT") el.selectedIndex = 0;
+        else el.value = "";
+      });
+      if (rootId === "outboxFilters") applyDefaultDateRange("outbox");
+      if (rootId === "inboxFilters") applyDefaultDateRange("inbox");
     }
 
     function initTimezoneSelect() {
@@ -555,13 +676,18 @@
     }
 
     async function loadOutbox() {
-      const q = new URLSearchParams({
+      const q = buildQuery({
         pageIndex: outboxPage, pageSize: 20,
         state: document.getElementById("outboxState").value,
         eventType: document.getElementById("outboxType").value,
-        keyword: document.getElementById("outboxKeyword").value
+        keyword: document.getElementById("outboxKeyword").value,
+        content: document.getElementById("outboxContent").value,
+        from: wallTimeInTzToUtcIso(document.getElementById("outboxFrom").value),
+        to: wallTimeInTzToUtcIso(document.getElementById("outboxTo").value),
+        minTimesSent: document.getElementById("outboxMinTimes").value,
+        maxTimesSent: document.getElementById("outboxMaxTimes").value
       });
-      const data = await api("/outbox?" + q.toString());
+      const data = await api("/outbox?" + q);
       document.getElementById("outboxBody").innerHTML = (data.items || []).map(item => `
         <tr class="clickable" onclick="openOutbox('${item.eventId}')">
           <td class="mono" title="${esc(item.eventId)}">${shortId(item.eventId)}</td>
@@ -573,6 +699,7 @@
             <button class="action" onclick="retryOutbox('${item.eventId}', true)">Retry &amp; publish</button>
             <button class="action secondary" onclick="retryOutbox('${item.eventId}', false)">Reset only</button>
             <button class="action secondary" onclick="openOutbox('${item.eventId}')">Preview</button>
+            <button class="action secondary" onclick="openInbox('${item.eventId}')">Inbox</button>
           </td>
         </tr>`).join("") || `<tr><td colspan="6" class="muted">No data</td></tr>`;
       document.getElementById("outboxPager").innerHTML =
@@ -582,13 +709,16 @@
     }
 
     async function loadInbox() {
-      const q = new URLSearchParams({
+      const q = buildQuery({
         pageIndex: inboxPage, pageSize: 20,
         state: document.getElementById("inboxState").value,
         eventType: document.getElementById("inboxType").value,
-        keyword: document.getElementById("inboxKeyword").value
+        keyword: document.getElementById("inboxKeyword").value,
+        content: document.getElementById("inboxContent").value,
+        from: wallTimeInTzToUtcIso(document.getElementById("inboxFrom").value),
+        to: wallTimeInTzToUtcIso(document.getElementById("inboxTo").value)
       });
-      const data = await api("/inbox?" + q.toString());
+      const data = await api("/inbox?" + q);
       document.getElementById("inboxBody").innerHTML = (data.items || []).map(item => `
         <tr class="clickable" onclick="openInbox('${item.eventId}')">
           <td class="mono" title="${esc(item.eventId)}">${shortId(item.eventId)}</td>
@@ -600,6 +730,7 @@
             <button class="action" onclick="retryInbox('${item.eventId}', true)">Reprocess</button>
             <button class="action secondary" onclick="retryInbox('${item.eventId}', false)">Reset only</button>
             <button class="action secondary" onclick="openInbox('${item.eventId}')">Preview</button>
+            <button class="action secondary" onclick="openOutbox('${item.eventId}')">Outbox</button>
           </td>
         </tr>`).join("") || `<tr><td colspan="6" class="muted">No data</td></tr>`;
       document.getElementById("inboxPager").innerHTML =
@@ -608,27 +739,53 @@
          <button class="action secondary" onclick="inboxPage=inboxPage+1;loadInbox()">Next</button>`;
     }
 
+    let dlxItems = [];
+
+    function renderDlxRows(items) {
+      document.getElementById("dlxBody").innerHTML = (items || []).map(item => `
+        <tr class="clickable" onclick="openDlxById('${esc(item.messageId)}')">
+          <td class="mono">${shortId(item.messageId)}</td>
+          <td class="mono">${esc(item.routingKey || "")}</td>
+          <td class="mono">${esc(item.eventId || "")}</td>
+          <td>${esc(item.deathReason || "")}</td>
+          <td class="mono muted">${esc((item.body || "").slice(0, 80))}</td>
+          <td onclick="event.stopPropagation()">
+            <button class="action" onclick="dlxOp('${esc(item.messageId)}','requeue')">Requeue</button>
+            <button class="action danger" onclick="dlxOp('${esc(item.messageId)}','discard')">Discard</button>
+            <button class="action secondary" onclick="openDlxById('${esc(item.messageId)}')">Preview</button>
+          </td>
+        </tr>`).join("") || `<tr><td colspan="6" class="muted">Empty</td></tr>`;
+    }
+
+    function applyDlxFilter() {
+      const kw = (document.getElementById("dlxKeyword").value || "").trim().toLowerCase();
+      const body = (document.getElementById("dlxContent").value || "").trim().toLowerCase();
+      const filtered = dlxItems.filter(item => {
+        if (body && !(item.body || "").toLowerCase().includes(body)) return false;
+        if (!kw) return true;
+        const hay = [
+          item.messageId, item.routingKey, item.eventId, item.eventType, item.deathReason
+        ].map(x => (x || "").toLowerCase()).join(" ");
+        return hay.includes(kw);
+      });
+      document.getElementById("dlxStatus").textContent =
+        `Showing ${filtered.length}/${dlxItems.length} (client filter; refresh reloads from broker)`;
+      renderDlxRows(filtered);
+    }
+
     async function loadDlx() {
       try {
         const data = await api("/dlx/messages?maxCount=50");
-        document.getElementById("dlxStatus").textContent = data.available
-          ? `${(data.items||[]).length} message(s) previewed (held until requeue/discard/refresh)`
-          : "DLX not available (enable RabbitMQ EventBus EnableDlx)";
+        dlxItems = data.items || [];
         dlxCache.clear();
-        (data.items || []).forEach(item => dlxCache.set(item.messageId, item));
-        document.getElementById("dlxBody").innerHTML = (data.items || []).map(item => `
-          <tr class="clickable" onclick="openDlxById('${esc(item.messageId)}')">
-            <td class="mono">${shortId(item.messageId)}</td>
-            <td class="mono">${esc(item.routingKey || "")}</td>
-            <td class="mono">${esc(item.eventId || "")}</td>
-            <td>${esc(item.deathReason || "")}</td>
-            <td class="mono muted">${esc((item.body || "").slice(0, 80))}</td>
-            <td onclick="event.stopPropagation()">
-              <button class="action" onclick="dlxOp('${esc(item.messageId)}','requeue')">Requeue</button>
-              <button class="action danger" onclick="dlxOp('${esc(item.messageId)}','discard')">Discard</button>
-              <button class="action secondary" onclick="openDlxById('${esc(item.messageId)}')">Preview</button>
-            </td>
-          </tr>`).join("") || `<tr><td colspan="6" class="muted">Empty</td></tr>`;
+        dlxItems.forEach(item => dlxCache.set(item.messageId, item));
+        if (!data.available) {
+          document.getElementById("dlxStatus").textContent =
+            "DLX not available (enable RabbitMQ EventBus EnableDlx)";
+          renderDlxRows([]);
+          return;
+        }
+        applyDlxFilter();
       } catch (e) {
         document.getElementById("dlxStatus").textContent = e.message;
       }
@@ -649,29 +806,59 @@
           <div class="row"><span class="k">EventId</span><span class="mono">${esc(item.eventId)}</span></div>
           <div class="row"><span class="k">Type</span>${esc(item.eventTypeName)} ${stateBadge(item.state)}</div>
           <div class="row"><span class="k">TimesSent / Tx</span>${item.timesSent} · <span class="mono">${esc(item.transactionId)}</span></div>
-          <div class="row"><span class="k">Created</span><span class="mono" title="UTC ${esc(item.creationTime)}">${esc(fmtTimeWithZone(item.creationTime))}</span></div>`;
+          <div class="row"><span class="k">Created</span><span class="mono" title="UTC ${esc(item.creationTime)}">${esc(fmtTimeWithZone(item.creationTime))}</span></div>
+          <div class="row" id="counterpartMeta"><span class="k">Inbox (same EventId)</span><span class="muted">loading…</span></div>`;
         actions.innerHTML = `
           <button class="action" onclick="retryOutbox('${item.eventId}', true)">Retry &amp; publish</button>
-          <button class="action secondary" onclick="retryOutbox('${item.eventId}', false)">Reset only</button>`;
+          <button class="action secondary" onclick="retryOutbox('${item.eventId}', false)">Reset only</button>
+          <button class="action secondary" onclick="openInbox('${item.eventId}')">Open Inbox</button>`;
+        loadCounterpartSummary("inbox", item.eventId);
       } else if (kind === "inbox") {
         meta.innerHTML = `
           <div class="row"><span class="k">EventId</span><span class="mono">${esc(item.eventId)}</span></div>
           <div class="row"><span class="k">Type</span>${esc(item.eventTypeName)} ${stateBadge(item.state)}</div>
           <div class="row"><span class="k">Processed</span><span class="mono" title="UTC ${esc(item.processedTime)}">${esc(fmtTimeWithZone(item.processedTime))}</span></div>
-          <div class="row"><span class="k">Error</span>${esc(item.errorMessage || "-")}</div>`;
+          <div class="row"><span class="k">Error</span>${esc(item.errorMessage || "-")}</div>
+          <div class="row" id="counterpartMeta"><span class="k">Outbox (same EventId)</span><span class="muted">loading…</span></div>`;
         actions.innerHTML = `
           <button class="action" onclick="retryInbox('${item.eventId}', true)">Reprocess handlers</button>
-          <button class="action secondary" onclick="retryInbox('${item.eventId}', false)">Reset only</button>`;
+          <button class="action secondary" onclick="retryInbox('${item.eventId}', false)">Reset only</button>
+          <button class="action secondary" onclick="openOutbox('${item.eventId}')">Open Outbox</button>`;
+        loadCounterpartSummary("outbox", item.eventId);
       } else {
+        const eid = item.eventId || "";
         meta.innerHTML = `
           <div class="row"><span class="k">MessageId</span><span class="mono">${esc(item.messageId)}</span></div>
           <div class="row"><span class="k">RoutingKey</span><span class="mono">${esc(item.routingKey || "")}</span></div>
-          <div class="row"><span class="k">EventId</span><span class="mono">${esc(item.eventId || "")}</span></div>
+          <div class="row"><span class="k">EventId</span><span class="mono">${esc(eid)}</span></div>
           <div class="row"><span class="k">DeathTime</span><span class="mono" title="UTC ${esc(item.deathTime || "")}">${esc(fmtTimeWithZone(item.deathTime))}</span></div>
           <div class="row"><span class="k">Reason</span>${esc(item.deathReason || "-")}</div>`;
         actions.innerHTML = `
           <button class="action" onclick="dlxOp('${esc(item.messageId)}','requeue')">Requeue</button>
-          <button class="action danger" onclick="dlxOp('${esc(item.messageId)}','discard')">Discard</button>`;
+          <button class="action danger" onclick="dlxOp('${esc(item.messageId)}','discard')">Discard</button>
+          ${eid ? `
+          <button class="action secondary" onclick="openOutbox('${esc(eid)}')">Open Outbox</button>
+          <button class="action secondary" onclick="openInbox('${esc(eid)}')">Open Inbox</button>` : ""}`;
+      }
+    }
+
+    async function loadCounterpartSummary(side, eventId) {
+      const el = document.getElementById("counterpartMeta");
+      if (!el) return;
+      const label = side === "inbox" ? "Inbox (same EventId)" : "Outbox (same EventId)";
+      try {
+        const item = await api(`/${side}/${eventId}`);
+        const when = side === "inbox"
+          ? fmtTimeWithZone(item.processedTime)
+          : fmtTimeWithZone(item.creationTime);
+        el.innerHTML = `
+          <span class="k">${label}</span>
+          ${stateBadge(item.state)}
+          <span class="mono muted" style="margin-left:6px;">${esc(when)}</span>
+          <button class="action secondary" style="margin-left:8px;padding:3px 8px;font-size:12px;"
+            onclick="open${side === "inbox" ? "Inbox" : "Outbox"}('${esc(eventId)}')">Open</button>`;
+      } catch {
+        el.innerHTML = `<span class="k">${label}</span><span class="muted">not found</span>`;
       }
     }
 
@@ -682,12 +869,20 @@
     }
 
     window.openOutbox = async (id) => {
-      const item = await api(`/outbox/${id}`);
-      openDrawer("outbox", item, "Outbox message");
+      try {
+        const item = await api(`/outbox/${id}`);
+        openDrawer("outbox", item, "Outbox message");
+      } catch (e) {
+        toast(e.message || "Outbox message not found for this EventId", false);
+      }
     };
     window.openInbox = async (id) => {
-      const item = await api(`/inbox/${id}`);
-      openDrawer("inbox", item, "Inbox message");
+      try {
+        const item = await api(`/inbox/${id}`);
+        openDrawer("inbox", item, "Inbox message");
+      } catch (e) {
+        toast(e.message || "Inbox message not found for this EventId", false);
+      }
     };
     window.openDlxById = (id) => {
       const item = dlxCache.get(id);
@@ -748,11 +943,37 @@
     };
 
     document.getElementById("outboxSearch").onclick = () => { outboxPage = 1; loadOutbox(); };
+    document.getElementById("outboxClear").onclick = () => {
+      clearFilterInputs("outboxFilters"); outboxPage = 1; loadOutbox();
+    };
     document.getElementById("inboxSearch").onclick = () => { inboxPage = 1; loadInbox(); };
+    document.getElementById("inboxClear").onclick = () => {
+      clearFilterInputs("inboxFilters"); inboxPage = 1; loadInbox();
+    };
     document.getElementById("dlxRefresh").onclick = () => loadDlx();
+    document.getElementById("dlxFilterApply").onclick = () => applyDlxFilter();
     document.getElementById("subsRefresh").onclick = () => loadSubscriptions();
 
+    ["outboxFilters", "inboxFilters"].forEach(id => {
+      document.getElementById(id).addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          if (id === "outboxFilters") { outboxPage = 1; loadOutbox(); }
+          else { inboxPage = 1; loadInbox(); }
+        }
+      });
+    });
+
     initTimezoneSelect();
+    applyDefaultDateRange("outbox");
+    applyDefaultDateRange("inbox");
+    document.getElementById("tzSelect").addEventListener("change", () => {
+      // 仅当 From 仍是「某日 00:00」时，随时区刷新为新时区的今天 00:00
+      ["outboxFrom", "inboxFrom"].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el.value || /T00:00$/.test(el.value)) el.value = startOfTodayLocalInput();
+      });
+    });
     redrawCharts();
     window.addEventListener("resize", redrawCharts);
     refreshStats();

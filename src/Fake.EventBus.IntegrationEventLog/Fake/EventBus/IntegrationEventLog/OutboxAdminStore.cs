@@ -17,6 +17,9 @@ public class OutboxAdminStore(IntegrationEventLogContext context) : IOutboxAdmin
         if (request.State.HasValue)
             query = query.Where(e => e.State == request.State.Value);
 
+        if (request.EventId.HasValue)
+            query = query.Where(e => e.EventId == request.EventId.Value);
+
         if (!string.IsNullOrWhiteSpace(request.EventType))
         {
             var type = request.EventType.Trim();
@@ -24,14 +27,52 @@ public class OutboxAdminStore(IntegrationEventLogContext context) : IOutboxAdmin
                 e.EventTypeName == type || e.EventTypeName.EndsWith("." + type));
         }
 
+        if (!string.IsNullOrWhiteSpace(request.TransactionId))
+        {
+            var tx = request.TransactionId.Trim();
+            query = query.Where(e => e.TransactionId.Contains(tx));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Content))
+        {
+            var content = request.Content.Trim();
+            query = query.Where(e => e.Content.Contains(content));
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Keyword))
         {
             var kw = request.Keyword.Trim();
-            query = query.Where(e =>
-                e.EventId.ToString().Contains(kw) ||
-                e.TransactionId.Contains(kw) ||
-                e.Content.Contains(kw));
+            if (Guid.TryParse(kw, out var eventId))
+            {
+                query = query.Where(e =>
+                    e.EventId == eventId ||
+                    e.TransactionId.Contains(kw));
+            }
+            else
+            {
+                query = query.Where(e =>
+                    e.EventId.ToString().Contains(kw) ||
+                    e.TransactionId.Contains(kw));
+            }
         }
+
+        if (request.From.HasValue)
+        {
+            var from = NormalizeUtc(request.From.Value);
+            query = query.Where(e => e.CreationTime >= from);
+        }
+
+        if (request.To.HasValue)
+        {
+            var to = NormalizeUtc(request.To.Value);
+            query = query.Where(e => e.CreationTime <= to);
+        }
+
+        if (request.MinTimesSent.HasValue)
+            query = query.Where(e => e.TimesSent >= request.MinTimesSent.Value);
+
+        if (request.MaxTimesSent.HasValue)
+            query = query.Where(e => e.TimesSent <= request.MaxTimesSent.Value);
 
         var total = await query.CountAsync(cancellationToken);
         var items = await query
@@ -74,6 +115,14 @@ public class OutboxAdminStore(IntegrationEventLogContext context) : IOutboxAdmin
         entry.ResetForRetry();
         await context.SaveChangesAsync(cancellationToken);
     }
+
+    private static DateTime NormalizeUtc(DateTime value)
+        => value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
 
     private static OutboxMessageDto ToDto(OutboxEventLogEntry e) => new(
         e.EventId,

@@ -19,11 +19,11 @@ public class OutboxPublisherBackgroundService : BackgroundService
     public OutboxPublisherBackgroundService(
         IServiceProvider serviceProvider,
         ILogger<OutboxPublisherBackgroundService> logger,
-        IOptions<OutboxPublisherOptions> options)
+        IOptions<IntegrationEventLogOptions> options)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
-        _options = options.Value;
+        _options = options.Value.OutboxPublisher;
 
         _options.Validate();
     }

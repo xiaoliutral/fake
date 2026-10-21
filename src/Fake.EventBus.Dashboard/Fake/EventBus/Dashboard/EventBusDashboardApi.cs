@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Fake.EventBus.Distributed;
@@ -88,13 +89,21 @@ public sealed class EventBusDashboardApi(
 
     private async Task HandleOutboxQueryAsync(HttpContext ctx)
     {
+        var q = ctx.Request.Query;
         var request = new OutboxQueryRequest
         {
-            State = ParseState(ctx.Request.Query["state"]),
-            EventType = ctx.Request.Query["eventType"],
-            Keyword = ctx.Request.Query["keyword"],
-            PageIndex = ParseInt(ctx.Request.Query["pageIndex"], 1),
-            PageSize = ParseInt(ctx.Request.Query["pageSize"], 20)
+            State = ParseState(q["state"]),
+            EventType = q["eventType"],
+            Keyword = q["keyword"],
+            Content = q["content"],
+            EventId = ParseGuid(q["eventId"]),
+            TransactionId = q["transactionId"],
+            From = ParseDateTime(q["from"]),
+            To = ParseDateTime(q["to"]),
+            MinTimesSent = ParseNullableInt(q["minTimesSent"]),
+            MaxTimesSent = ParseNullableInt(q["maxTimesSent"]),
+            PageIndex = ParseInt(q["pageIndex"], 1),
+            PageSize = ParseInt(q["pageSize"], 20)
         };
         await WriteJsonAsync(ctx, await outboxStore.QueryAsync(request, ctx.RequestAborted));
     }
@@ -146,13 +155,19 @@ public sealed class EventBusDashboardApi(
 
     private async Task HandleInboxQueryAsync(HttpContext ctx)
     {
+        var q = ctx.Request.Query;
         var request = new InboxQueryRequest
         {
-            State = ParseState(ctx.Request.Query["state"]),
-            EventType = ctx.Request.Query["eventType"],
-            Keyword = ctx.Request.Query["keyword"],
-            PageIndex = ParseInt(ctx.Request.Query["pageIndex"], 1),
-            PageSize = ParseInt(ctx.Request.Query["pageSize"], 20)
+            State = ParseState(q["state"]),
+            EventType = q["eventType"],
+            Keyword = q["keyword"],
+            Content = q["content"],
+            EventId = ParseGuid(q["eventId"]),
+            Error = q["error"],
+            From = ParseDateTime(q["from"]),
+            To = ParseDateTime(q["to"]),
+            PageIndex = ParseInt(q["pageIndex"], 1),
+            PageSize = ParseInt(q["pageSize"], 20)
         };
         await WriteJsonAsync(ctx, await inboxStore.QueryAsync(request, ctx.RequestAborted));
     }
@@ -243,4 +258,33 @@ public sealed class EventBusDashboardApi(
 
     private static int ParseInt(string? value, int fallback)
         => int.TryParse(value, out var n) ? n : fallback;
+
+    private static int? ParseNullableInt(string? value)
+        => int.TryParse(value, out var n) ? n : null;
+
+    private static Guid? ParseGuid(string? value)
+        => Guid.TryParse(value, out var id) ? id : null;
+
+    /// <summary>接受 ISO-8601 / round-trip；无时区时按 UTC。</summary>
+    private static DateTime? ParseDateTime(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        if (DateTime.TryParse(
+                value,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind | DateTimeStyles.AllowWhiteSpaces,
+                out var dt))
+        {
+            return dt.Kind switch
+            {
+                DateTimeKind.Utc => dt,
+                DateTimeKind.Local => dt.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(dt, DateTimeKind.Utc)
+            };
+        }
+
+        return null;
+    }
 }

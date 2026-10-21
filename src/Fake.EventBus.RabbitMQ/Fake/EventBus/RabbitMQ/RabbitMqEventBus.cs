@@ -168,6 +168,7 @@ public class RabbitMqEventBus(
         activity?.SetTag("messaging.message.id", @event.Id.ToString());
 
         var inboxService = scope.ServiceProvider.GetRequiredService<IInboxEventLogService>();
+        var handlers = ResolveHandlers(scope.ServiceProvider, eventType);
 
         var isNewEvent = await inboxService.TryMarkAsProcessingAsync(
             @event.Id,
@@ -183,7 +184,6 @@ public class RabbitMqEventBus(
 
         logger.LogDebug("Event {EventId} marked as processing", @event.Id);
 
-        var handlers = ResolveHandlers(scope.ServiceProvider, eventType);
         if (handlers.Count == 0)
         {
             var msg = $"No IEventHandler registered for {eventType.FullName}.";
