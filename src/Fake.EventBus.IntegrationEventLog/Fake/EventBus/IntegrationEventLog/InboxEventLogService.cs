@@ -23,7 +23,11 @@ public class InboxEventLogService(
         await context.SaveChangesAsync();
     }
 
-    public async Task<bool> TryMarkAsProcessingAsync(Guid eventId, string eventTypeName, string content)
+    public async Task<bool> TryMarkAsProcessingAsync(
+        Guid eventId,
+        string eventTypeName,
+        string content,
+        bool forceReclaim = false)
     {
         try
         {
@@ -35,7 +39,7 @@ public class InboxEventLogService(
         catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
         {
             context.ChangeTracker.Clear();
-            return await TryReclaimAsync(eventId);
+            return await TryReclaimAsync(eventId, forceReclaim);
         }
     }
 
@@ -79,21 +83,26 @@ public class InboxEventLogService(
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<bool> TryReclaimAsync(Guid eventId)
+    private async Task<bool> TryReclaimAsync(Guid eventId, bool forceReclaim)
     {
         var existing = await context.InboxEventLogs.FindAsync(eventId);
         if (existing == null)
             return false;
 
+        // 已成功消费：幂等跳过，绝不抢占
         if (existing.State == EventState.ConsumeSucceeded)
             return false;
 
         var lockTimeout = _options.ResolveProcessingLockTimeout(existing.EventTypeName);
         var now = DateTime.UtcNow;
+        var consumingExpired = existing.State == EventState.Consuming &&
+                               existing.ProcessedTime < now - lockTimeout;
+
+        // forceReclaim：RabbitMQ Redelivered → 原消费者已丢投递，即使锁未到期也可接管
         var canReclaim = existing.State == EventState.ConsumeFailed ||
                          existing.State == EventState.NoHandler ||
-                         (existing.State == EventState.Consuming &&
-                          existing.ProcessedTime < now - lockTimeout);
+                         consumingExpired ||
+                         (forceReclaim && existing.State == EventState.Consuming);
 
         if (!canReclaim)
             return false;

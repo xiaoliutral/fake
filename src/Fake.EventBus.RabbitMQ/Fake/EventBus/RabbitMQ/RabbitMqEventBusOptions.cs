@@ -8,9 +8,22 @@ public class RabbitMqEventBusOptions
     public string? ConnectionName { get; set; }
 
     /// <summary>
-    /// 重试次数
+    /// 发布侧连接/通道瞬时故障的 Polly 重试次数。
     /// </summary>
     public int RetryCount { get; set; } = 10;
+
+    /// <summary>
+    /// 消费侧 Handler 执行失败时的进程内重试次数（含首次）。默认 3。
+    /// 全部失败后标记 Inbox=ConsumeFailed 并 Nack（通常进 DLX）。
+    /// </summary>
+    public int HandlerRetryCount { get; set; } = 3;
+
+    /// <summary>
+    /// 单次 Handler 执行超时。超时后取消 <see cref="CancellationToken"/>、标记失败并 Nack。
+    /// 默认 5 分钟；设为 <see cref="TimeSpan.Zero"/> 关闭超时。
+    /// Handler 须响应取消令牌；无视 CT 的死锁/死循环无法被真正打断。
+    /// </summary>
+    public TimeSpan HandlerTimeout { get; set; } = TimeSpan.FromMinutes(5);
 
     public string ActivitySourceName { get; set; } = "Fake.Eventbus.RabbitMQ";
 
@@ -23,6 +36,18 @@ public class RabbitMqEventBusOptions
     /// 客户端订阅队列名称
     /// </summary>
     public string? QueueName { get; set; }
+
+    /// <summary>
+    /// 主队列与 DLX 队列类型。默认 <see cref="RabbitMqQueueType.Classic"/>。
+    /// 设为 <see cref="RabbitMqQueueType.Quorum"/> 时声明 <c>x-queue-type=quorum</c>。
+    /// </summary>
+    public RabbitMqQueueType QueueType { get; set; } = RabbitMqQueueType.Classic;
+
+    /// <summary>
+    /// 仲裁队列投递上限（<c>x-delivery-limit</c>）。超过后按死信策略处理（通常进 DLX）, 拦截毒丸消息。
+    /// 仅 <see cref="RabbitMqQueueType.Quorum"/> 时生效；≤0 表示不设置。
+    /// </summary>
+    public int DeliveryLimit { get; set; } = 3;
 
     #region Qos
 

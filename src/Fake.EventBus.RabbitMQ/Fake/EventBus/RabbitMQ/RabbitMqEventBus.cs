@@ -1,5 +1,4 @@
 ﻿using System.Net.Sockets;
-using Fake.EventBus;
 using Fake.EventBus.Distributed;
 using Fake.UnitOfWork;
 using Microsoft.Extensions.Hosting;
@@ -152,12 +151,14 @@ public class RabbitMqEventBus(
         string routingKey,
         string message,
         IBasicProperties properties,
-        ActivityContext parentContext)
+        ActivityContext parentContext,
+        bool redelivered)
     {
         using var activity = telemetry.StartActivity($"{_queueName} process", ActivityKind.Consumer, parentContext);
         RabbitMqEventBusTelemetryService.SetActivityContext(activity, routingKey, "process");
 
-        logger.LogDebug("Processing RabbitMQ event: {RoutingKey}", routingKey);
+        logger.LogDebug("Processing RabbitMQ event: {RoutingKey} (redelivered={Redelivered})",
+            routingKey, redelivered);
 
         await using var scope = serviceScopeFactory.CreateAsyncScope();
 
@@ -175,10 +176,12 @@ public class RabbitMqEventBus(
         var inboxService = scope.ServiceProvider.GetRequiredService<IInboxEventLogService>();
         var handlers = ResolveHandlers(scope.ServiceProvider, eventType);
 
+        // Redelivered：原消费者已丢投递，允许抢占未过期的 Consuming，避免锁窗口内 ACK 跳过导致丢消息
         var isNewEvent = await inboxService.TryMarkAsProcessingAsync(
             @event.Id,
             eventType.FullName ?? routingKey,
-            message);
+            message,
+            forceReclaim: redelivered);
 
         if (!isNewEvent)
         {
@@ -197,11 +200,17 @@ public class RabbitMqEventBus(
             return;
         }
 
-        const int maxRetries = 3;
+        var maxRetries = Math.Max(1, _eventBusOptions.HandlerRetryCount);
+        var handlerTimeout = _eventBusOptions.HandlerTimeout;
         Exception? lastException = null;
 
         for (var attempt = 1; attempt <= maxRetries; attempt++)
         {
+            using var timeoutCts = handlerTimeout > TimeSpan.Zero
+                ? new CancellationTokenSource(handlerTimeout)
+                : null;
+            var cancellationToken = timeoutCts?.Token ?? CancellationToken.None;
+
             try
             {
                 // 消费侧默认开非事务 UoW：Handler 可查库；写库/Outbox 请自行 RequiresNew 事务性 UoW
@@ -209,10 +218,10 @@ public class RabbitMqEventBus(
                 {
                     foreach (var handler in handlers)
                     {
-                        await handler.HandleAsync(@event);
+                        await handler.HandleAsync(@event, cancellationToken);
                     }
 
-                    await uow.CompleteAsync();
+                    await uow.CompleteAsync(cancellationToken);
                 }
 
                 await inboxService.MarkAsSucceededAsync(@event.Id);
@@ -220,6 +229,15 @@ public class RabbitMqEventBus(
 
                 logger.LogInformation("Event {EventId} processed successfully", @event.Id);
                 return;
+            }
+            catch (OperationCanceledException ex) when (timeoutCts is { IsCancellationRequested: true })
+            {
+                // 挂死/超时：再重试多半仍超时，直接失败进 DLX
+                lastException = new TimeoutException(
+                    $"Handler timed out after {handlerTimeout} for event {@event.Id} ({eventType.Name}).", ex);
+                logger.LogError(lastException,
+                    "Event {EventId} handler timed out after {Timeout}", @event.Id, handlerTimeout);
+                break;
             }
             catch (Exception ex)
             {
@@ -229,7 +247,7 @@ public class RabbitMqEventBus(
 
                 if (attempt < maxRetries)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), cancellationToken);
                 }
             }
         }
@@ -289,11 +307,13 @@ public class RabbitMqEventBus(
 
     private IModel CreateConsumerChannel()
     {
-        logger.LogDebug("Creating rabbitmq eventbus consumer channel");
+        logger.LogDebug(
+            "Creating rabbitmq eventbus consumer channel (queueType={QueueType})",
+            _eventBusOptions.QueueType);
 
         var channel = rabbitMqConnectionPool.Get(_eventBusOptions.ConnectionName).CreateModel();
 
-        var arguments = new Dictionary<string, object>();
+        var arguments = CreateQueueArguments(includeDlxRouting: true);
 
         if (_eventBusOptions.EnableDlx)
         {
@@ -305,26 +325,13 @@ public class RabbitMqEventBus(
                 dlxExchangeName, dlxQueueName, dlxRouteKey);
 
             channel.ExchangeDeclare(exchange: dlxExchangeName, type: ExchangeType.Direct, durable: true);
-            channel.QueueDeclare(dlxQueueName, durable: true, exclusive: false, autoDelete: false);
+            // DLX 与主队列使用同一队列类型，避免混用 classic/quorum
+            DeclareQueue(channel, dlxQueueName, CreateQueueArguments(includeDlxRouting: false));
             channel.QueueBind(dlxQueueName, dlxExchangeName, dlxRouteKey);
-
-            arguments.Add("x-dead-letter-exchange", dlxExchangeName);
-            arguments.Add("x-dead-letter-routing-key", dlxRouteKey);
-
-            if (_eventBusOptions.MessageTtl > 0)
-            {
-                arguments.Add("x-message-ttl", _eventBusOptions.MessageTtl);
-            }
-
-            if (_eventBusOptions.QueueMaxLength > 0)
-            {
-                arguments.Add("x-max-length", _eventBusOptions.QueueMaxLength);
-            }
         }
 
         channel.ExchangeDeclare(exchange: _exchangeName, type: ExchangeType.Direct, durable: true);
-        channel.QueueDeclare(queue: _queueName, durable: true, exclusive: false, autoDelete: false,
-            arguments: arguments);
+        DeclareQueue(channel, _queueName, arguments);
 
         channel.BasicQos(_eventBusOptions.PrefetchSize, _eventBusOptions.PrefetchCount, false);
 
@@ -341,6 +348,45 @@ public class RabbitMqEventBus(
         return channel;
     }
 
+    /// <summary>
+    /// 声明队列：durable=true、非 exclusive（仲裁队列强制要求）。
+    /// </summary>
+    private void DeclareQueue(IModel channel, string queueName, IDictionary<string, object>? arguments)
+    {
+        channel.QueueDeclare(
+            queue: queueName,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
+            arguments: arguments is { Count: > 0 } ? arguments : null);
+    }
+
+    private Dictionary<string, object> CreateQueueArguments(bool includeDlxRouting)
+    {
+        var arguments = new Dictionary<string, object>();
+
+        if (_eventBusOptions.QueueType == RabbitMqQueueType.Quorum)
+        {
+            arguments["x-queue-type"] = "quorum";
+            if (_eventBusOptions.DeliveryLimit > 0)
+                arguments["x-delivery-limit"] = _eventBusOptions.DeliveryLimit;
+        }
+
+        if (includeDlxRouting && _eventBusOptions.EnableDlx)
+        {
+            arguments["x-dead-letter-exchange"] = RabbitMqDlxNames.Exchange(_exchangeName);
+            arguments["x-dead-letter-routing-key"] = RabbitMqDlxNames.RoutingKey(_queueName);
+
+            if (_eventBusOptions.MessageTtl > 0)
+                arguments["x-message-ttl"] = _eventBusOptions.MessageTtl;
+
+            if (_eventBusOptions.QueueMaxLength > 0)
+                arguments["x-max-length"] = _eventBusOptions.QueueMaxLength;
+        }
+
+        return arguments;
+    }
+
     private void StartBasicConsume(IModel channel)
     {
         logger.LogDebug(
@@ -349,19 +395,20 @@ public class RabbitMqEventBus(
 
         var consumer = new AsyncEventingBasicConsumer(channel);
         // 不可在 Received 内 await 业务处理：AsyncEventingBasicConsumer 会等上一条完成才派发下一条，
-        // PrefetchCount>1 也只会本地囤积。拷贝 Body 后立即返回，由并发 Task 处理并 Ack。
+        // PrefetchCount > 1 也只会本地囤积。拷贝 Body 后立即返回，由并发 Task 处理并 Ack。
         consumer.Received += (o, eventArgs) =>
         {
             var routingKey = eventArgs.RoutingKey;
             var deliveryTag = eventArgs.DeliveryTag;
-            
-            // Body 缓冲可能被回收, 应在进 Task 前把 DeliveryTag、Body 字节等拷出来再传给 Handler。
+            // 当消费者崩溃，消息因未确认（unacked）而被重新放回队列后，再次被投递给消费者时，该消息的 Redelivered 属性会被设置为 true。
+            var redelivered = eventArgs.Redelivered;
+            // Body 缓冲可能被回收：进并发 Task 前必须拷贝
             var message = Encoding.UTF8.GetString(eventArgs.Body.Span);
             var properties = eventArgs.BasicProperties;
             var parentContext = telemetry.ExtractTraceContext(properties).ActivityContext;
 
-            _ = DispatchConsumedAsync(channel, deliveryTag, routingKey, message, properties, parentContext);
-            
+            _ = DispatchConsumedAsync(
+                channel, deliveryTag, routingKey, message, properties, parentContext, redelivered);
             return Task.CompletedTask;
         };
 
@@ -374,11 +421,12 @@ public class RabbitMqEventBus(
         string routingKey,
         string message,
         IBasicProperties properties,
-        ActivityContext parentContext)
+        ActivityContext parentContext,
+        bool redelivered)
     {
         try
         {
-            await ProcessingEventAsync(routingKey, message, properties, parentContext);
+            await ProcessingEventAsync(routingKey, message, properties, parentContext, redelivered);
             Acknowledge(channel, deliveryTag, ack: true);
         }
         catch (Exception ex)
@@ -405,7 +453,7 @@ public class RabbitMqEventBus(
 
             if (ack)
                 channel.BasicAck(deliveryTag, multiple: false);
-            else
+            else // 进入DLX
                 channel.BasicNack(deliveryTag, multiple: false, requeue: false);
         }
     }

@@ -13,7 +13,11 @@ public sealed class NullInboxEventLogService : IInboxEventLogService
     public Task SaveProcessedEventAsync(Guid eventId, string eventTypeName, string content)
         => Task.CompletedTask;
 
-    public Task<bool> TryMarkAsProcessingAsync(Guid eventId, string eventTypeName, string content)
+    public Task<bool> TryMarkAsProcessingAsync(
+        Guid eventId,
+        string eventTypeName,
+        string content,
+        bool forceReclaim = false)
         => Task.FromResult(true);
 
     public Task MarkAsSucceededAsync(Guid eventId)

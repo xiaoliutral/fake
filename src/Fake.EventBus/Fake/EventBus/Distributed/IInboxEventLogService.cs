@@ -16,11 +16,17 @@ public interface IInboxEventLogService
     Task SaveProcessedEventAsync(Guid eventId, string eventTypeName, string content);
 
     /// <summary>
-    /// 原子性地尝试标记事件为处理中（含僵尸 Consuming / ConsumeFailed 重试）。
-    /// Consuming 僵尸锁超时由 IntegrationEventLog:Inbox 配置决定。
+    /// 原子性地尝试标记事件为处理中（含僵尸 Consuming / ConsumeFailed / NoHandler 抢占）。
+    /// Consuming 超过 <c>IntegrationEventLog:Inbox:ProcessingLockTimeout</c> 可抢占；
+    /// <paramref name="forceReclaim"/> 为 true（通常对应 RabbitMQ Redelivered）时，
+    /// 即使未超时也可抢占 Consuming——因为原消费者已丢失投递。
     /// </summary>
-    /// <returns>如果成功插入或抢占返回 true，如果已成功处理返回 false</returns>
-    Task<bool> TryMarkAsProcessingAsync(Guid eventId, string eventTypeName, string content);
+    /// <returns>成功插入或抢占返回 true；已 ConsumeSucceeded（或锁未过期且未强制抢占）返回 false</returns>
+    Task<bool> TryMarkAsProcessingAsync(
+        Guid eventId,
+        string eventTypeName,
+        string content,
+        bool forceReclaim = false);
 
     /// <summary>
     /// 标记事件处理成功
