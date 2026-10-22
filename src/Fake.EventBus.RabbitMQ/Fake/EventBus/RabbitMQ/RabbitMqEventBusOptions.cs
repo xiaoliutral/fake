@@ -32,7 +32,8 @@ public class RabbitMqEventBusOptions
     public uint PrefetchSize { get; set; }
 
     /// <summary>
-    /// 每次预取的消息条数
+    /// 每次预取（未 ACK）的消息条数，同时也是消费并发上限。
+    /// 消费端对 Received 立即返回并并发处理时，该值才会真正生效；为 1 时等价串行。
     /// </summary>
     public ushort PrefetchCount { get; set; } = 1;
 

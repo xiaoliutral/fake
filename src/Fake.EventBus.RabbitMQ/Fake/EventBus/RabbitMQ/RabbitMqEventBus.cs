@@ -33,6 +33,11 @@ public class RabbitMqEventBus(
 
     private IModel? _consumerChannel;
 
+    /// <summary>
+    /// IModel 非线程安全；并发消费时 Ack/Nack 必须串行化。
+    /// </summary>
+    private readonly object _channelSync = new();
+
     private readonly string _exchangeName = eventBusOptions.Value.ExchangeName;
 
     private readonly string _queueName = (eventBusOptions.Value.QueueName ?? applicationInfo.ApplicationName)
@@ -338,30 +343,71 @@ public class RabbitMqEventBus(
 
     private void StartBasicConsume(IModel channel)
     {
-        logger.LogDebug("Starting rabbitmq eventbus basic consume");
+        logger.LogDebug(
+            "Starting rabbitmq eventbus basic consume (prefetch={PrefetchCount}, concurrent dispatch)",
+            _eventBusOptions.PrefetchCount);
 
         var consumer = new AsyncEventingBasicConsumer(channel);
-        consumer.Received += async (_, eventArgs) =>
+        // 不可在 Received 内 await 业务处理：AsyncEventingBasicConsumer 会等上一条完成才派发下一条，
+        // PrefetchCount>1 也只会本地囤积。拷贝 Body 后立即返回，由并发 Task 处理并 Ack。
+        consumer.Received += (o, eventArgs) =>
         {
             var routingKey = eventArgs.RoutingKey;
+            var deliveryTag = eventArgs.DeliveryTag;
+            
+            // Body 缓冲可能被回收, 应在进 Task 前把 DeliveryTag、Body 字节等拷出来再传给 Handler。
             var message = Encoding.UTF8.GetString(eventArgs.Body.Span);
-            var parentContext = telemetry.ExtractTraceContext(eventArgs.BasicProperties).ActivityContext;
+            var properties = eventArgs.BasicProperties;
+            var parentContext = telemetry.ExtractTraceContext(properties).ActivityContext;
 
-            try
-            {
-                await ProcessingEventAsync(routingKey, message, eventArgs.BasicProperties, parentContext);
-                channel.BasicAck(eventArgs.DeliveryTag, multiple: false);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Processing event: {RoutingKey} failed, message:\n {Message}", routingKey,
-                    message);
-
-                channel.BasicNack(eventArgs.DeliveryTag, multiple: false, requeue: false);
-            }
+            _ = DispatchConsumedAsync(channel, deliveryTag, routingKey, message, properties, parentContext);
+            
+            return Task.CompletedTask;
         };
 
         channel.BasicConsume(queue: _queueName, autoAck: false, consumer: consumer);
+    }
+
+    private async Task DispatchConsumedAsync(
+        IModel channel,
+        ulong deliveryTag,
+        string routingKey,
+        string message,
+        IBasicProperties properties,
+        ActivityContext parentContext)
+    {
+        try
+        {
+            await ProcessingEventAsync(routingKey, message, properties, parentContext);
+            Acknowledge(channel, deliveryTag, ack: true);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Processing event: {RoutingKey} failed, message:\n {Message}", routingKey,
+                message);
+            Acknowledge(channel, deliveryTag, ack: false);
+        }
+    }
+
+    /// <summary>
+    /// 官方约束就是：一个 channel 同一时刻只给一个线程用。
+    /// 业务可以多线程，但碰到这个 channel 的调用（尤其 Ack/Nack/Publish）要串行（加锁，或每个并发消费者用自己的 channel）。
+    /// </summary>
+    /// <param name="channel"></param>
+    /// <param name="deliveryTag"></param>
+    /// <param name="ack"></param>
+    private void Acknowledge(IModel channel, ulong deliveryTag, bool ack)
+    {
+        lock (_channelSync)
+        {
+            if (!channel.IsOpen)
+                return;
+
+            if (ack)
+                channel.BasicAck(deliveryTag, multiple: false);
+            else
+                channel.BasicNack(deliveryTag, multiple: false, requeue: false);
+        }
     }
 
     private static ResiliencePipeline CreateResiliencePipeline(int retryCount)
