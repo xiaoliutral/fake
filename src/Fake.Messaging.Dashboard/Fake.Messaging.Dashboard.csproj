@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../../common.props"/>
+    <Import Project="../../configureawait.props"/>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+        <ProjectReference Include="..\Fake.Messaging\Fake.Messaging.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="wwwroot\**\*"/>
+    </ItemGroup>
+
+</Project>

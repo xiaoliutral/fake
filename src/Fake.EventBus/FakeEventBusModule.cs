@@ -38,14 +38,7 @@ public class FakeEventBusModule : FakeModule
         context.Services.AddSingleton<ILocalEventBus>(sp => sp.GetRequiredService<LocalEventBus>());
         context.Services.AddSingleton<IEventBus>(sp => sp.GetRequiredService<LocalEventBus>());
 
-        // 默认空实现；接入 Fake.EventBus.IntegrationEventLog / RabbitMQ 后由对应模块 Replace
-        context.Services.TryAddTransient<IOutboxEventLogService>(_ => NullOutboxEventLogService.Instance);
-        context.Services.TryAddTransient<IInboxEventLogService>(_ => NullInboxEventLogService.Instance);
+        // 默认空实现；接入 FakeEventBusMessagingModule 后 Replace
         context.Services.TryAddTransient<IOutboxEventPublisher>(_ => NullOutboxEventPublisher.Instance);
-        context.Services.TryAddTransient<IOutboxAdminStore>(_ => NullOutboxAdminStore.Instance);
-        context.Services.TryAddTransient<IInboxAdminStore>(_ => NullInboxAdminStore.Instance);
-        context.Services.TryAddSingleton<IDlxAdminService>(_ => NullDlxAdminService.Instance);
-        context.Services.TryAddSingleton<IEventBusTopology>(_ => NullEventBusTopology.Instance);
-        context.Services.TryAddTransient<IInboxEventReprocessor>(_ => NullInboxEventReprocessor.Instance);
     }
 }

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="..\..\common.test.props"/>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Fake.Messaging.Dashboard\Fake.Messaging.Dashboard.csproj"/>
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.28"/>
+    </ItemGroup>
+
+</Project>

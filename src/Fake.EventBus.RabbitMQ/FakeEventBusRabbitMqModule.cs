@@ -1,5 +1,7 @@
-﻿using Fake.DependencyInjection;
+using Fake.DependencyInjection;
 using Fake.EventBus.Distributed;
+using Fake.Messaging;
+using Fake.Messaging.Admin;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 // ReSharper disable once CheckNamespace
@@ -7,6 +9,7 @@ namespace Fake.EventBus.RabbitMQ;
 
 [DependsOn(typeof(FakeEventBusModule))]
 [DependsOn(typeof(FakeRabbitMqModule))]
+[DependsOn(typeof(FakeMessagingModule))]
 public class FakeEventBusRabbitMqModule : FakeModule
 {
     public override void PreConfigureServices(ServiceConfigurationContext context)
@@ -50,9 +53,8 @@ public class FakeEventBusRabbitMqModule : FakeModule
         context.Services.AddSingleton<IDistributedEventBus>(sp => sp.GetRequiredService<RabbitMqEventBus>());
         context.Services.AddHostedService(sp => sp.GetRequiredService<RabbitMqEventBus>());
 
-        context.Services.Replace(
-            ServiceDescriptor.Singleton<IDlxAdminService, RabbitMqDlxAdminService>());
-        context.Services.Replace(
-            ServiceDescriptor.Singleton<IEventBusTopology, RabbitMqEventBusTopology>());
+        // Messaging Dashboard 可选适配（有则显示 Subscriptions / DLX）
+        context.Services.TryAddSingleton<IMessagingDashboardSubscriptionsProvider, RabbitMqEventBusTopology>();
+        context.Services.TryAddSingleton<IMessagingDlxAdminService, RabbitMqDlxAdminService>();
     }
 }

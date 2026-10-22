@@ -1,5 +1,6 @@
 ﻿using System.Net.Sockets;
 using Fake.EventBus.Distributed;
+using Fake.Messaging;
 using Fake.UnitOfWork;
 using Microsoft.Extensions.Hosting;
 using Polly;
@@ -173,14 +174,29 @@ public class RabbitMqEventBus(
         var @event = DeserializeMessage(message, eventType);
         activity?.SetTag("messaging.message.id", @event.Id.ToString());
 
-        var inboxService = scope.ServiceProvider.GetRequiredService<IInboxEventLogService>();
+        var inbox = scope.ServiceProvider.GetRequiredService<IMessageInbox>();
         var handlers = ResolveHandlers(scope.ServiceProvider, eventType);
+        var consumerGroup = _queueName;
+        var envelope = new MessageEnvelope
+        {
+            MessageId = @event.Id,
+            Destination = MessageDestinations.ForEventBus(routingKey),
+            Kind = MessageKind.EventBus,
+            Body = message,
+            TypeName = eventType.FullName ?? routingKey,
+            Headers = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [MessageHeaders.EventId] = @event.Id.ToString(),
+                [MessageHeaders.EventType] = eventType.FullName ?? eventType.Name,
+                [MessageHeaders.Kind] = nameof(MessageKind.EventBus)
+            }
+        };
 
         // Redelivered：原消费者已丢投递，允许抢占未过期的 Consuming，避免锁窗口内 ACK 跳过导致丢消息
-        var isNewEvent = await inboxService.TryMarkAsProcessingAsync(
+        var isNewEvent = await inbox.TryBeginAsync(
             @event.Id,
-            eventType.FullName ?? routingKey,
-            message,
+            consumerGroup,
+            envelope,
             forceReclaim: redelivered);
 
         if (!isNewEvent)
@@ -195,8 +211,9 @@ public class RabbitMqEventBus(
         if (handlers.Count == 0)
         {
             var msg = $"No IEventHandler registered for {eventType.FullName}.";
-            await inboxService.MarkAsNoHandlerAsync(@event.Id, msg);
-            logger.LogWarning("Event {EventId} ({EventType}) has no matching handler", @event.Id, eventType.FullName);
+            await inbox.MarkNoHandlerAsync(@event.Id, consumerGroup);
+            logger.LogWarning("Event {EventId} ({EventType}) has no matching handler: {Message}",
+                @event.Id, eventType.FullName, msg);
             return;
         }
 
@@ -224,7 +241,7 @@ public class RabbitMqEventBus(
                     await uow.CompleteAsync(cancellationToken);
                 }
 
-                await inboxService.MarkAsSucceededAsync(@event.Id);
+                await inbox.MarkSucceededAsync(@event.Id, consumerGroup);
                 metrics.RecordInboxProcessed(eventType.Name);
 
                 logger.LogInformation("Event {EventId} processed successfully", @event.Id);
@@ -254,7 +271,7 @@ public class RabbitMqEventBus(
 
         if (lastException != null)
         {
-            await inboxService.MarkAsFailedAsync(@event.Id, lastException.Message);
+            await inbox.MarkFailedAsync(@event.Id, consumerGroup, lastException.Message);
             metrics.RecordInboxFailed(eventType.Name);
         }
 

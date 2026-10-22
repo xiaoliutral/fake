@@ -9,7 +9,7 @@ public class FakeRabbitMqModule : FakeModule
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         var configuration = context.Services.GetConfiguration();
-        context.Services.Configure<FakeRabbitMqOptions>(configuration.GetSection("RabbitMQ"));
+        context.Services.Configure<FakeRabbitMqOptions>(configuration.GetSection(FakeRabbitMqOptions.SectionName));
 
         context.Services.AddSingleton<IRabbitMqConnectionPool, RabbitMqConnectionPool>();
         context.Services.AddSingleton<IRabbitMqChannelPool, RabbitMqChannelPool>();

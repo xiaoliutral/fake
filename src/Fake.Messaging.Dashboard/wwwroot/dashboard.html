@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fake Messaging Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2d3a4d;
+      --text: #e7ecf3;
+      --muted: #8b9bb4;
+      --accent: #3b82f6;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 14px 20px; border-bottom: 1px solid var(--border); background: #121a24;
+      flex-wrap: wrap;
+    }
+    header h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .02em; }
+    header .right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    header .meta { color: var(--muted); font-size: 12px; }
+    header .tz-wrap { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+    header .tz-wrap select { max-width: min(280px, 70vw); }
+    nav { display: flex; gap: 4px; padding: 10px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    nav button {
+      background: transparent; border: 1px solid transparent; color: var(--muted);
+      padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    }
+    nav button.active, nav button:hover {
+      color: var(--text); background: var(--panel); border-color: var(--border);
+    }
+    main { padding: 16px 20px 40px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+    }
+    .card .label { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+    .card .value { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; }
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    @media (max-width: 900px) { .charts { grid-template-columns: 1fr; } }
+    .chart-box {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+      height: 260px;
+    }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+    .toolbar .field {
+      display: flex; flex-direction: column; gap: 3px; min-width: 0;
+    }
+    .toolbar .field > span {
+      color: var(--muted); font-size: 11px; line-height: 1;
+    }
+    input, select, button.action {
+      background: #0d131c; border: 1px solid var(--border); color: var(--text);
+      border-radius: 6px; padding: 7px 10px; font-size: 13px;
+      color-scheme: dark;
+    }
+    input[type="datetime-local"] { min-width: 180px; }
+    input.wide { min-width: 200px; flex: 1; }
+    button.action { cursor: pointer; background: var(--accent); border-color: transparent; }
+    button.action.secondary { background: transparent; border-color: var(--border); }
+    button.action.danger { background: var(--danger); }
+    button.action:disabled { opacity: .5; cursor: not-allowed; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 500; background: #121a24; position: sticky; top: 0; }
+    .table-wrap {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+      overflow: auto; max-height: 560px;
+    }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px;
+      background: #243044; color: var(--muted);
+    }
+    .badge.ok { background: rgba(34,197,94,.15); color: var(--ok); }
+    .badge.warn { background: rgba(245,158,11,.15); color: var(--warn); }
+    .badge.danger { background: rgba(239,68,68,.15); color: var(--danger); }
+    .mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+    .muted { color: var(--muted); }
+    .hidden { display: none !important; }
+    .pager { display: flex; gap: 8px; align-items: center; margin-top: 10px; color: var(--muted); font-size: 12px; }
+    pre.payload {
+      margin: 0; white-space: pre-wrap; word-break: break-word;
+      color: #c8d4e6; font-size: 12px; font-family: ui-monospace, Consolas, monospace;
+      background: #0d131c; border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+      max-height: 50vh; overflow: auto;
+    }
+    tr.clickable { cursor: pointer; }
+    tr.clickable:hover { background: rgba(59,130,246,.08); }
+    .drawer-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 40;
+      display: flex; justify-content: flex-end;
+    }
+    .drawer {
+      width: min(560px, 100vw); height: 100%; background: #121a24;
+      border-left: 1px solid var(--border); padding: 16px 18px; overflow: auto;
+      box-shadow: -12px 0 40px rgba(0,0,0,.35);
+    }
+    .drawer h2 { margin: 0 0 4px; font-size: 16px; }
+    .drawer .row { margin: 10px 0; font-size: 13px; }
+    .drawer .row .k { color: var(--muted); display: block; margin-bottom: 2px; font-size: 11px; }
+    .drawer-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .toast {
+      position: fixed; right: 16px; bottom: 16px; z-index: 60;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 14px; font-size: 13px; max-width: 420px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    }
+    .toast.ok { border-color: rgba(34,197,94,.4); }
+    .toast.err { border-color: rgba(239,68,68,.5); }
+    .handler-list { margin: 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
+    .handler-list li { margin: 2px 0; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Fake Messaging Dashboard</h1>
+    <div class="right">
+      <label class="tz-wrap">Timezone
+        <select id="tzSelect" title="DB stores UTC; display converts to selected zone"></select>
+      </label>
+      <div class="meta" id="serverMeta">connecting…</div>
+    </div>
+  </header>
+  <nav>
+    <button class="active" data-tab="overview">Overview</button>
+    <button data-tab="subscriptions" id="nav-subscriptions" class="hidden">Events / Consumers</button>
+    <button data-tab="outbox">Outbox</button>
+    <button data-tab="inbox">Inbox</button>
+    <button data-tab="dlx" id="nav-dlx" class="hidden">DLX</button>
+  </nav>
+  <main>
+    <section id="tab-overview">
+      <div class="cards" id="metricCards"></div>
+      <div class="charts">
+        <div class="chart-box">
+          <div class="muted" style="font-size:12px;margin-bottom:6px;">Outbox (cumulative)</div>
+          <canvas id="chartOutbox"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="muted" style="font-size:12px;margin-bottom:6px;">Inbox (cumulative)</div>
+          <canvas id="chartInbox"></canvas>
+        </div>
+      </div>
+      <div class="cards" id="stateCards"></div>
+    </section>
+
+    <section id="tab-subscriptions" class="hidden">
+      <div class="toolbar">
+        <button class="action secondary" id="subsRefresh">Refresh</button>
+        <span class="muted" id="subsMeta"></span>
+      </div>
+      <div class="table-wrap"><table><thead>
+        <tr><th>Event</th><th>Routing Key</th><th>Handlers</th></tr>
+      </thead><tbody id="subsBody"></tbody></table></div>
+    </section>
+
+    <section id="tab-outbox" class="hidden">
+      <div class="toolbar" id="outboxFilters">
+        <label class="field"><span>Kind</span>
+          <select id="outboxKind">
+            <option value="">All</option>
+            <option>EventBus</option>
+            <option>Rabbit</option>
+          </select>
+        </label>
+        <label class="field"><span>State</span>
+          <select id="outboxState">
+            <option value="">All</option>
+            <option>NotPublished</option>
+            <option>InProgress</option>
+            <option>Published</option>
+            <option>PublishFailed</option>
+          </select>
+        </label>
+        <label class="field"><span>Type</span>
+          <input id="outboxType" class="wide" placeholder="ShortName / FullName" />
+        </label>
+        <label class="field"><span>Keyword</span>
+          <input id="outboxKeyword" class="wide" placeholder="MessageId / TransactionId / keyword" />
+        </label>
+        <label class="field"><span>Body contains</span>
+          <input id="outboxContent" class="wide" placeholder="Payload substring" />
+        </label>
+        <label class="field"><span>From</span>
+          <input type="datetime-local" id="outboxFrom" title="Wall time in selected timezone; default: start of today" />
+        </label>
+        <label class="field"><span>To</span>
+          <input type="datetime-local" id="outboxTo" title="Wall time in selected timezone; empty = no upper bound" />
+        </label>
+        <label class="field"><span>Min times</span>
+          <input id="outboxMinTimes" type="number" min="0" step="1" style="width:88px" placeholder="≥" />
+        </label>
+        <label class="field"><span>Max times</span>
+          <input id="outboxMaxTimes" type="number" min="0" step="1" style="width:88px" placeholder="≤" />
+        </label>
+        <button class="action" id="outboxSearch">Search</button>
+        <button class="action secondary" id="outboxClear">Clear</button>
+      </div>
+      <div class="table-wrap"><table><thead>
+        <tr><th>MessageId</th><th>Kind</th><th>Destination</th><th>Type</th><th>State</th><th>Times</th><th>Created</th><th>Actions</th></tr>
+      </thead><tbody id="outboxBody"></tbody></table></div>
+      <div class="pager" id="outboxPager"></div>
+    </section>
+
+    <section id="tab-inbox" class="hidden">
+      <div class="toolbar" id="inboxFilters">
+        <label class="field"><span>Kind</span>
+          <select id="inboxKind">
+            <option value="">All</option>
+            <option>EventBus</option>
+            <option>Rabbit</option>
+          </select>
+        </label>
+        <label class="field"><span>State</span>
+          <select id="inboxState">
+            <option value="">All</option>
+            <option>Consuming</option>
+            <option>ConsumeSucceeded</option>
+            <option>ConsumeFailed</option>
+            <option>NoHandler</option>
+          </select>
+        </label>
+        <label class="field"><span>Type</span>
+          <input id="inboxType" class="wide" placeholder="ShortName / FullName" />
+        </label>
+        <label class="field"><span>Keyword</span>
+          <input id="inboxKeyword" class="wide" placeholder="MessageId / Error / keyword" />
+        </label>
+        <label class="field"><span>Body contains</span>
+          <input id="inboxContent" class="wide" placeholder="Payload substring" />
+        </label>
+        <label class="field"><span>From</span>
+          <input type="datetime-local" id="inboxFrom" title="Wall time in selected timezone; default: start of today" />
+        </label>
+        <label class="field"><span>To</span>
+          <input type="datetime-local" id="inboxTo" title="Wall time in selected timezone; empty = no upper bound" />
+        </label>
+        <button class="action" id="inboxSearch">Search</button>
+        <button class="action secondary" id="inboxClear">Clear</button>
+      </div>
+      <div class="table-wrap"><table><thead>
+        <tr><th>MessageId</th><th>Kind</th><th>Group</th><th>Type</th><th>State</th><th>Processed</th><th>Error</th><th>Actions</th></tr>
+      </thead><tbody id="inboxBody"></tbody></table></div>
+      <div class="pager" id="inboxPager"></div>
+    </section>
+
+    <section id="tab-dlx" class="hidden">
+      <div class="toolbar">
+        <label class="field"><span>Keyword</span>
+          <input id="dlxKeyword" class="wide" placeholder="Id / routing / reason" />
+        </label>
+        <label class="field"><span>Body contains</span>
+          <input id="dlxContent" class="wide" placeholder="Payload substring" />
+        </label>
+        <button class="action" id="dlxRefresh">Refresh DLX</button>
+        <button class="action secondary" id="dlxFilterApply">Filter</button>
+        <span class="muted" id="dlxStatus"></span>
+      </div>
+      <div class="table-wrap"><table><thead>
+        <tr><th>MessageId</th><th>RoutingKey</th><th>EventId</th><th>Reason</th><th>Body</th><th>Actions</th></tr>
+      </thead><tbody id="dlxBody"></tbody></table></div>
+    </section>
+  </main>
+
+  <div id="drawerRoot" class="drawer-backdrop hidden" onclick="if(event.target===this)closeDrawer()">
+    <aside class="drawer" id="drawer">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <h2 id="drawerTitle">Message</h2>
+        <button class="action secondary" onclick="closeDrawer()">Close</button>
+      </div>
+      <div id="drawerMeta"></div>
+      <div class="drawer-actions" id="drawerActions"></div>
+      <div class="row"><span class="k">Payload</span>
+        <div class="drawer-actions" style="margin-top:0;">
+          <button class="action secondary" id="btnCopyJson">Copy JSON</button>
+          <button class="action secondary" id="btnCopyRaw">Copy raw</button>
+        </div>
+        <pre class="payload" id="drawerPayload">loading…</pre>
+      </div>
+    </aside>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+
+  <script>
+    const API = "{{API_BASE}}";
+    const POLL_MS = Number("{{POLL_MS}}") || 2000;
+
+    const stateBadge = (s) => {
+      if (!s) return "";
+      const cls = /Failed|fail/i.test(s) ? "danger"
+        : /Published|Succeeded/i.test(s) ? "ok"
+        : /NoHandler|Progress|Consuming|NotPublished/i.test(s) ? "warn" : "";
+      return `<span class="badge ${cls}">${s}</span>`;
+    };
+
+    const fmt = (n) => Number(n || 0).toLocaleString();
+    const shortId = (id) => {
+      const s = (id || "").toString();
+      return s.length > 10 ? s.slice(0, 8) + "…" : s;
+    };
+    const esc = (s) => String(s ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+
+    const TZ_STORAGE_KEY = "fake.eventbus.dashboard.tz";
+    const LOCAL_TZ = (() => {
+      try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; }
+      catch { return "UTC"; }
+    })();
+    const FALLBACK_TIMEZONES = [
+      "UTC", "Asia/Shanghai", "Asia/Hong_Kong", "Asia/Tokyo", "Asia/Singapore",
+      "Asia/Seoul", "Asia/Bangkok", "Asia/Kolkata", "Europe/London", "Europe/Paris",
+      "Europe/Berlin", "America/New_York", "America/Chicago", "America/Denver",
+      "America/Los_Angeles", "Australia/Sydney", "Pacific/Auckland"
+    ];
+
+    function listTimeZones() {
+      try {
+        if (typeof Intl.supportedValuesOf === "function")
+          return Intl.supportedValuesOf("timeZone");
+      } catch { /* ignore */ }
+      const set = new Set(FALLBACK_TIMEZONES);
+      set.add(LOCAL_TZ);
+      return [...set].sort();
+    }
+
+    function loadSavedTz() {
+      try {
+        const saved = localStorage.getItem(TZ_STORAGE_KEY);
+        if (saved && listTimeZones().includes(saved)) return saved;
+      } catch { /* ignore */ }
+      return LOCAL_TZ;
+    }
+
+    let currentTz = loadSavedTz();
+
+    /** API/DB 时间为 UTC；无偏移时按 UTC 解析，避免被当成浏览器本地。 */
+    function parseUtc(input) {
+      if (input == null || input === "") return null;
+      if (input instanceof Date) return isNaN(input.getTime()) ? null : input;
+      let s = String(input).trim();
+      if (/^\d+$/.test(s)) {
+        const n = Number(s);
+        const d = new Date(s.length <= 10 ? n * 1000 : n);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      s = s.replace(" ", "T");
+      if (!/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) s += "Z";
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function fmtTime(input, opts) {
+      const d = parseUtc(input);
+      if (!d) return "-";
+      try {
+        return new Intl.DateTimeFormat(undefined, Object.assign({
+          timeZone: currentTz,
+          year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", second: "2-digit",
+          hour12: false
+        }, opts || {})).format(d);
+      } catch {
+        return d.toISOString();
+      }
+    }
+
+    function fmtTimeWithZone(input) {
+      const text = fmtTime(input);
+      if (text === "-") return text;
+      return text + " (" + currentTz + ")";
+    }
+
+    /** Build querystring; skip empty values. */
+    function buildQuery(params) {
+      const q = new URLSearchParams();
+      Object.entries(params).forEach(([k, v]) => {
+        if (v == null) return;
+        const s = String(v).trim();
+        if (s === "") return;
+        q.set(k, s);
+      });
+      return q.toString();
+    }
+
+    /**
+     * datetime-local value as wall clock in currentTz → UTC ISO.
+     * Iteratively corrects UTC guess using Intl formatToParts.
+     */
+    function wallTimeInTzToUtcIso(value) {
+      if (!value) return "";
+      const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value);
+      if (!m) return "";
+      const y = +m[1], mo = +m[2], d = +m[3], h = +m[4], mi = +m[5], sec = +(m[6] || 0);
+      const target = Date.UTC(y, mo - 1, d, h, mi, sec);
+      let utc = target;
+      for (let i = 0; i < 4; i++) {
+        const parts = new Intl.DateTimeFormat("en-US", {
+          timeZone: currentTz, hour12: false,
+          year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", second: "2-digit"
+        }).formatToParts(new Date(utc));
+        const get = (t) => {
+          const p = parts.find(x => x.type === t);
+          return p ? Number(p.value) : 0;
+        };
+        let hour = get("hour");
+        if (hour === 24) hour = 0; // some locales
+        const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), hour, get("minute"), get("second"));
+        const delta = target - asUtc;
+        if (delta === 0) break;
+        utc += delta;
+      }
+      return new Date(utc).toISOString();
+    }
+
+    /** Start of today in currentTz as datetime-local value (YYYY-MM-DDTHH:mm). */
+    function startOfTodayLocalInput() {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: currentTz,
+        year: "numeric", month: "2-digit", day: "2-digit"
+      }).formatToParts(new Date());
+      const get = (t) => (parts.find(p => p.type === t) || {}).value || "00";
+      return `${get("year")}-${get("month")}-${get("day")}T00:00`;
+    }
+
+    function applyDefaultDateRange(prefix) {
+      document.getElementById(prefix + "From").value = startOfTodayLocalInput();
+      document.getElementById(prefix + "To").value = "";
+    }
+
+    function clearFilterInputs(rootId) {
+      document.querySelectorAll("#" + rootId + " input, #" + rootId + " select").forEach(el => {
+        if (el.tagName === "SELECT") el.selectedIndex = 0;
+        else el.value = "";
+      });
+      if (rootId === "outboxFilters") applyDefaultDateRange("outbox");
+      if (rootId === "inboxFilters") applyDefaultDateRange("inbox");
+    }
+
+    function initTimezoneSelect() {
+      const sel = document.getElementById("tzSelect");
+      const zones = listTimeZones();
+      sel.innerHTML = zones.map(z =>
+        `<option value="${esc(z)}">${esc(z)}${z === LOCAL_TZ ? " (local)" : ""}</option>`
+      ).join("");
+      if (![...sel.options].some(o => o.value === currentTz)) {
+        const opt = document.createElement("option");
+        opt.value = currentTz;
+        opt.textContent = currentTz + " (local)";
+        sel.appendChild(opt);
+      }
+      sel.value = currentTz;
+      sel.addEventListener("change", () => {
+        currentTz = sel.value;
+        try { localStorage.setItem(TZ_STORAGE_KEY, currentTz); } catch { /* ignore */ }
+        onTimezoneChanged();
+      });
+    }
+
+    function onTimezoneChanged() {
+      refreshStats();
+      const active = document.querySelector("nav button.active");
+      const tab = active && active.dataset.tab;
+      if (tab === "outbox") loadOutbox();
+      if (tab === "inbox") loadInbox();
+      if (tab === "dlx") loadDlx();
+      if (drawerItem && drawerKind) openDrawer(drawerKind, drawerItem,
+        document.getElementById("drawerTitle").textContent);
+    }
+
+    let outboxPage = 1, inboxPage = 1;
+    let drawerItem = null;
+    let drawerKind = null; // outbox | inbox | dlx
+    const dlxCache = new Map();
+    const history = { labels: [], enqueued: [], dispatched: [], failed: [], inboxOk: [], inboxDup: [], inboxFail: [] };
+    const MAX_POINTS = 30;
+
+    // 内置轻量折线（不依赖 CDN / Chart.js，避免内网环境整页挂死）
+    function drawSparkline(canvas, series) {
+      if (!canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      const cssW = canvas.clientWidth || canvas.parentElement.clientWidth || 300;
+      const cssH = Math.max(160, (canvas.parentElement.clientHeight || 220) - 28);
+      canvas.width = Math.floor(cssW * dpr);
+      canvas.height = Math.floor(cssH * dpr);
+      canvas.style.width = cssW + "px";
+      canvas.style.height = cssH + "px";
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, cssW, cssH);
+
+      const pad = { l: 36, r: 10, t: 18, b: 28 };
+      const plotW = cssW - pad.l - pad.r;
+      const plotH = cssH - pad.t - pad.b;
+      const n = Math.max(...series.map(s => s.data.length), 0);
+      if (n < 1) {
+        ctx.fillStyle = "#8b9bb4";
+        ctx.font = "12px Segoe UI,sans-serif";
+        ctx.fillText("waiting for samples…", pad.l, pad.t + 14);
+        return;
+      }
+
+      let maxY = 0;
+      series.forEach(s => s.data.forEach(v => { if (v > maxY) maxY = v; }));
+      if (maxY <= 0) maxY = 1;
+
+      ctx.strokeStyle = "#2d3a4d";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad.l, pad.t);
+      ctx.lineTo(pad.l, pad.t + plotH);
+      ctx.lineTo(pad.l + plotW, pad.t + plotH);
+      ctx.stroke();
+
+      ctx.fillStyle = "#8b9bb4";
+      ctx.font = "11px Segoe UI,sans-serif";
+      ctx.fillText(String(maxY), 4, pad.t + 10);
+      ctx.fillText("0", 4, pad.t + plotH);
+
+      series.forEach(s => {
+        if (s.data.length < 1) return;
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        s.data.forEach((v, i) => {
+          const x = pad.l + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+          const y = pad.t + plotH - (v / maxY) * plotH;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      });
+
+      // legend
+      let lx = pad.l;
+      const ly = cssH - 10;
+      series.forEach(s => {
+        ctx.fillStyle = s.color;
+        ctx.fillRect(lx, ly - 8, 10, 3);
+        ctx.fillStyle = "#8b9bb4";
+        ctx.fillText(s.label, lx + 14, ly);
+        lx += ctx.measureText(s.label).width + 36;
+      });
+    }
+
+    function redrawCharts() {
+      drawSparkline(document.getElementById("chartOutbox"), [
+        { label: "Enqueued", color: "#3b82f6", data: history.enqueued },
+        { label: "Dispatched", color: "#22c55e", data: history.dispatched },
+        { label: "Failed", color: "#ef4444", data: history.failed }
+      ]);
+      drawSparkline(document.getElementById("chartInbox"), [
+        { label: "Processed", color: "#22c55e", data: history.inboxOk },
+        { label: "Duplicate", color: "#f59e0b", data: history.inboxDup },
+        { label: "Failed", color: "#ef4444", data: history.inboxFail }
+      ]);
+    }
+
+    document.querySelectorAll("nav button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        ["overview","subscriptions","outbox","inbox","dlx"].forEach(t => {
+          document.getElementById("tab-" + t).classList.toggle("hidden", t !== btn.dataset.tab);
+        });
+        if (btn.dataset.tab === "subscriptions") loadSubscriptions();
+        if (btn.dataset.tab === "outbox") loadOutbox();
+        if (btn.dataset.tab === "inbox") loadInbox();
+        if (btn.dataset.tab === "dlx") loadDlx();
+      });
+    });
+
+    async function api(path, opts) {
+      const res = await fetch(API + path, Object.assign({ headers: { "Content-Type": "application/json" } }, opts || {}));
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+      if (!res.ok) {
+        const msg = (data && data.error) || (typeof data === "string" ? data : text) || res.statusText;
+        throw new Error(msg);
+      }
+      return data;
+    }
+
+    function toast(msg, ok) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.className = "toast " + (ok ? "ok" : "err");
+      el.classList.remove("hidden");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.add("hidden"), 4200);
+    }
+
+    function prettyJson(raw) {
+      if (raw == null || raw === "") return "";
+      try { return JSON.stringify(JSON.parse(raw), null, 2); } catch { return String(raw); }
+    }
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text || "");
+        toast("Copied", true);
+      } catch {
+        toast("Copy failed", false);
+      }
+    }
+
+    function renderCards(m) {
+      if (!m) {
+        document.getElementById("metricCards").innerHTML =
+          `<div class="muted">EventBus metrics adapter not registered.</div>`;
+        return;
+      }
+      const cards = [
+        ["Outbox Enqueued", m.outboxEnqueued],
+        ["Dispatched (immediate)", m.outboxDispatchedImmediate],
+        ["Dispatched (scan)", m.outboxDispatchedScan],
+        ["Dispatch Failed", m.outboxDispatchFailed],
+        ["Scan Retry", m.outboxScanRetry],
+        ["Inbox Processed", m.inboxProcessed],
+        ["Inbox Duplicate", m.inboxDuplicate],
+        ["Inbox Failed", m.inboxFailed]
+      ];
+      document.getElementById("metricCards").innerHTML = cards.map(([l,v]) =>
+        `<div class="card"><div class="label">${l}</div><div class="value">${fmt(v)}</div></div>`).join("");
+    }
+
+    function applyFeatures(features) {
+      const f = features || {};
+      const subs = document.getElementById("nav-subscriptions");
+      const dlx = document.getElementById("nav-dlx");
+      if (subs) subs.classList.toggle("hidden", !f.subscriptions);
+      if (dlx) dlx.classList.toggle("hidden", !f.dlx);
+      window.__features = f;
+    }
+
+    function renderStateCards(outbox, inbox) {
+      const parts = [];
+      (outbox || []).forEach(x => parts.push(`<div class="card"><div class="label">Outbox · ${x.state}</div><div class="value">${fmt(x.count)}</div></div>`));
+      (inbox || []).forEach(x => parts.push(`<div class="card"><div class="label">Inbox · ${x.state}</div><div class="value">${fmt(x.count)}</div></div>`));
+      document.getElementById("stateCards").innerHTML = parts.join("") || `<div class="muted">No persisted messages yet.</div>`;
+    }
+
+    function pushHistory(m) {
+      if (!m) return;
+      let label;
+      try {
+        label = new Intl.DateTimeFormat(undefined, {
+          timeZone: currentTz, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+        }).format(new Date());
+      } catch { label = new Date().toLocaleTimeString(); }
+      history.labels.push(label);
+      history.enqueued.push(m.outboxEnqueued);
+      history.dispatched.push((m.outboxDispatchedImmediate || 0) + (m.outboxDispatchedScan || 0));
+      history.failed.push(m.outboxDispatchFailed);
+      history.inboxOk.push(m.inboxProcessed);
+      history.inboxDup.push(m.inboxDuplicate);
+      history.inboxFail.push(m.inboxFailed);
+      if (history.labels.length > MAX_POINTS) {
+        Object.keys(history).forEach(k => history[k].shift());
+      }
+      redrawCharts();
+    }
+
+    async function refreshStats() {
+      try {
+        const data = await api("/stats");
+        applyFeatures(data.features);
+        renderCards(data.metrics);
+        renderStateCards(data.outbox, data.inbox);
+        pushHistory(data.metrics);
+        document.getElementById("serverMeta").textContent =
+          `Server ${fmtTimeWithZone(data.serverTimeUtc)} · poll ${data.pollIntervalMs}ms · DLX ${data.dlxAvailable ? "on" : "off"}`;
+      } catch (e) {
+        document.getElementById("serverMeta").textContent = "error: " + e.message;
+      }
+    }
+
+    async function loadSubscriptions() {
+      const data = await api("/subscriptions");
+      const items = data.items || [];
+      document.getElementById("subsMeta").textContent = data.available === false
+        ? "Subscriptions adapter not registered"
+        : `${items.length} event type(s)`;
+      document.getElementById("subsBody").innerHTML = items.map(item => `
+        <tr>
+          <td>
+            <div>${esc(item.typeShortName)}</div>
+            <div class="mono muted">${esc(item.typeName)}</div>
+          </td>
+          <td class="mono">${esc(item.routingKey)}</td>
+          <td>
+            ${(item.handlers || []).length
+              ? `<ul class="handler-list">${item.handlers.map(h => `<li class="mono">${esc(h)}</li>`).join("")}</ul>`
+              : `<span class="muted">No handlers registered</span>`}
+          </td>
+        </tr>`).join("") || `<tr><td colspan="3" class="muted">No subscriptions (is RabbitMQ EventBus loaded?)</td></tr>`;
+    }
+
+    async function loadOutbox() {
+      const q = buildQuery({
+        pageIndex: outboxPage, pageSize: 20,
+        kind: document.getElementById("outboxKind").value,
+        state: document.getElementById("outboxState").value,
+        typeName: document.getElementById("outboxType").value,
+        keyword: document.getElementById("outboxKeyword").value,
+        content: document.getElementById("outboxContent").value,
+        from: wallTimeInTzToUtcIso(document.getElementById("outboxFrom").value),
+        to: wallTimeInTzToUtcIso(document.getElementById("outboxTo").value),
+        minTimesSent: document.getElementById("outboxMinTimes").value,
+        maxTimesSent: document.getElementById("outboxMaxTimes").value
+      });
+      const data = await api("/outbox?" + q);
+      document.getElementById("outboxBody").innerHTML = (data.items || []).map(item => `
+        <tr class="clickable" onclick="openOutbox('${item.messageId}')">
+          <td class="mono" title="${esc(item.messageId)}">${shortId(item.messageId)}</td>
+          <td>${esc(item.kind)}</td>
+          <td class="mono muted" title="${esc(item.destination)}">${esc((item.destination || "").slice(0, 28))}</td>
+          <td>${esc(item.typeShortName)}</td>
+          <td>${stateBadge(item.state)}</td>
+          <td>${item.timesSent}</td>
+          <td class="mono" title="UTC ${esc(item.creationTime)}">${esc(fmtTime(item.creationTime))}</td>
+          <td onclick="event.stopPropagation()">
+            <button class="action" onclick="retryOutbox('${item.messageId}', true)">Retry &amp; dispatch</button>
+            <button class="action secondary" onclick="retryOutbox('${item.messageId}', false)">Reset only</button>
+            <button class="action secondary" onclick="openOutbox('${item.messageId}')">Preview</button>
+            <button class="action secondary" onclick="openInbox('${item.messageId}')">Inbox</button>
+          </td>
+        </tr>`).join("") || `<tr><td colspan="8" class="muted">No data</td></tr>`;
+      document.getElementById("outboxPager").innerHTML =
+        `Total ${data.total} · Page ${data.pageIndex}
+         <button class="action secondary" onclick="outboxPage=Math.max(1,outboxPage-1);loadOutbox()">Prev</button>
+         <button class="action secondary" onclick="outboxPage=outboxPage+1;loadOutbox()">Next</button>`;
+    }
+
+    async function loadInbox() {
+      const q = buildQuery({
+        pageIndex: inboxPage, pageSize: 20,
+        kind: document.getElementById("inboxKind").value,
+        state: document.getElementById("inboxState").value,
+        typeName: document.getElementById("inboxType").value,
+        keyword: document.getElementById("inboxKeyword").value,
+        content: document.getElementById("inboxContent").value,
+        from: wallTimeInTzToUtcIso(document.getElementById("inboxFrom").value),
+        to: wallTimeInTzToUtcIso(document.getElementById("inboxTo").value)
+      });
+      const data = await api("/inbox?" + q);
+      const canReprocess = !!(window.__features && window.__features.inboxReprocess);
+      document.getElementById("inboxBody").innerHTML = (data.items || []).map(item => `
+        <tr class="clickable" onclick="openInbox('${item.messageId}')">
+          <td class="mono" title="${esc(item.messageId)}">${shortId(item.messageId)}</td>
+          <td>${esc(item.kind)}</td>
+          <td class="mono muted">${esc(item.consumerGroup || "")}</td>
+          <td>${esc(item.typeShortName)}</td>
+          <td>${stateBadge(item.state)}</td>
+          <td class="mono" title="UTC ${esc(item.processedTime)}">${esc(fmtTime(item.processedTime))}</td>
+          <td>${esc(item.errorMessage || "")}</td>
+          <td onclick="event.stopPropagation()">
+            ${canReprocess
+              ? `<button class="action" onclick="retryInbox('${item.messageId}', true)">Reprocess</button>`
+              : ""}
+            <button class="action secondary" onclick="retryInbox('${item.messageId}', false)">Reset only</button>
+            <button class="action secondary" onclick="openInbox('${item.messageId}')">Preview</button>
+            <button class="action secondary" onclick="openOutbox('${item.messageId}')">Outbox</button>
+          </td>
+        </tr>`).join("") || `<tr><td colspan="8" class="muted">No data</td></tr>`;
+      document.getElementById("inboxPager").innerHTML =
+        `Total ${data.total} · Page ${data.pageIndex}
+         <button class="action secondary" onclick="inboxPage=Math.max(1,inboxPage-1);loadInbox()">Prev</button>
+         <button class="action secondary" onclick="inboxPage=inboxPage+1;loadInbox()">Next</button>`;
+    }
+
+    let dlxItems = [];
+
+    function renderDlxRows(items) {
+      document.getElementById("dlxBody").innerHTML = (items || []).map(item => `
+        <tr class="clickable" onclick="openDlxById('${esc(item.messageId)}')">
+          <td class="mono">${shortId(item.messageId)}</td>
+          <td class="mono">${esc(item.routingKey || "")}</td>
+          <td class="mono">${esc(item.eventId || "")}</td>
+          <td>${esc(item.deathReason || "")}</td>
+          <td class="mono muted">${esc((item.body || "").slice(0, 80))}</td>
+          <td onclick="event.stopPropagation()">
+            <button class="action" onclick="dlxOp('${esc(item.messageId)}','requeue')">Requeue</button>
+            <button class="action danger" onclick="dlxOp('${esc(item.messageId)}','discard')">Discard</button>
+            <button class="action secondary" onclick="openDlxById('${esc(item.messageId)}')">Preview</button>
+          </td>
+        </tr>`).join("") || `<tr><td colspan="6" class="muted">Empty</td></tr>`;
+    }
+
+    function applyDlxFilter() {
+      const kw = (document.getElementById("dlxKeyword").value || "").trim().toLowerCase();
+      const body = (document.getElementById("dlxContent").value || "").trim().toLowerCase();
+      const filtered = dlxItems.filter(item => {
+        if (body && !(item.body || "").toLowerCase().includes(body)) return false;
+        if (!kw) return true;
+        const hay = [
+          item.messageId, item.routingKey, item.eventId, item.eventType, item.deathReason
+        ].map(x => (x || "").toLowerCase()).join(" ");
+        return hay.includes(kw);
+      });
+      document.getElementById("dlxStatus").textContent =
+        `Showing ${filtered.length}/${dlxItems.length} (client filter; refresh reloads from broker)`;
+      renderDlxRows(filtered);
+    }
+
+    async function loadDlx() {
+      try {
+        const data = await api("/dlx/messages?maxCount=50");
+        dlxItems = data.items || [];
+        dlxCache.clear();
+        dlxItems.forEach(item => dlxCache.set(item.messageId, item));
+        if (!data.available) {
+          document.getElementById("dlxStatus").textContent =
+            "DLX not available (enable RabbitMQ EventBus EnableDlx)";
+          renderDlxRows([]);
+          return;
+        }
+        applyDlxFilter();
+      } catch (e) {
+        document.getElementById("dlxStatus").textContent = e.message;
+      }
+    }
+
+    function openDrawer(kind, item, title) {
+      drawerKind = kind;
+      drawerItem = item;
+      document.getElementById("drawerTitle").textContent = title;
+      document.getElementById("drawerRoot").classList.remove("hidden");
+      const meta = document.getElementById("drawerMeta");
+      const actions = document.getElementById("drawerActions");
+      const payload = item.content || item.body || "";
+      document.getElementById("drawerPayload").textContent = prettyJson(payload) || "(empty)";
+
+      if (kind === "outbox") {
+        meta.innerHTML = `
+          <div class="row"><span class="k">MessageId</span><span class="mono">${esc(item.messageId)}</span></div>
+          <div class="row"><span class="k">Kind / Dest</span>${esc(item.kind)} · <span class="mono">${esc(item.destination)}</span></div>
+          <div class="row"><span class="k">Type</span>${esc(item.typeName || "")} ${stateBadge(item.state)}</div>
+          <div class="row"><span class="k">TimesSent / Tx</span>${item.timesSent} · <span class="mono">${esc(item.transactionId)}</span></div>
+          <div class="row"><span class="k">Created</span><span class="mono" title="UTC ${esc(item.creationTime)}">${esc(fmtTimeWithZone(item.creationTime))}</span></div>
+          <div class="row" id="counterpartMeta"><span class="k">Inbox (same MessageId)</span><span class="muted">loading…</span></div>`;
+        actions.innerHTML = `
+          <button class="action" onclick="retryOutbox('${item.messageId}', true)">Retry &amp; dispatch</button>
+          <button class="action secondary" onclick="retryOutbox('${item.messageId}', false)">Reset only</button>
+          <button class="action secondary" onclick="openInbox('${item.messageId}')">Open Inbox</button>`;
+        loadCounterpartSummary("inbox", item.messageId);
+      } else if (kind === "inbox") {
+        const canReprocess = !!(window.__features && window.__features.inboxReprocess);
+        meta.innerHTML = `
+          <div class="row"><span class="k">MessageId</span><span class="mono">${esc(item.messageId)}</span></div>
+          <div class="row"><span class="k">Kind / Group</span>${esc(item.kind)} · <span class="mono">${esc(item.consumerGroup || "")}</span></div>
+          <div class="row"><span class="k">Type</span>${esc(item.typeName || "")} ${stateBadge(item.state)}</div>
+          <div class="row"><span class="k">Processed</span><span class="mono" title="UTC ${esc(item.processedTime)}">${esc(fmtTimeWithZone(item.processedTime))}</span></div>
+          <div class="row"><span class="k">Error</span>${esc(item.errorMessage || "-")}</div>
+          <div class="row" id="counterpartMeta"><span class="k">Outbox (same MessageId)</span><span class="muted">loading…</span></div>`;
+        actions.innerHTML = `
+          ${canReprocess ? `<button class="action" onclick="retryInbox('${item.messageId}', true)">Reprocess handlers</button>` : ""}
+          <button class="action secondary" onclick="retryInbox('${item.messageId}', false)">Reset only</button>
+          <button class="action secondary" onclick="openOutbox('${item.messageId}')">Open Outbox</button>`;
+        loadCounterpartSummary("outbox", item.messageId);
+      } else {
+        const eid = item.relatedMessageId || item.eventId || "";
+        meta.innerHTML = `
+          <div class="row"><span class="k">MessageId</span><span class="mono">${esc(item.messageId)}</span></div>
+          <div class="row"><span class="k">RoutingKey</span><span class="mono">${esc(item.routingKey || "")}</span></div>
+          <div class="row"><span class="k">Related Id</span><span class="mono">${esc(eid)}</span></div>
+          <div class="row"><span class="k">DeathTime</span><span class="mono" title="UTC ${esc(item.deathTime || "")}">${esc(fmtTimeWithZone(item.deathTime))}</span></div>
+          <div class="row"><span class="k">Reason</span>${esc(item.deathReason || "-")}</div>`;
+        actions.innerHTML = `
+          <button class="action" onclick="dlxOp('${esc(item.messageId)}','requeue')">Requeue</button>
+          <button class="action danger" onclick="dlxOp('${esc(item.messageId)}','discard')">Discard</button>
+          ${eid ? `
+          <button class="action secondary" onclick="openOutbox('${esc(eid)}')">Open Outbox</button>
+          <button class="action secondary" onclick="openInbox('${esc(eid)}')">Open Inbox</button>` : ""}`;
+      }
+    }
+
+    async function loadCounterpartSummary(side, messageId) {
+      const el = document.getElementById("counterpartMeta");
+      if (!el) return;
+      const label = side === "inbox" ? "Inbox (same MessageId)" : "Outbox (same MessageId)";
+      try {
+        const item = await api(`/${side}/${messageId}`);
+        const when = side === "inbox"
+          ? fmtTimeWithZone(item.processedTime)
+          : fmtTimeWithZone(item.creationTime);
+        el.innerHTML = `
+          <span class="k">${label}</span>
+          ${stateBadge(item.state)}
+          <span class="mono muted" style="margin-left:6px;">${esc(when)}</span>
+          <button class="action secondary" style="margin-left:8px;padding:3px 8px;font-size:12px;"
+            onclick="open${side === "inbox" ? "Inbox" : "Outbox"}('${esc(messageId)}')">Open</button>`;
+      } catch {
+        el.innerHTML = `<span class="k">${label}</span><span class="muted">not found</span>`;
+      }
+    }
+
+    function closeDrawer() {
+      document.getElementById("drawerRoot").classList.add("hidden");
+      drawerItem = null;
+      drawerKind = null;
+    }
+
+    window.openOutbox = async (id) => {
+      try {
+        const item = await api(`/outbox/${id}`);
+        openDrawer("outbox", item, "Outbox message");
+      } catch (e) {
+        toast(e.message || "Outbox message not found for this MessageId", false);
+      }
+    };
+    window.openInbox = async (id) => {
+      try {
+        const item = await api(`/inbox/${id}`);
+        openDrawer("inbox", item, "Inbox message");
+      } catch (e) {
+        toast(e.message || "Inbox message not found for this MessageId", false);
+      }
+    };
+    window.openDlxById = (id) => {
+      const item = dlxCache.get(id);
+      if (!item) { toast("Message no longer in preview buffer — refresh DLX", false); return; }
+      openDrawer("dlx", item, "DLX message");
+    };
+
+    window.retryOutbox = async (id, dispatchNow) => {
+      try {
+        const data = await api(`/outbox/${id}/retry`, {
+          method: "POST",
+          body: JSON.stringify({ dispatchNow, clearInbox: true })
+        });
+        if (dispatchNow && !(data.dispatched || data.published)) {
+          toast(data.error || "Dispatch did not complete", false);
+        } else {
+          toast(dispatchNow
+            ? `Dispatched${data.inboxCleared ? " (inbox cleared)" : ""}`
+            : "Reset to NotPublished", true);
+        }
+        await loadOutbox(); await refreshStats();
+        if (drawerKind === "outbox" && drawerItem && drawerItem.messageId === id) await openOutbox(id);
+      } catch (e) { toast(e.message, false); }
+    };
+
+    window.retryInbox = async (id, reprocessNow) => {
+      try {
+        const data = await api(`/inbox/${id}/retry`, {
+          method: "POST",
+          body: JSON.stringify({ reprocessNow })
+        });
+        if (reprocessNow && data.reprocessAvailable === false) {
+          toast("Inbox reset (local reprocess adapter not registered)", true);
+        } else if (reprocessNow && !data.processed) {
+          toast(data.error || "Reprocess failed", false);
+        } else {
+          toast(reprocessNow ? "Handlers reprocessed" : "Inbox reset for reclaim", true);
+        }
+        await loadInbox(); await refreshStats();
+        if (drawerKind === "inbox" && drawerItem && drawerItem.messageId === id) await openInbox(id);
+      } catch (e) { toast(e.message, false); }
+    };
+
+    window.dlxOp = async (id, op) => {
+      try {
+        await api(`/dlx/messages/${id}/${op}`, { method: "POST", body: "{}" });
+        toast(op === "requeue" ? "Requeued" : "Discarded", true);
+        await loadDlx();
+        if (op === "discard") closeDrawer();
+      } catch (e) { toast(e.message, false); }
+    };
+
+    document.getElementById("btnCopyJson").onclick = () => {
+      const raw = drawerItem && (drawerItem.content || drawerItem.body || "");
+      copyText(prettyJson(raw) || "");
+    };
+    document.getElementById("btnCopyRaw").onclick = () => {
+      const raw = drawerItem && (drawerItem.content || drawerItem.body || "");
+      copyText(raw || "");
+    };
+
+    document.getElementById("outboxSearch").onclick = () => { outboxPage = 1; loadOutbox(); };
+    document.getElementById("outboxClear").onclick = () => {
+      clearFilterInputs("outboxFilters"); outboxPage = 1; loadOutbox();
+    };
+    document.getElementById("inboxSearch").onclick = () => { inboxPage = 1; loadInbox(); };
+    document.getElementById("inboxClear").onclick = () => {
+      clearFilterInputs("inboxFilters"); inboxPage = 1; loadInbox();
+    };
+    document.getElementById("dlxRefresh").onclick = () => loadDlx();
+    document.getElementById("dlxFilterApply").onclick = () => applyDlxFilter();
+    document.getElementById("subsRefresh").onclick = () => loadSubscriptions();
+
+    ["outboxFilters", "inboxFilters"].forEach(id => {
+      document.getElementById(id).addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          if (id === "outboxFilters") { outboxPage = 1; loadOutbox(); }
+          else { inboxPage = 1; loadInbox(); }
+        }
+      });
+    });
+
+    initTimezoneSelect();
+    applyDefaultDateRange("outbox");
+    applyDefaultDateRange("inbox");
+    document.getElementById("tzSelect").addEventListener("change", () => {
+      // 仅当 From 仍是「某日 00:00」时，随时区刷新为新时区的今天 00:00
+      ["outboxFrom", "inboxFrom"].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el.value || /T00:00$/.test(el.value)) el.value = startOfTodayLocalInput();
+      });
+    });
+    redrawCharts();
+    window.addEventListener("resize", redrawCharts);
+    refreshStats();
+    setInterval(refreshStats, POLL_MS);
+  </script>
+</body>
+</html>

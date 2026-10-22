@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../../common.props"/>
+    <Import Project="../../configureawait.props"/>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Fake.EventBus\Fake.EventBus.csproj"/>
+        <ProjectReference Include="..\Fake.Messaging.EntityFrameworkCore\Fake.Messaging.EntityFrameworkCore.csproj"/>
+    </ItemGroup>
+
+</Project>

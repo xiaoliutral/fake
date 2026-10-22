@@ -1,7 +1,7 @@
 namespace Fake.EventBus.Distributed;
 
 /// <summary>
-/// 未接入 IntegrationEventLog 时的空实现。
+/// 未接入 Fake.EventBus.Messaging 时的空实现。
 /// </summary>
 public sealed class NullOutboxEventPublisher : IOutboxEventPublisher
 {

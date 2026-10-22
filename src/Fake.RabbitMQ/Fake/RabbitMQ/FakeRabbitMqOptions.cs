@@ -4,6 +4,8 @@ namespace Fake.RabbitMQ;
 
 public class FakeRabbitMqOptions
 {
+    public const string SectionName = "RabbitMQ";
+    
     /// <summary>
     /// RabbitMQ默认连接
     /// </summary>

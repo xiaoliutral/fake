@@ -1,12 +1,14 @@
 using System.Collections.Concurrent;
 using Fake.EventBus.Distributed;
+using Fake.Messaging;
+using Fake.Messaging.Admin;
 
 namespace Fake.EventBus.RabbitMQ;
 
 /// <summary>
 /// 基于 BasicGet 的 DLX 运维：列表预览、Requeue（回主交换机）、Discard。
 /// </summary>
-public class RabbitMqDlxAdminService : IDlxAdminService, IDisposable
+public class RabbitMqDlxAdminService : IMessagingDlxAdminService, IDisposable
 {
     private readonly IRabbitMqConnectionPool _connectionPool;
     private readonly RabbitMqEventBusOptions _options;
@@ -34,12 +36,12 @@ public class RabbitMqDlxAdminService : IDlxAdminService, IDisposable
 
     public bool IsAvailable => _options.EnableDlx;
 
-    public Task<IReadOnlyList<DlxMessageDto>> GetMessagesAsync(
+    public Task<IReadOnlyList<MessagingDlxMessageDto>> GetMessagesAsync(
         int maxCount = 50,
         CancellationToken cancellationToken = default)
     {
         if (!IsAvailable)
-            return Task.FromResult<IReadOnlyList<DlxMessageDto>>(Array.Empty<DlxMessageDto>());
+            return Task.FromResult<IReadOnlyList<MessagingDlxMessageDto>>(Array.Empty<MessagingDlxMessageDto>());
 
         maxCount = Math.Clamp(maxCount, 1, 200);
         EnsureChannel();
@@ -47,7 +49,7 @@ public class RabbitMqDlxAdminService : IDlxAdminService, IDisposable
         // 先把未处理的 pending 还回队列，避免列表重复占用
         ReleasePending(requeue: true);
 
-        var results = new List<DlxMessageDto>();
+        var results = new List<MessagingDlxMessageDto>();
         lock (_sync)
         {
             for (var i = 0; i < maxCount; i++)
@@ -60,7 +62,7 @@ public class RabbitMqDlxAdminService : IDlxAdminService, IDisposable
                 var messageId = Guid.NewGuid().ToString("N");
                 var body = Encoding.UTF8.GetString(result.Body.Span);
                 var headers = ReadHeaders(result.BasicProperties);
-                var dto = new DlxMessageDto(
+                var dto = new MessagingDlxMessageDto(
                     messageId,
                     result.RoutingKey,
                     result.Exchange,
@@ -82,7 +84,7 @@ public class RabbitMqDlxAdminService : IDlxAdminService, IDisposable
             }
         }
 
-        return Task.FromResult<IReadOnlyList<DlxMessageDto>>(results);
+        return Task.FromResult<IReadOnlyList<MessagingDlxMessageDto>>(results);
     }
 
     public Task RequeueAsync(string messageId, CancellationToken cancellationToken = default)

@@ -1,5 +1,7 @@
 using Fake.EventBus.Distributed;
 using Fake.Helpers;
+using Fake.Messaging;
+using Fake.Messaging.Admin;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -11,9 +13,9 @@ namespace Fake.EventBus.RabbitMQ;
 public class RabbitMqEventBusTopology(
     IOptions<EventBusSubscriptionOptions> subscriptionOptions,
     IEventRoutingKeyResolver routingKeyResolver,
-    IServiceProvider serviceProvider) : IEventBusTopology
+    IServiceProvider serviceProvider) : IMessagingDashboardSubscriptionsProvider
 {
-    public IReadOnlyList<EventSubscriptionDto> GetSubscriptions()
+    public IReadOnlyList<MessagingSubscriptionDto> GetSubscriptions()
     {
         var eventTypes = subscriptionOptions.Value.EventTypes.Values
             .Distinct()
@@ -21,7 +23,7 @@ public class RabbitMqEventBusTopology(
             .ToList();
 
         using var scope = serviceProvider.CreateScope();
-        var list = new List<EventSubscriptionDto>(eventTypes.Count);
+        var list = new List<MessagingSubscriptionDto>(eventTypes.Count);
 
         foreach (var eventType in eventTypes)
         {
@@ -42,7 +44,7 @@ public class RabbitMqEventBusTopology(
                     .ToList();
             }
 
-            list.Add(new EventSubscriptionDto(
+            list.Add(new MessagingSubscriptionDto(
                 eventType.FullName ?? eventType.Name,
                 eventType.Name,
                 routingKeyResolver.Resolve(eventType),
