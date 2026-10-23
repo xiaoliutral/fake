@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text;
 using Fake.RabbitMQ;
+using Fake.UnitOfWork;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -10,38 +11,38 @@ using RabbitMQ.Client.Events;
 namespace Fake.Messaging.RabbitMQ;
 
 /// <summary>
-/// 独立队列可靠消费：并发 + Ack 锁 + Inbox 抢占 + HandlerTimeout。
+/// 独立队列可靠消费：并发 + Ack 锁 + Inbox 抢占 + HandlerTimeout + ambient UoW。
 /// </summary>
 public class RabbitMessageConsumer(
     IRabbitMqConnectionPool connectionPool,
     IServiceScopeFactory scopeFactory,
     ILogger<RabbitMessageConsumer> logger) : IRabbitMessageConsumer, IHostedService, IDisposable
 {
-    private readonly ConcurrentDictionary<string, (IModel Channel, object Sync, RabbitConsumeOptions Options)> _subscriptions = new();
-    private readonly List<RabbitConsumeOptions> _pending = new();
+    private readonly ConcurrentDictionary<string, (IModel Channel, object Sync, RabbitSubscription Subscription)> _subscriptions = new();
+    private readonly List<RabbitSubscription> _pending = new();
     private readonly object _gate = new();
     private bool _started;
 
-    public void Subscribe(RabbitConsumeOptions options)
+    public void Subscribe(RabbitSubscription subscription)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(options.Queue);
-        ArgumentNullException.ThrowIfNull(options.Handler);
+        ArgumentException.ThrowIfNullOrWhiteSpace(subscription.Queue);
+        ArgumentNullException.ThrowIfNull(subscription.Handler);
 
         lock (_gate)
         {
             if (!_started)
             {
-                _pending.Add(options);
+                _pending.Add(subscription);
                 return;
             }
         }
 
-        StartSubscription(options);
+        StartSubscription(subscription);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        List<RabbitConsumeOptions> pending;
+        List<RabbitSubscription> pending;
         lock (_gate)
         {
             _started = true;
@@ -49,8 +50,8 @@ public class RabbitMessageConsumer(
             _pending.Clear();
         }
 
-        foreach (var options in pending)
-            StartSubscription(options);
+        foreach (var subscription in pending)
+            StartSubscription(subscription);
 
         return Task.CompletedTask;
     }
@@ -72,13 +73,13 @@ public class RabbitMessageConsumer(
         }
     }
 
-    private void StartSubscription(RabbitConsumeOptions options)
+    private void StartSubscription(RabbitSubscription subscription)
     {
-        var channel = connectionPool.Get(options.ConnectionName).CreateModel();
+        var channel = connectionPool.Get(subscription.ConnectionName).CreateModel();
         var sync = new object();
 
-        DeclareTopology(channel, options);
-        channel.BasicQos(0, options.FetchCount, false);
+        DeclareTopology(channel, subscription);
+        channel.BasicQos(subscription.PrefetchSize, subscription.PrefetchCount, false);
 
         var consumer = new AsyncEventingBasicConsumer(channel);
         consumer.Received += (o, args) =>
@@ -89,22 +90,22 @@ public class RabbitMessageConsumer(
             var redelivered = args.Redelivered;
             var routingKey = args.RoutingKey;
 
-            _ = DispatchAsync(channel, sync, options, bodyCopy, headers, deliveryTag, routingKey, redelivered);
+            _ = DispatchAsync(channel, sync, subscription, bodyCopy, headers, deliveryTag, routingKey, redelivered);
             return Task.CompletedTask;
         };
 
-        channel.BasicConsume(options.Queue, autoAck: false, consumer);
-        _subscriptions[options.Queue] = (channel, sync, options);
+        channel.BasicConsume(subscription.Queue, autoAck: false, consumer);
+        _subscriptions[subscription.Queue] = (channel, sync, subscription);
 
         logger.LogInformation(
-            "Rabbit message consumer started on queue {Queue} (prefetch={FetchCount})",
-            options.Queue, options.FetchCount);
+            "Rabbit message consumer started on queue {Queue} (prefetch={PrefetchCount})",
+            subscription.Queue, subscription.PrefetchCount);
     }
 
     private async Task DispatchAsync(
         IModel channel,
         object sync,
-        RabbitConsumeOptions options,
+        RabbitSubscription subscription,
         byte[] body,
         Dictionary<string, string> headers,
         ulong deliveryTag,
@@ -113,30 +114,25 @@ public class RabbitMessageConsumer(
     {
         try
         {
-            if (!headers.TryGetValue(MessageHeaders.MessageId, out var idText) ||
-                !Guid.TryParse(idText, out var messageId))
+            if (!TryResolveMessageId(headers, out var messageId))
             {
-                if (!string.IsNullOrEmpty(headers.GetValueOrDefault("message-id")) &&
-                    Guid.TryParse(headers["message-id"], out messageId))
-                {
-                    // ok
-                }
+                if (subscription.AllowMissingMessageId)
+                    messageId = Guid.NewGuid();
                 else
-                {
                     throw new InvalidOperationException(
-                        $"Rabbit message on {options.Queue} missing required header '{MessageHeaders.MessageId}'.");
-                }
+                        $"Rabbit message on {subscription.Queue} missing required header '{MessageHeaders.MessageId}'.");
             }
 
             await using var scope = scopeFactory.CreateAsyncScope();
-            var inbox = scope.ServiceProvider.GetRequiredService<IMessageInbox>();
+            var sp = scope.ServiceProvider;
+            var inbox = sp.GetRequiredService<IMessageInbox>();
 
             var envelope = new MessageEnvelope
             {
                 MessageId = messageId,
-                Destination = string.IsNullOrEmpty(options.Exchange)
+                Destination = string.IsNullOrEmpty(subscription.Exchange)
                     ? MessageDestinations.ForRabbit("", routingKey)
-                    : MessageDestinations.ForRabbit(options.Exchange, routingKey),
+                    : MessageDestinations.ForRabbit(subscription.Exchange, routingKey),
                 Kind = MessageKind.Rabbit,
                 Body = Convert.ToBase64String(body),
                 TypeName = headers.GetValueOrDefault(MessageHeaders.EventType),
@@ -144,13 +140,13 @@ public class RabbitMessageConsumer(
             };
 
             var began = await inbox.TryBeginAsync(
-                messageId, options.Queue, envelope, forceReclaim: redelivered);
+                messageId, subscription.Queue, envelope, forceReclaim: redelivered);
 
             if (!began)
             {
                 logger.LogInformation(
                     "Rabbit message {MessageId} already processed for queue {Queue}, acking",
-                    messageId, options.Queue);
+                    messageId, subscription.Queue);
                 Acknowledge(channel, sync, deliveryTag, ack: true);
                 return;
             }
@@ -158,33 +154,35 @@ public class RabbitMessageConsumer(
             var ctx = new RabbitConsumeContext
             {
                 MessageId = messageId,
-                Queue = options.Queue,
+                Queue = subscription.Queue,
                 RoutingKey = routingKey,
                 Body = body,
                 Headers = headers,
-                Redelivered = redelivered
+                Redelivered = redelivered,
+                Services = sp
             };
 
             Exception? last = null;
-            var retries = Math.Max(1, options.HandlerRetryCount);
+            var retries = Math.Max(1, subscription.HandlerRetryCount);
+
             for (var attempt = 1; attempt <= retries; attempt++)
             {
-                using var timeoutCts = options.HandlerTimeout > TimeSpan.Zero
-                    ? new CancellationTokenSource(options.HandlerTimeout)
+                using var timeoutCts = subscription.HandlerTimeout > TimeSpan.Zero
+                    ? new CancellationTokenSource(subscription.HandlerTimeout)
                     : null;
                 var ct = timeoutCts?.Token ?? CancellationToken.None;
 
                 try
                 {
-                    await options.Handler(ctx, ct);
-                    await inbox.MarkSucceededAsync(messageId, options.Queue);
+                    await InvokeHandlerAsync(sp, subscription, ctx, ct);
+                    await inbox.MarkSucceededAsync(messageId, subscription.Queue, ct);
                     Acknowledge(channel, sync, deliveryTag, ack: true);
                     return;
                 }
                 catch (OperationCanceledException ex) when (timeoutCts is { IsCancellationRequested: true })
                 {
                     last = new TimeoutException(
-                        $"Handler timed out after {options.HandlerTimeout} for message {messageId}.", ex);
+                        $"Handler timed out after {subscription.HandlerTimeout} for message {messageId}.", ex);
                     break;
                 }
                 catch (Exception ex)
@@ -195,15 +193,42 @@ public class RabbitMessageConsumer(
                 }
             }
 
-            await inbox.MarkFailedAsync(messageId, options.Queue, last?.Message ?? "handler failed");
+            await inbox.MarkFailedAsync(messageId, subscription.Queue, last?.Message ?? "handler failed");
             Acknowledge(channel, sync, deliveryTag, ack: false);
-            logger.LogError(last, "Rabbit message {MessageId} failed on queue {Queue}", messageId, options.Queue);
+            logger.LogError(last, "Rabbit message {MessageId} failed on queue {Queue}", messageId, subscription.Queue);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Rabbit dispatch failed on queue {Queue}", options.Queue);
+            logger.LogError(ex, "Rabbit dispatch failed on queue {Queue}", subscription.Queue);
             Acknowledge(channel, sync, deliveryTag, ack: false);
         }
+    }
+
+    private static async Task InvokeHandlerAsync(
+        IServiceProvider sp,
+        RabbitSubscription subscription,
+        RabbitConsumeContext ctx,
+        CancellationToken ct)
+    {
+        var mode = subscription.UnitOfWork;
+        var handler = subscription.Handler
+                      ?? throw new InvalidOperationException($"RabbitSubscription.Handler is required for queue {ctx.Queue}.");
+
+        if (mode == MessageConsumeUnitOfWorkMode.None)
+        {
+            await handler(ctx, ct);
+            return;
+        }
+
+        var attr = subscription.UnitOfWorkAttribute ?? new UnitOfWorkAttribute
+        {
+            IsTransactional = mode == MessageConsumeUnitOfWorkMode.Transactional
+        };
+
+        var uowManager = sp.GetRequiredService<IUnitOfWorkManager>();
+        using var uow = uowManager.Begin(attr);
+        await handler(ctx, ct);
+        await uow.CompleteAsync(ct);
     }
 
     private static void Acknowledge(IModel channel, object sync, ulong deliveryTag, bool ack)
@@ -220,45 +245,67 @@ public class RabbitMessageConsumer(
         }
     }
 
-    private static void DeclareTopology(IModel channel, RabbitConsumeOptions options)
+    private static void DeclareTopology(IModel channel, RabbitSubscription subscription)
     {
         var arguments = new Dictionary<string, object>();
-        if (options.QueueType == RabbitMqQueueType.Quorum)
+        if (subscription.QueueType == RabbitMqQueueType.Quorum)
         {
             arguments["x-queue-type"] = "quorum";
-            if (options.DeliveryLimit > 0)
-                arguments["x-delivery-limit"] = options.DeliveryLimit;
+            if (subscription.DeliveryLimit > 0)
+                arguments["x-delivery-limit"] = subscription.DeliveryLimit;
         }
 
-        options.Declaration?.Invoke(arguments);
+        if (subscription.MessageTtl > 0)
+            arguments["x-message-ttl"] = subscription.MessageTtl;
+        if (subscription.QueueMaxLength > 0)
+            arguments["x-max-length"] = subscription.QueueMaxLength;
 
-        if (!string.IsNullOrWhiteSpace(options.Exchange))
+        subscription.Declaration?.Invoke(arguments);
+
+        var exchangeType = string.IsNullOrWhiteSpace(subscription.ExchangeType)
+            ? ExchangeType.Direct
+            : subscription.ExchangeType;
+
+        if (!string.IsNullOrWhiteSpace(subscription.Exchange))
         {
-            channel.ExchangeDeclare(options.Exchange, ExchangeType.Direct, durable: true);
-            if (options.EnableDlx)
+            channel.ExchangeDeclare(subscription.Exchange, exchangeType, durable: true);
+            if (subscription.EnableDlx)
             {
-                var dlxExchange = options.Exchange + ".dlx";
-                var dlxQueue = options.Queue + ".dlx";
+                var dlxExchange = subscription.Exchange + ".dlx";
+                var dlxQueue = subscription.Queue + ".dlx";
                 channel.ExchangeDeclare(dlxExchange, ExchangeType.Direct, durable: true);
                 channel.QueueDeclare(dlxQueue, durable: true, exclusive: false, autoDelete: false, arguments:
-                    options.QueueType == RabbitMqQueueType.Quorum
+                    subscription.QueueType == RabbitMqQueueType.Quorum
                         ? new Dictionary<string, object> { ["x-queue-type"] = "quorum" }
                         : null);
-                channel.QueueBind(dlxQueue, dlxExchange, options.Queue);
+                channel.QueueBind(dlxQueue, dlxExchange, subscription.Queue);
                 arguments["x-dead-letter-exchange"] = dlxExchange;
-                arguments["x-dead-letter-routing-key"] = options.Queue;
+                arguments["x-dead-letter-routing-key"] = subscription.Queue;
             }
         }
 
         channel.QueueDeclare(
-            options.Queue,
+            subscription.Queue,
             durable: true,
             exclusive: false,
             autoDelete: false,
             arguments: arguments.Count > 0 ? arguments : null);
 
-        if (!string.IsNullOrWhiteSpace(options.Exchange) && !string.IsNullOrWhiteSpace(options.RoutingKey))
-            channel.QueueBind(options.Queue, options.Exchange, options.RoutingKey);
+        if (!string.IsNullOrWhiteSpace(subscription.Exchange) && !string.IsNullOrWhiteSpace(subscription.RoutingKey))
+            channel.QueueBind(subscription.Queue, subscription.Exchange, subscription.RoutingKey);
+    }
+
+    private static bool TryResolveMessageId(IReadOnlyDictionary<string, string> headers, out Guid messageId)
+    {
+        if (headers.TryGetValue(MessageHeaders.MessageId, out var idText) &&
+            Guid.TryParse(idText, out messageId))
+            return true;
+
+        if (headers.TryGetValue("message-id", out var alt) && Guid.TryParse(alt, out messageId))
+            return true;
+
+        messageId = default;
+        return false;
     }
 
     private static Dictionary<string, string> ExtractHeaders(IBasicProperties properties)

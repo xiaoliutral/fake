@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fake Messaging Dashboard</title>
+  <title>{{SERVICE_NAME}} · Messaging</title>
   <style>
     :root {
       --bg: #0f1419;
@@ -123,7 +123,7 @@
 </head>
 <body>
   <header>
-    <h1>Fake Messaging Dashboard</h1>
+    <h1><span id="svc-name">{{SERVICE_NAME}}</span> <span class="meta">Messaging</span></h1>
     <div class="right">
       <label class="tz-wrap">Timezone
         <select id="tzSelect" title="DB stores UTC; display converts to selected zone"></select>
@@ -676,11 +676,15 @@
       try {
         const data = await api("/stats");
         applyFeatures(data.features);
+        if (data.serviceName) {
+          document.getElementById("svc-name").textContent = data.serviceName;
+          document.title = data.serviceName + " · Messaging";
+        }
         renderCards(data.metrics);
         renderStateCards(data.outbox, data.inbox);
         pushHistory(data.metrics);
         document.getElementById("serverMeta").textContent =
-          `Server ${fmtTimeWithZone(data.serverTimeUtc)} · poll ${data.pollIntervalMs}ms · DLX ${data.dlxAvailable ? "on" : "off"}`;
+          `${data.serviceName || "Server"} · ${fmtTimeWithZone(data.serverTimeUtc)} · poll ${data.pollIntervalMs}ms · DLX ${data.dlxAvailable ? "on" : "off"}`;
       } catch (e) {
         document.getElementById("serverMeta").textContent = "error: " + e.message;
       }
@@ -704,7 +708,7 @@
               ? `<ul class="handler-list">${item.handlers.map(h => `<li class="mono">${esc(h)}</li>`).join("")}</ul>`
               : `<span class="muted">No handlers registered</span>`}
           </td>
-        </tr>`).join("") || `<tr><td colspan="3" class="muted">No subscriptions (is RabbitMQ EventBus loaded?)</td></tr>`;
+        </tr>`).join("") || `<tr><td colspan="3" class="muted">No subscriptions (EventBus / Messaging.RabbitMQ handlers?)</td></tr>`;
     }
 
     async function loadOutbox() {

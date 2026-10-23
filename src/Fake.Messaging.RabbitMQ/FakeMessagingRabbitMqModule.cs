@@ -1,3 +1,4 @@
+using Fake.Messaging.Admin;
 using Fake.Messaging.EntityFrameworkCore;
 using Fake.Messaging.RabbitMQ;
 using Fake.Modularity;
@@ -14,8 +15,18 @@ public class FakeMessagingRabbitMqModule : FakeModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
+        var configuration = context.Services.GetConfiguration();
+        context.Services.AddOptions<RabbitMessageOptions>()
+            .Bind(configuration.GetSection(RabbitMessageOptions.SectionName));
+
         context.Services.TryAddEnumerable(
             ServiceDescriptor.Transient<IPhysicalMessageTransport, RabbitPhysicalMessageTransport>());
+
+        context.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IMessageSubscribeBinder, RabbitMessageSubscribeBinder>());
+
+        context.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IMessagingDashboardSubscriptionsProvider, RabbitMessageSubscriptionTopology>());
 
         context.Services.TryAddSingleton<RabbitMessageConsumer>();
         context.Services.TryAddSingleton<IRabbitMessageConsumer>(sp =>

@@ -4,27 +4,72 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Fake.Messaging.EntityFrameworkCore;
 
 /// <summary>
-/// 独立队列可靠发布：有事务则写 Outbox，否则立即经物理传输投递。
+/// 消息发布：默认 Outbox；<see cref="MessageRouteAttribute.Immediate"/> 时立即投递。
+/// 物理层会 ExchangeDeclare，仅 Publish 无 Subscribe 也不会缺交换机。
 /// </summary>
 public class ReliableMessagePublisher(
     IUnitOfWorkManager unitOfWorkManager,
     IServiceProvider serviceProvider,
-    OutboxDispatcher dispatcher) : IMessagePublisher
+    OutboxDispatcher dispatcher,
+    IMessageBodySerializer serializer,
+    IMessageRouteResolver routeResolver) : IMessagePublisher
 {
     private const string PendingKey = "Fake.Messaging.Outbox.Pending";
     private const string TxIdsKey = "Fake.Messaging.Outbox.TransactionIds";
     private const string HandlersKey = "Fake.Messaging.Outbox.Handlers";
 
-    public async Task PublishAsync(MessageEnvelope envelope, CancellationToken cancellationToken = default)
+    public Task PublishAsync(Message message, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+
+        var route = routeResolver.Resolve(message);
+        var runtimeType = message.GetType();
+        var typeName = runtimeType.FullName ?? runtimeType.Name;
+        var messageId = Guid.NewGuid();
+        var bytes = serializer.Serialize(message, runtimeType);
+
+        var headers = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [MessageHeaders.MessageId] = messageId.ToString(),
+            [MessageHeaders.Kind] = nameof(MessageKind.Rabbit),
+            [MessageHeaders.EventType] = typeName,
+            [MessageHeaders.EventId] = message.Id.ToString(),
+            [MessageHeaders.ExchangeType] = route.TopicType
+        };
+        if (route.PublisherConfirm)
+            headers[MessageHeaders.PublisherConfirm] = "true";
+
+        var envelope = new MessageEnvelope
+        {
+            MessageId = messageId,
+            Destination = route.Destination,
+            Kind = MessageKind.Rabbit,
+            Body = Convert.ToBase64String(bytes),
+            TypeName = typeName,
+            Headers = headers
+        };
+
+        if (route.Immediate)
+            return PublishPhysicalAsync(envelope, cancellationToken);
+
+        return EnqueueAsync(envelope, cancellationToken);
+    }
+
+    private async Task PublishPhysicalAsync(MessageEnvelope envelope, CancellationToken cancellationToken)
+    {
+        var transports = serviceProvider.GetServices<IPhysicalMessageTransport>().ToList();
+        var transport = transports.FirstOrDefault(t => t.CanPublish(envelope.Destination))
+                        ?? throw new InvalidOperationException(
+                            $"No IPhysicalMessageTransport for destination '{envelope.Destination}'.");
+        await transport.PublishAsync(envelope, cancellationToken);
+    }
+
+    private async Task EnqueueAsync(MessageEnvelope envelope, CancellationToken cancellationToken)
     {
         var uow = unitOfWorkManager.Current;
         if (uow == null || !uow.Context.IsTransactional)
         {
-            var transports = serviceProvider.GetServices<IPhysicalMessageTransport>().ToList();
-            var transport = transports.FirstOrDefault(t => t.CanPublish(envelope.Destination))
-                            ?? throw new InvalidOperationException(
-                                $"No IPhysicalMessageTransport for destination '{envelope.Destination}'.");
-            await transport.PublishAsync(envelope, cancellationToken);
+            await PublishPhysicalAsync(envelope, cancellationToken);
             return;
         }
 

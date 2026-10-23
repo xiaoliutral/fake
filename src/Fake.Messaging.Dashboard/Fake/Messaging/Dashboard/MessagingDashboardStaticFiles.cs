@@ -8,21 +8,20 @@ internal static class MessagingDashboardStaticFiles
 {
     private const string UiFileName = "dashboard.html";
 
-    private static readonly Assembly Assembly = typeof(MessagingDashboardStaticFiles).Assembly;
-    private static readonly Lazy<string> UiHtmlResource = new(ResolveUiResourceName);
+    private static readonly Lazy<string> UiFilePath = new(ResolveUiFilePath);
 
     public static async Task WriteUiAsync(HttpContext ctx, MessagingDashboardOptions options)
     {
-        await using var stream = Assembly.GetManifestResourceStream(UiHtmlResource.Value);
-        if (stream == null)
+        var path = UiFilePath.Value;
+        if (!File.Exists(path))
         {
             ctx.Response.StatusCode = StatusCodes.Status404NotFound;
-            await ctx.Response.WriteAsync("Dashboard UI not found.");
+            await ctx.Response.WriteAsync(
+                $"Dashboard UI not found at '{path}'. Ensure wwwroot/{UiFileName} is copied beside the assembly.");
             return;
         }
 
-        using var reader = new StreamReader(stream, Encoding.UTF8);
-        var html = await reader.ReadToEndAsync();
+        var html = await File.ReadAllTextAsync(path, Encoding.UTF8);
 
         var pathBase = ctx.Request.PathBase.HasValue
             ? ctx.Request.PathBase.Value!.TrimEnd('/')
@@ -33,20 +32,23 @@ internal static class MessagingDashboardStaticFiles
         match = match.TrimEnd('/');
 
         var apiBase = pathBase + match + "/api";
+        var serviceName = string.IsNullOrWhiteSpace(options.ServiceName)
+            ? Assembly.GetEntryAssembly()?.GetName().Name ?? "unknown"
+            : options.ServiceName.Trim();
+
         html = html
             .Replace("{{API_BASE}}", apiBase, StringComparison.Ordinal)
-            .Replace("{{POLL_MS}}", options.MetricsPollIntervalMs.ToString(), StringComparison.Ordinal);
+            .Replace("{{POLL_MS}}", options.MetricsPollIntervalMs.ToString(), StringComparison.Ordinal)
+            .Replace("{{SERVICE_NAME}}", serviceName, StringComparison.Ordinal);
 
         ctx.Response.ContentType = "text/html; charset=utf-8";
         await ctx.Response.WriteAsync(html);
     }
 
-    private static string ResolveUiResourceName()
+    private static string ResolveUiFilePath()
     {
-        var name = Assembly.GetManifestResourceNames()
-            .FirstOrDefault(n => n.EndsWith(UiFileName, StringComparison.OrdinalIgnoreCase));
-
-        return name ?? throw new InvalidOperationException(
-            $"Embedded resource wwwroot/{UiFileName} was not found in Fake.Messaging.Dashboard.");
+        var asmDir = Path.GetDirectoryName(typeof(MessagingDashboardStaticFiles).Assembly.Location)
+                     ?? AppContext.BaseDirectory;
+        return Path.Combine(asmDir, "wwwroot", UiFileName);
     }
 }

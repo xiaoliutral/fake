@@ -223,25 +223,25 @@ public class RabbitMqEventBus(
 
         for (var attempt = 1; attempt <= maxRetries; attempt++)
         {
+            // EventBus 把「一次消息的全部 handler」当成一个处理单元sssss
             using var timeoutCts = handlerTimeout > TimeSpan.Zero
                 ? new CancellationTokenSource(handlerTimeout)
                 : null;
             var cancellationToken = timeoutCts?.Token ?? CancellationToken.None;
-
+            
             try
             {
                 // 消费侧默认开非事务 UoW：Handler 可查库；写库/Outbox 请自行 RequiresNew 事务性 UoW
-                using (var uow = unitOfWorkManager.Begin(new UnitOfWorkAttribute { IsTransactional = false }))
+                using var uow = unitOfWorkManager.Begin(new UnitOfWorkAttribute { IsTransactional = false });
+                
+                foreach (var handler in handlers)
                 {
-                    foreach (var handler in handlers)
-                    {
-                        await handler.HandleAsync(@event, cancellationToken);
-                    }
-
-                    await uow.CompleteAsync(cancellationToken);
+                    await handler.HandleAsync(@event, cancellationToken);
                 }
 
-                await inbox.MarkSucceededAsync(@event.Id, consumerGroup);
+                await uow.CompleteAsync(cancellationToken);
+
+                await inbox.MarkSucceededAsync(@event.Id, consumerGroup, cancellationToken);
                 metrics.RecordInboxProcessed(eventType.Name);
 
                 logger.LogInformation("Event {EventId} processed successfully", @event.Id);

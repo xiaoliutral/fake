@@ -53,8 +53,9 @@ public class FakeEventBusRabbitMqModule : FakeModule
         context.Services.AddSingleton<IDistributedEventBus>(sp => sp.GetRequiredService<RabbitMqEventBus>());
         context.Services.AddHostedService(sp => sp.GetRequiredService<RabbitMqEventBus>());
 
-        // Messaging Dashboard 可选适配（有则显示 Subscriptions / DLX）
-        context.Services.TryAddSingleton<IMessagingDashboardSubscriptionsProvider, RabbitMqEventBusTopology>();
+        // Messaging Dashboard 可选适配（可与 Messaging.RabbitMQ 拓扑并存，Dashboard 合并）
+        context.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IMessagingDashboardSubscriptionsProvider, RabbitMqEventBusTopology>());
         context.Services.TryAddSingleton<IMessagingDlxAdminService, RabbitMqDlxAdminService>();
     }
 }

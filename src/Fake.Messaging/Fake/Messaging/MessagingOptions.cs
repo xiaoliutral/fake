@@ -7,6 +7,16 @@ public class MessagingOptions
 {
     public const string SectionName = "Messaging";
 
+    /// <summary>
+    /// 默认发布 Topic（交换机）。<see cref="MessageRouteAttribute.Topic"/> 为空时使用。
+    /// </summary>
+    public string? DefaultTopic { get; set; }
+
+    /// <summary>
+    /// 默认 Topic 类型（direct / topic …）。<see cref="MessageRouteAttribute.TopicType"/> 为空时使用。
+    /// </summary>
+    public string DefaultTopicType { get; set; } = "direct";
+
     /// <summary>Outbox 扫描间隔。</summary>
     public TimeSpan OutboxScanInterval { get; set; } = TimeSpan.FromSeconds(10);
 

@@ -4,12 +4,20 @@
     <Import Project="../../configureawait.props"/>
 
     <ItemGroup>
+        <!-- API / UseFakeMessagingDashboard 需要；与 HTML 是否嵌入无关 -->
         <FrameworkReference Include="Microsoft.AspNetCore.App"/>
         <ProjectReference Include="..\Fake.Messaging\Fake.Messaging.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-        <EmbeddedResource Include="wwwroot\**\*"/>
+        <!-- 物理文件：输出到 bin/.../wwwroot，NuGet 安装时一并拷贝 -->
+        <Content Include="wwwroot\**\*">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            <Pack>true</Pack>
+            <PackagePath>contentFiles\any\any\wwwroot\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
     </ItemGroup>
 
 </Project>

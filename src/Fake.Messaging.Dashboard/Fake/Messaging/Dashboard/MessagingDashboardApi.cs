@@ -66,16 +66,21 @@ public sealed class MessagingDashboardApi(
     {
         var metrics = services.GetService<IMessagingDashboardMetricsProvider>();
         var dlx = services.GetService<IMessagingDlxAdminService>();
-        var subscriptions = services.GetService<IMessagingDashboardSubscriptionsProvider>();
+        var hasSubscriptions = services.GetServices<IMessagingDashboardSubscriptionsProvider>().Any();
         var reprocessor = services.GetService<IMessagingInboxLocalReprocessor>();
         var kind = ParseKind(ctx.Request.Query["kind"]);
 
+        var serviceName = string.IsNullOrWhiteSpace(options.Value.ServiceName)
+            ? System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name ?? "unknown"
+            : options.Value.ServiceName.Trim();
+
         await WriteJsonAsync(ctx, new
         {
+            serviceName,
             features = new
             {
                 metrics = metrics != null,
-                subscriptions = subscriptions != null,
+                subscriptions = hasSubscriptions,
                 dlx = dlx != null,
                 inboxReprocess = reprocessor != null
             },
@@ -103,14 +108,20 @@ public sealed class MessagingDashboardApi(
 
     private async Task HandleSubscriptionsAsync(HttpContext ctx)
     {
-        var provider = services.GetService<IMessagingDashboardSubscriptionsProvider>();
-        if (provider == null)
+        var providers = services.GetServices<IMessagingDashboardSubscriptionsProvider>().ToList();
+        if (providers.Count == 0)
         {
             await WriteJsonAsync(ctx, new { available = false, items = Array.Empty<MessagingSubscriptionDto>() });
             return;
         }
 
-        await WriteJsonAsync(ctx, new { available = true, items = provider.GetSubscriptions() });
+        var items = providers
+            .SelectMany(p => p.GetSubscriptions())
+            .OrderBy(x => x.TypeName, StringComparer.Ordinal)
+            .ThenBy(x => x.RoutingKey, StringComparer.Ordinal)
+            .ToList();
+
+        await WriteJsonAsync(ctx, new { available = true, items });
     }
 
     private async Task HandleOutboxQueryAsync(HttpContext ctx)

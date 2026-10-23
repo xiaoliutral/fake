@@ -3,7 +3,7 @@ using Fake.Messaging;
 namespace Fake.Messaging.Admin;
 
 /// <summary>
-/// Dashboard 可选订阅拓扑（如 EventBus Topology）。未注册则不展示。
+/// Dashboard 可选订阅拓扑。可注册多个（EventBus + Messaging 独立队列），API 合并返回。
 /// </summary>
 public interface IMessagingDashboardSubscriptionsProvider
 {
