@@ -22,32 +22,8 @@ public class ReliableMessagePublisher(
     {
         ArgumentNullException.ThrowIfNull(message);
 
-        var route = routeResolver.Resolve(message);
-        var runtimeType = message.GetType();
-        var typeName = runtimeType.FullName ?? runtimeType.Name;
-        var messageId = Guid.NewGuid();
-        var bytes = serializer.Serialize(message, runtimeType);
-
-        var headers = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            [MessageHeaders.MessageId] = messageId.ToString(),
-            [MessageHeaders.Kind] = nameof(MessageKind.Rabbit),
-            [MessageHeaders.EventType] = typeName,
-            [MessageHeaders.EventId] = message.Id.ToString(),
-            [MessageHeaders.ExchangeType] = route.TopicType
-        };
-        if (route.PublisherConfirm)
-            headers[MessageHeaders.PublisherConfirm] = "true";
-
-        var envelope = new MessageEnvelope
-        {
-            MessageId = messageId,
-            Destination = route.Destination,
-            Kind = MessageKind.Rabbit,
-            Body = Convert.ToBase64String(bytes),
-            TypeName = typeName,
-            Headers = headers
-        };
+        var route = MessageEnvelopeFactory.ResolveRoute(message, routeResolver);
+        var envelope = MessageEnvelopeFactory.Create(message, routeResolver, serializer);
 
         if (route.Immediate)
             return PublishPhysicalAsync(envelope, cancellationToken);

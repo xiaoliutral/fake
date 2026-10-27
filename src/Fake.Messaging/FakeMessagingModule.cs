@@ -50,6 +50,8 @@ public class FakeMessagingModule : FakeModule
 
         context.Services.TryAddSingleton<IMessageRouteResolver, DefaultMessageRouteResolver>();
         context.Services.TryAddSingleton<IMessageBodySerializer>(_ => SystemTextJsonMessageBodySerializer.Instance);
+        // 无 Outbox 直投；FakeMessagingEntityFrameworkCoreModule 会 Replace 为 ReliableMessagePublisher
+        context.Services.TryAddTransient<IMessagePublisher, DirectMessagePublisher>();
 
         context.Services.TryAddTransient<IMessageInbox>(_ => NullMessageInbox.Instance);
         context.Services.TryAddTransient<IMessageOutboxAdminStore>(_ => NullMessageOutboxAdminStore.Instance);

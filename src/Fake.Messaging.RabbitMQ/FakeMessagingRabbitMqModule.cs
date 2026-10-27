@@ -1,5 +1,4 @@
 using Fake.Messaging.Admin;
-using Fake.Messaging.EntityFrameworkCore;
 using Fake.Messaging.RabbitMQ;
 using Fake.Modularity;
 using Fake.RabbitMQ;
@@ -8,8 +7,11 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Fake.Messaging;
 
+/// <summary>
+/// Rabbit 传输 + 独立队列消费。不含 ORM：Outbox/Inbox 由宿主另依赖 <see cref="FakeMessagingEntityFrameworkCoreModule"/>。
+/// </summary>
 [DependsOn(
-    typeof(FakeMessagingEntityFrameworkCoreModule),
+    typeof(FakeMessagingModule),
     typeof(FakeRabbitMqModule))]
 public class FakeMessagingRabbitMqModule : FakeModule
 {

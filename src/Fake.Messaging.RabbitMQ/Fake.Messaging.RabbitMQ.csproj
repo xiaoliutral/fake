@@ -9,7 +9,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Fake.Messaging\Fake.Messaging.csproj"/>
-        <ProjectReference Include="..\Fake.Messaging.EntityFrameworkCore\Fake.Messaging.EntityFrameworkCore.csproj"/>
         <ProjectReference Include="..\Fake.RabbitMQ\Fake.RabbitMQ.csproj"/>
         <ProjectReference Include="..\Fake.UnitOfWork\Fake.UnitOfWork.csproj"/>
     </ItemGroup>

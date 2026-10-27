@@ -4,11 +4,13 @@
 
 ## 包边界
 
-| 包 | 职责 |
-|----|------|
-| `Fake.Messaging` | `Message`、发布路由、`IMessageHandle<>` 发现、Outbox/Inbox 抽象 |
-| `Fake.Messaging.RabbitMQ` | Rabbit 传输 + **消费行为**默认（`RabbitMQ:Messaging`） |
-| `Fake.Messaging.EntityFrameworkCore` | 存储 / Dispatcher / `ReliableMessagePublisher` |
+| 包 | 职责 | 建议引用层 |
+|----|------|-------------|
+| `Fake.Messaging` | `Message`、发布路由、`IMessageHandle<>` 发现、Outbox/Inbox 抽象；默认 `DirectMessagePublisher` | Domain/Application |
+| `Fake.Messaging.RabbitMQ` | Rabbit 传输 + 消费行为（`RabbitMQ:Messaging`）；**不依赖 EF** | Application |
+| `Fake.Messaging.EntityFrameworkCore` | Outbox/Inbox 存储、`ReliableMessagePublisher`、`AddMessagingDbContext` | Api / Infrastructure |
+
+宿主组合：Application → `FakeMessagingRabbitMqModule`；Api → `FakeMessagingEntityFrameworkCoreModule` + `AddMessagingDbContext`（以及可选 Dashboard）。
 
 配置两层，不交叉：
 

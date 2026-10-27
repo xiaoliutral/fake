@@ -1,3 +1,4 @@
+using Fake.Data;
 using Fake.EntityFrameworkCore;
 using Fake.EntityFrameworkCore.Modeling;
 using Microsoft.EntityFrameworkCore;
@@ -5,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Fake.Messaging.EntityFrameworkCore;
 
+[ConnectionStringName(MessagingDbContextServiceCollectionExtensions.DefaultConnectionStringName)]
 public class MessagingDbContext : EfCoreDbContext<MessagingDbContext>
 {
     public DbSet<MessageOutboxEntry> OutboxMessages { get; set; } = null!;
