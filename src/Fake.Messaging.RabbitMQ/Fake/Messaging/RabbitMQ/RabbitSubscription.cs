@@ -3,7 +3,7 @@ using Fake.UnitOfWork;
 namespace Fake.Messaging.RabbitMQ;
 
 /// <summary>
-/// 单条 Rabbit 订阅（Binder 输出：路由来自 Descriptor，消费默认来自 Options）。
+/// 单条 Rabbit 订阅。拓扑在绑定时装定；Prefetch/超时/重试等运行时经 <see cref="IOptionsMonitor{RabbitMessageOptions}"/> 解析（可热更新）。
 /// </summary>
 public sealed class RabbitSubscription
 {
@@ -17,14 +17,18 @@ public sealed class RabbitSubscription
 
     public string? ConnectionName { get; init; }
 
-    public uint PrefetchSize { get; init; }
+    /// <summary>Handler 短名，用于 <c>RabbitMQ:Messaging:Handlers</c> 匹配。</summary>
+    public required string HandlerTypeName { get; init; }
 
-    public ushort PrefetchCount { get; init; } = 10;
+    /// <summary>Handler 全名，优先匹配配置。</summary>
+    public string? HandlerTypeFullName { get; init; }
 
-    public TimeSpan HandlerTimeout { get; init; } = TimeSpan.FromMinutes(5);
+    /// <summary>Attribute 覆盖；0=走配置 / 全局。</summary>
+    public ushort AttributePrefetchCount { get; init; }
 
-    public int HandlerRetryCount { get; init; } = 3;
+    public bool AttributeAllowMissingMessageId { get; init; }
 
+    /// <summary>声明期快照（改 DLX/队列类型需重启进程）。</summary>
     public bool EnableDlx { get; init; }
 
     public RabbitMqQueueType QueueType { get; init; } = RabbitMqQueueType.Classic;
@@ -36,10 +40,6 @@ public sealed class RabbitSubscription
     public int QueueMaxLength { get; init; }
 
     public Action<IDictionary<string, object>>? Declaration { get; init; }
-
-    public bool AllowMissingMessageId { get; init; }
-
-    public MessageConsumeUnitOfWorkMode UnitOfWork { get; init; } = MessageConsumeUnitOfWorkMode.NonTransactional;
 
     public UnitOfWorkAttribute? UnitOfWorkAttribute { get; init; }
 

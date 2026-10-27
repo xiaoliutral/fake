@@ -10,7 +10,7 @@ public class MessagingOptions
     /// <summary>
     /// 默认发布 Topic（交换机）。<see cref="MessageRouteAttribute.Topic"/> 为空时使用。
     /// </summary>
-    public string? DefaultTopic { get; set; }
+    public string DefaultTopic { get; set; } = "Fake.Exchange.Messaging";
 
     /// <summary>
     /// 默认 Topic 类型（direct / topic …）。<see cref="MessageRouteAttribute.TopicType"/> 为空时使用。

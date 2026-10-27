@@ -4,6 +4,10 @@
     <Import Project="../../configureawait.props"/>
 
     <ItemGroup>
+        <PackageReference Include="Polly.Core" Version="8.5.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\Fake.Messaging\Fake.Messaging.csproj"/>
         <ProjectReference Include="..\Fake.Messaging.EntityFrameworkCore\Fake.Messaging.EntityFrameworkCore.csproj"/>
         <ProjectReference Include="..\Fake.RabbitMQ\Fake.RabbitMQ.csproj"/>

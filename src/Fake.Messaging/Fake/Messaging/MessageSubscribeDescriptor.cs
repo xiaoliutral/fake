@@ -25,5 +25,8 @@ public sealed class MessageSubscribeDescriptor
 
     public string? ConnectionName { get; init; }
 
+    /// <summary>0=使用传输全局 PrefetchCount。</summary>
+    public ushort PrefetchCount { get; init; }
+
     public bool AllowMissingMessageId { get; init; }
 }

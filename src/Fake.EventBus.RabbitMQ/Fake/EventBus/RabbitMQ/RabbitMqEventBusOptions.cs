@@ -8,12 +8,13 @@ public class RabbitMqEventBusOptions
     public string? ConnectionName { get; set; }
 
     /// <summary>
-    /// 发布侧连接/通道瞬时故障的 Polly 重试次数。
+    /// 【发布侧】连接/通道瞬时故障（BrokerUnreachable / Socket）的 Polly 重试次数，默认 10。
+    /// 与 <see cref="HandlerRetryCount"/> 无关。
     /// </summary>
     public int RetryCount { get; set; } = 10;
 
     /// <summary>
-    /// 消费侧 Handler 执行失败时的进程内重试次数（含首次）。默认 3。
+    /// 【消费侧】Handler 执行失败时的进程内重试次数（含首次），默认 3。
     /// 全部失败后标记 Inbox=ConsumeFailed 并 Nack（通常进 DLX）。
     /// </summary>
     public int HandlerRetryCount { get; set; } = 3;

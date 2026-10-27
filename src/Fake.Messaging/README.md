@@ -15,7 +15,7 @@
 | 层 | 配置 | 归属包 | 内容 |
 |----|------|--------|------|
 | 路由（发布=订阅） | `Messaging:DefaultTopic` / `DefaultTopicType` + `[MessageRoute]` | **Fake.Messaging** | Name / Topic / TopicType（与传输无关） |
-| 消费行为 | `RabbitMQ:Messaging` | Fake.Messaging.RabbitMQ | 超时 / 重试 / Prefetch / DLX / UoW |
+| 消费 / 发布行为 | `RabbitMQ:Messaging`（`IOptionsMonitor` 可热更新） | Fake.Messaging.RabbitMQ | `RetryCount`（发布 Polly）/ `HandlerRetryCount`（消费）/ Prefetch / DLX / UoW；`Handlers` 按名覆盖并发 |
 
 ## Dashboard（多微服务）
 
@@ -25,7 +25,9 @@
 2. **运维聚合（可选后续）**：网关/Consul 列出各服务 Dashboard URL，或独立 Admin 调各服务 `/api/*` 聚合；共享 Outbox 表时再加 `ServiceName` 列过滤。
 3. **Subscriptions** 永远是「当前进程」的 Handler；跨服务拓扑看 Rabbit 管理台或各服务各自 Dashboard。
 
-`[MessageSubscribe]` 只保留特例：`Name` / `Group` / `AllowMissingMessageId` / `Provider` / `ConnectionName`。
+`[MessageSubscribe]` 特例：`Name` / `Group` / `PrefetchCount` / `AllowMissingMessageId` / `Provider` / `ConnectionName`。
+
+并发优先级：`Attribute.PrefetchCount` → `RabbitMQ:Messaging:Handlers:{Handler短名|全名|Queue}` → 全局 `PrefetchCount`（**默认 1**）。配置热更新会重打 `BasicQos`。
 
 ## 发布
 
@@ -45,7 +47,7 @@ public class TrackDeleteEventHandler
     public Task HandleAsync(TrackDeleteEvent e, CancellationToken ct) => ...;
 }
 
-[MessageSubscribe("TrackRefresh.Q", AllowMissingMessageId = true)]
+[MessageSubscribe("TrackRefresh.Q", PrefetchCount = 1, AllowMissingMessageId = true)]
 public class TrackRefreshEventHandler
     : IMessageHandle<InterfaceRelayForwardReplayEvent>, ITransientDependency
 {

@@ -6,11 +6,11 @@ using Microsoft.Extensions.Options;
 namespace Fake.Messaging.RabbitMQ;
 
 /// <summary>
-/// Descriptor 已含路由；本类只填 <see cref="RabbitMessageOptions"/> 消费默认值并注册。
+/// 绑定路由 + Handler；消费运行时参数走 <see cref="IOptionsMonitor{RabbitMessageOptions}"/>。
 /// </summary>
 public sealed class RabbitMessageSubscribeBinder(
     IRabbitMessageConsumer consumer,
-    IOptions<RabbitMessageOptions> messageOptions,
+    IOptionsMonitor<RabbitMessageOptions> messageOptions,
     ILogger<RabbitMessageSubscribeBinder> logger) : IMessageSubscribeBinder
 {
     public const string ProviderName = "rabbit";
@@ -19,7 +19,7 @@ public sealed class RabbitMessageSubscribeBinder(
 
     public void Bind(MessageSubscribeDescriptor descriptor)
     {
-        var o = messageOptions.Value;
+        var o = messageOptions.CurrentValue;
 
         var subscription = new RabbitSubscription
         {
@@ -28,26 +28,25 @@ public sealed class RabbitMessageSubscribeBinder(
             RoutingKey = descriptor.Name,
             ExchangeType = descriptor.TopicType,
             ConnectionName = descriptor.ConnectionName ?? o.ConnectionName,
-            PrefetchSize = o.PrefetchSize,
-            PrefetchCount = o.PrefetchCount,
-            HandlerTimeout = o.HandlerTimeout,
-            HandlerRetryCount = o.HandlerRetryCount,
+            HandlerTypeName = descriptor.HandlerType.Name,
+            HandlerTypeFullName = descriptor.HandlerType.FullName,
+            AttributePrefetchCount = descriptor.PrefetchCount,
+            AttributeAllowMissingMessageId = descriptor.AllowMissingMessageId,
             EnableDlx = o.EnableDlx,
             QueueType = o.QueueType,
             DeliveryLimit = o.DeliveryLimit,
             MessageTtl = o.MessageTtl,
             QueueMaxLength = o.QueueMaxLength,
-            AllowMissingMessageId = descriptor.AllowMissingMessageId || o.AllowMissingMessageId,
-            UnitOfWork = o.UnitOfWork,
             Handler = BuildHandler(descriptor.HandlerType, descriptor.MessageType)
         };
 
+        var prefetch = RabbitMessageOptionsResolver.ResolvePrefetch(o, subscription);
         consumer.Subscribe(subscription);
 
         logger.LogInformation(
-            "MessageSubscribe bound {Handler}<{Message}> -> rabbit:{Exchange}/{Queue} (rk={RoutingKey})",
+            "MessageSubscribe bound {Handler}<{Message}> -> rabbit:{Exchange}/{Queue} (rk={RoutingKey}, prefetch={Prefetch})",
             descriptor.HandlerType.Name, descriptor.MessageType.Name,
-            descriptor.Topic, descriptor.Group, descriptor.Name);
+            descriptor.Topic, descriptor.Group, descriptor.Name, prefetch);
     }
 
     private static Func<RabbitConsumeContext, CancellationToken, Task> BuildHandler(

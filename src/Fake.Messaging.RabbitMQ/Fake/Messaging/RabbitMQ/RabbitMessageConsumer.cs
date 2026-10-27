@@ -5,6 +5,7 @@ using Fake.UnitOfWork;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -12,16 +13,19 @@ namespace Fake.Messaging.RabbitMQ;
 
 /// <summary>
 /// 独立队列可靠消费：并发 + Ack 锁 + Inbox 抢占 + HandlerTimeout + ambient UoW。
+/// Prefetch/超时/重试经 <see cref="IOptionsMonitor{RabbitMessageOptions}"/> 解析，支持热更新。
 /// </summary>
 public class RabbitMessageConsumer(
     IRabbitMqConnectionPool connectionPool,
     IServiceScopeFactory scopeFactory,
+    IOptionsMonitor<RabbitMessageOptions> messageOptions,
     ILogger<RabbitMessageConsumer> logger) : IRabbitMessageConsumer, IHostedService, IDisposable
 {
     private readonly ConcurrentDictionary<string, (IModel Channel, object Sync, RabbitSubscription Subscription)> _subscriptions = new();
     private readonly List<RabbitSubscription> _pending = new();
     private readonly object _gate = new();
     private bool _started;
+    private IDisposable? _optionsChange;
 
     public void Subscribe(RabbitSubscription subscription)
     {
@@ -53,6 +57,7 @@ public class RabbitMessageConsumer(
         foreach (var subscription in pending)
             StartSubscription(subscription);
 
+        _optionsChange = messageOptions.OnChange(OnOptionsChanged);
         return Task.CompletedTask;
     }
 
@@ -60,6 +65,7 @@ public class RabbitMessageConsumer(
 
     public void Dispose()
     {
+        _optionsChange?.Dispose();
         foreach (var sub in _subscriptions.Values)
         {
             try
@@ -73,13 +79,41 @@ public class RabbitMessageConsumer(
         }
     }
 
+    private void OnOptionsChanged(RabbitMessageOptions options)
+    {
+        foreach (var (queue, (channel, sync, subscription)) in _subscriptions)
+        {
+            var prefetch = RabbitMessageOptionsResolver.ResolvePrefetch(options, subscription);
+            try
+            {
+                lock (sync)
+                {
+                    if (!channel.IsOpen)
+                        continue;
+                    channel.BasicQos(options.PrefetchSize, prefetch, false);
+                }
+
+                logger.LogInformation(
+                    "Rabbit message consumer QoS updated on queue {Queue} (prefetch={PrefetchCount})",
+                    queue, prefetch);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to update QoS on queue {Queue}", queue);
+            }
+        }
+    }
+
     private void StartSubscription(RabbitSubscription subscription)
     {
+        var options = messageOptions.CurrentValue;
         var channel = connectionPool.Get(subscription.ConnectionName).CreateModel();
         var sync = new object();
 
         DeclareTopology(channel, subscription);
-        channel.BasicQos(subscription.PrefetchSize, subscription.PrefetchCount, false);
+
+        var prefetch = RabbitMessageOptionsResolver.ResolvePrefetch(options, subscription);
+        channel.BasicQos(options.PrefetchSize, prefetch, false);
 
         var consumer = new AsyncEventingBasicConsumer(channel);
         consumer.Received += (o, args) =>
@@ -99,7 +133,7 @@ public class RabbitMessageConsumer(
 
         logger.LogInformation(
             "Rabbit message consumer started on queue {Queue} (prefetch={PrefetchCount})",
-            subscription.Queue, subscription.PrefetchCount);
+            subscription.Queue, prefetch);
     }
 
     private async Task DispatchAsync(
@@ -114,9 +148,10 @@ public class RabbitMessageConsumer(
     {
         try
         {
+            var options = messageOptions.CurrentValue;
             if (!TryResolveMessageId(headers, out var messageId))
             {
-                if (subscription.AllowMissingMessageId)
+                if (RabbitMessageOptionsResolver.ResolveAllowMissingMessageId(options, subscription))
                     messageId = Guid.NewGuid();
                 else
                     throw new InvalidOperationException(
@@ -163,18 +198,20 @@ public class RabbitMessageConsumer(
             };
 
             Exception? last = null;
-            var retries = Math.Max(1, subscription.HandlerRetryCount);
+            var retries = RabbitMessageOptionsResolver.ResolveHandlerRetryCount(options, subscription);
+            var timeout = RabbitMessageOptionsResolver.ResolveHandlerTimeout(options, subscription);
+            var unitOfWork = RabbitMessageOptionsResolver.ResolveUnitOfWork(options);
 
             for (var attempt = 1; attempt <= retries; attempt++)
             {
-                using var timeoutCts = subscription.HandlerTimeout > TimeSpan.Zero
-                    ? new CancellationTokenSource(subscription.HandlerTimeout)
+                using var timeoutCts = timeout > TimeSpan.Zero
+                    ? new CancellationTokenSource(timeout)
                     : null;
                 var ct = timeoutCts?.Token ?? CancellationToken.None;
 
                 try
                 {
-                    await InvokeHandlerAsync(sp, subscription, ctx, ct);
+                    await InvokeHandlerAsync(sp, subscription, ctx, unitOfWork, ct);
                     await inbox.MarkSucceededAsync(messageId, subscription.Queue, ct);
                     Acknowledge(channel, sync, deliveryTag, ack: true);
                     return;
@@ -182,7 +219,7 @@ public class RabbitMessageConsumer(
                 catch (OperationCanceledException ex) when (timeoutCts is { IsCancellationRequested: true })
                 {
                     last = new TimeoutException(
-                        $"Handler timed out after {subscription.HandlerTimeout} for message {messageId}.", ex);
+                        $"Handler timed out after {timeout} for message {messageId}.", ex);
                     break;
                 }
                 catch (Exception ex)
@@ -208,9 +245,9 @@ public class RabbitMessageConsumer(
         IServiceProvider sp,
         RabbitSubscription subscription,
         RabbitConsumeContext ctx,
+        MessageConsumeUnitOfWorkMode mode,
         CancellationToken ct)
     {
-        var mode = subscription.UnitOfWork;
         var handler = subscription.Handler
                       ?? throw new InvalidOperationException($"RabbitSubscription.Handler is required for queue {ctx.Queue}.");
 

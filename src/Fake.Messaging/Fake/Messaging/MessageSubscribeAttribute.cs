@@ -2,7 +2,7 @@ namespace Fake.Messaging;
 
 /// <summary>
 /// 订阅侧特例覆盖（可选）。路由 Name/Topic 默认跟消息 <see cref="MessageRouteAttribute"/>；
-/// 消费行为（超时/重试/UoW/Prefetch/DLX）一律走传输配置（如 <c>RabbitMQ:Messaging</c>）。
+/// 超时/重试/UoW/DLX 等走传输配置；<see cref="PrefetchCount"/> 可按队列覆盖并发。
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
 public sealed class MessageSubscribeAttribute : Attribute
@@ -27,6 +27,11 @@ public sealed class MessageSubscribeAttribute : Attribute
 
     /// <summary>连接名；空则传输默认连接。</summary>
     public string? ConnectionName { get; set; }
+
+    /// <summary>
+    /// 本队列预取/并发上限（BasicQos）。0=使用传输全局默认（如 <c>RabbitMQ:Messaging:PrefetchCount</c>）。
+    /// </summary>
+    public ushort PrefetchCount { get; set; }
 
     /// <summary>允许缺失 MessageId（外部回调）。</summary>
     public bool AllowMissingMessageId { get; set; }

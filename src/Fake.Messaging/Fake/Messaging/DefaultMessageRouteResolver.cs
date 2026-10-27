@@ -5,9 +5,9 @@ namespace Fake.Messaging;
 
 /// <summary>
 /// 路由唯一来源：动态键 → nameOverride → [MessageRoute] → 类型名；
-/// Topic / TopicType → [MessageRoute] → <see cref="MessagingOptions"/>。
+/// Topic / TopicType → [MessageRoute] → <see cref="MessagingOptions"/>（<c>IOptionsMonitor</c>，可热更新）。
 /// </summary>
-public sealed class DefaultMessageRouteResolver(IOptions<MessagingOptions> options) : IMessageRouteResolver
+public sealed class DefaultMessageRouteResolver(IOptionsMonitor<MessagingOptions> options) : IMessageRouteResolver
 {
     public ResolvedMessageRoute Resolve(Message message)
     {
@@ -27,7 +27,7 @@ public sealed class DefaultMessageRouteResolver(IOptions<MessagingOptions> optio
     private ResolvedMessageRoute ResolveCore(Type messageType, string? nameOverride, string? dynamicKey)
     {
         var attr = messageType.GetCustomAttribute<MessageRouteAttribute>(inherit: true);
-        var o = options.Value;
+        var o = options.CurrentValue;
 
         var name = FirstNonEmpty(dynamicKey, nameOverride, attr?.Name) ?? messageType.Name;
         var topic = FirstNonEmpty(attr?.Topic, o.DefaultTopic)

@@ -47,6 +47,7 @@ public sealed class MessageSubscribeFinder(
                 TopicType = route.TopicType,
                 Provider = attr?.Provider,
                 ConnectionName = attr?.ConnectionName,
+                PrefetchCount = attr?.PrefetchCount ?? 0,
                 AllowMissingMessageId = attr?.AllowMissingMessageId ?? false
             });
         }
