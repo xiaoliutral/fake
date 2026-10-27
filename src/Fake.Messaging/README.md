@@ -25,9 +25,11 @@
 2. **运维聚合（可选后续）**：网关/Consul 列出各服务 Dashboard URL，或独立 Admin 调各服务 `/api/*` 聚合；共享 Outbox 表时再加 `ServiceName` 列过滤。
 3. **Subscriptions** 永远是「当前进程」的 Handler；跨服务拓扑看 Rabbit 管理台或各服务各自 Dashboard。
 
-`[MessageSubscribe]` 特例：`Name` / `Group` / `PrefetchCount` / `AllowMissingMessageId` / `Provider` / `ConnectionName`。
+`[MessageSubscribe]` 特例：`Name` / `Group` / `PrefetchCount` / `ExternalQueue` / `Provider` / `ConnectionName`。
 
-并发优先级：`Attribute.PrefetchCount` → `RabbitMQ:Messaging:Handlers:{Handler短名|全名|Queue}` → 全局 `PrefetchCount`（**默认 1**）。配置热更新会重打 `BasicQos`。
+并发优先级：`Attribute.PrefetchCount` → `RabbitMQ:Messaging:Handlers:{Handler短名|全名|Queue}` → 全局 `PrefetchCount`（**`0`= `Environment.ProcessorCount`**，对齐 CAP 并行订阅默认线程数）。配置热更新会重打 `BasicQos`。
+
+> 说明：CAP 的 `ConsumerThreadCount` 默认仍是 **1**；核心数默认出现在 `SubscriberParallelExecuteThreadCount`（需显式开并行）。Messaging 独立队列无跨 Handler 顺序约束，故全局 Prefetch 直接默认核心数。
 
 ## 发布
 
@@ -47,7 +49,7 @@ public class TrackDeleteEventHandler
     public Task HandleAsync(TrackDeleteEvent e, CancellationToken ct) => ...;
 }
 
-[MessageSubscribe("TrackRefresh.Q", PrefetchCount = 1, AllowMissingMessageId = true)]
+[MessageSubscribe("TrackRefresh.Q", PrefetchCount = 1, ExternalQueue = true)]
 public class TrackRefreshEventHandler
     : IMessageHandle<InterfaceRelayForwardReplayEvent>, ITransientDependency
 {

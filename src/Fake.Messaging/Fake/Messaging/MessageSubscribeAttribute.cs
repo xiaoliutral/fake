@@ -29,10 +29,14 @@ public sealed class MessageSubscribeAttribute : Attribute
     public string? ConnectionName { get; set; }
 
     /// <summary>
-    /// 本队列预取/并发上限（BasicQos）。0=使用传输全局默认（如 <c>RabbitMQ:Messaging:PrefetchCount</c>）。
+    /// 本队列预取/并发上限（BasicQos）。0=使用传输全局默认
+    ///（<c>RabbitMQ:Messaging:PrefetchCount</c>，其中 0 再回落为 <c>Environment.ProcessorCount</c>）。
     /// </summary>
     public ushort PrefetchCount { get; set; }
 
-    /// <summary>允许缺失 MessageId（外部回调）。</summary>
-    public bool AllowMissingMessageId { get; set; }
+    /// <summary>
+    /// 外部队列（如接口通回调）：允许缺失 MessageId，且不声明 DLX（对接已有拓扑）。
+    /// 内部队列保持默认：必有 MessageId，DLX 跟随 <c>RabbitMQ:Messaging:EnableDlx</c>。
+    /// </summary>
+    public bool ExternalQueue { get; set; }
 }

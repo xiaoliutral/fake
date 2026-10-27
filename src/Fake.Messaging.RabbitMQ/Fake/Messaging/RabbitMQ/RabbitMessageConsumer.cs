@@ -151,7 +151,7 @@ public class RabbitMessageConsumer(
             var options = messageOptions.CurrentValue;
             if (!TryResolveMessageId(headers, out var messageId))
             {
-                if (RabbitMessageOptionsResolver.ResolveAllowMissingMessageId(options, subscription))
+                if (RabbitMessageOptionsResolver.ResolveAllowMissingMessageId(subscription))
                     messageId = Guid.NewGuid();
                 else
                     throw new InvalidOperationException(

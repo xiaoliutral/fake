@@ -48,7 +48,7 @@ public sealed class MessageSubscribeFinder(
                 Provider = attr?.Provider,
                 ConnectionName = attr?.ConnectionName,
                 PrefetchCount = attr?.PrefetchCount ?? 0,
-                AllowMissingMessageId = attr?.AllowMissingMessageId ?? false
+                ExternalQueue = attr?.ExternalQueue ?? false
             });
         }
 

@@ -26,7 +26,8 @@ public sealed class RabbitSubscription
     /// <summary>Attribute 覆盖；0=走配置 / 全局。</summary>
     public ushort AttributePrefetchCount { get; init; }
 
-    public bool AttributeAllowMissingMessageId { get; init; }
+    /// <summary>外部队列：允许缺 MessageId、不声明 DLX。</summary>
+    public bool ExternalQueue { get; init; }
 
     /// <summary>声明期快照（改 DLX/队列类型需重启进程）。</summary>
     public bool EnableDlx { get; init; }

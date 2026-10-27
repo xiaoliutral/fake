@@ -36,8 +36,12 @@ public class RabbitMessageOptions
 
     public uint PrefetchSize { get; set; }
 
-    /// <summary>全局预取/并发上限（BasicQos）。默认 1。可被 Attribute / <see cref="Handlers"/> 覆盖。</summary>
-    public ushort PrefetchCount { get; set; } = 1;
+    /// <summary>
+    /// 全局预取/并发上限（BasicQos，且本实现 fire-and-forget 派发时≈最大并发 Handler 数）。
+    /// <c>0</c>=自动 <see cref="Environment.ProcessorCount"/>（对齐 CAP 并行订阅默认线程数）。
+    /// 可被 Attribute / <see cref="Handlers"/> 覆盖。
+    /// </summary>
+    public ushort PrefetchCount { get; set; }
 
     #endregion
 
@@ -52,9 +56,6 @@ public class RabbitMessageOptions
     public int QueueMaxLength { get; set; }
 
     #endregion
-
-    /// <summary>允许缺失 MessageId（全局）；单 Handler 可用 Attribute 打开。</summary>
-    public bool AllowMissingMessageId { get; set; }
 
     /// <summary>消费 Handler 外层 UoW。默认 NonTransactional。</summary>
     public MessageConsumeUnitOfWorkMode UnitOfWork { get; set; } = MessageConsumeUnitOfWorkMode.NonTransactional;

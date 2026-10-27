@@ -28,5 +28,6 @@ public sealed class MessageSubscribeDescriptor
     /// <summary>0=使用传输全局 PrefetchCount。</summary>
     public ushort PrefetchCount { get; init; }
 
-    public bool AllowMissingMessageId { get; init; }
+    /// <summary>外部队列：缺 MessageId 可生成；不声明 DLX。</summary>
+    public bool ExternalQueue { get; init; }
 }

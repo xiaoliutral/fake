@@ -14,7 +14,7 @@ internal static class RabbitMessageOptionsResolver
             handler.PrefetchCount is { } p && p > 0)
             return p;
 
-        return options.PrefetchCount == 0 ? (ushort)1 : options.PrefetchCount;
+        return ResolveGlobalPrefetch(options.PrefetchCount);
     }
 
     public static int ResolveHandlerRetryCount(RabbitMessageOptions options, RabbitSubscription subscription)
@@ -34,11 +34,17 @@ internal static class RabbitMessageOptionsResolver
         return options.HandlerTimeout;
     }
 
-    public static bool ResolveAllowMissingMessageId(RabbitMessageOptions options, RabbitSubscription subscription)
-        => subscription.AttributeAllowMissingMessageId || options.AllowMissingMessageId;
+    public static bool ResolveAllowMissingMessageId(RabbitSubscription subscription)
+        => subscription.ExternalQueue;
 
     public static MessageConsumeUnitOfWorkMode ResolveUnitOfWork(RabbitMessageOptions options)
         => options.UnitOfWork;
+
+    /// <summary><paramref name="prefetch"/> 为 0 时取 <see cref="Environment.ProcessorCount"/>（至少 1）。</summary>
+    public static ushort ResolveGlobalPrefetch(ushort prefetch)
+        => prefetch == 0
+            ? (ushort)Math.Clamp(Environment.ProcessorCount, 1, ushort.MaxValue)
+            : prefetch;
 
     private static bool TryGetHandler(
         RabbitMessageOptions options,
